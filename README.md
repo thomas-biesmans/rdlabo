@@ -1,2 +1,2 @@
 # rdlabo
-RDLabo configuration
+RDLabo configuration.
