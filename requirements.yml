@@ -1,5 +1,5 @@
 ---
-roles:
+# roles:
 # - geerlingguy.glusterfs
 # - bertvv.bind
 # - bertvv.dhcp # not updated anymore
@@ -10,7 +10,11 @@ collections:
 - ovirt.ovirt
 # - gluster.gluster
 - ansible.posix
+- community.vmware
+- community.kubernetes
+- community.okd
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml
 # - ansible-galaxy role install -r requirements.yml 
+# This will install external roles & collections to the user's /home/<user>/.ansible/ dir

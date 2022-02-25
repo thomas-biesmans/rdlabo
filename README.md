@@ -1,10 +1,22 @@
 # rdlabo
 
-Make sure the requirements are installed with:
+This is an Ansible playbook configuration. This requires Ansible to be installed.
+
+    sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+    sudo yum install -y ansible
+
+Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/<user>/.ansible/ dir:
 
     ansible-galaxy collection install -r requirements.yml
     ansible-galaxy role install -r requirements.yml 
 
+Versions used in this pass:
+ - ovirt.ovirt:1.6.6
+ - ansible.posix:1.3.0
+ - community.vmware:2.1.0
+ - community.kubernetes:2.0.1
+ - community.okd:2.1.0
+ - kubernetes.core:2.2.3
 
 To be able to manage hosts through Ansible Python needs to be installed, including some other pre-reqs
 
