@@ -1,4 +1,4 @@
-# rdlabo
+# RDLabo
 
 This is an Ansible playbook configuration. This requires Ansible to be installed.
 
