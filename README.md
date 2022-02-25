@@ -18,6 +18,8 @@ Versions used in this pass:
  - community.okd:2.1.0
  - kubernetes.core:2.2.3
 
+--- WIP from here on ---
+
 To be able to manage hosts through Ansible Python needs to be installed, including some other pre-reqs
 
     CentOS Steam 8
