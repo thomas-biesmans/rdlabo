@@ -1,0 +1,16 @@
+---
+roles:
+# - geerlingguy.glusterfs
+# - bertvv.bind
+# - bertvv.dhcp # not updated anymore
+# - src: https://github.com/bertvv/ansible-role-dhcp.git
+#   name: bertvv.dhcp
+
+collections:
+- ovirt.ovirt
+# - gluster.gluster
+- ansible.posix
+
+# Install with:
+# - ansible-galaxy collection install -r requirements.yml
+# - ansible-galaxy role install -r requirements.yml 
