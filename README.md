@@ -1,14 +1,16 @@
 # RDLabo
-
-This is an Ansible playbook configuration. This requires Ansible to be installed.
+## Requirements
+This is an Ansible playbook configuration. This requires Ansible to be installed. We'll also update pip to prevent issues updating requirements.
 
     sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
     sudo yum install -y ansible
+    sudo pip3 install --upgrade pip
 
-Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/<user>/.ansible/ dir:
+Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/<user>/.ansible/ dir. Some collections require additional requirement installations.
 
     ansible-galaxy collection install -r requirements.yml
     ansible-galaxy role install -r requirements.yml 
+    pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt
 
 Versions used in this pass:
  - ovirt.ovirt:1.6.6
@@ -17,6 +19,43 @@ Versions used in this pass:
  - community.kubernetes:2.0.1
  - community.okd:2.1.0
  - kubernetes.core:2.2.3
+
+## Further prep
+Ansible Vault is used to store credentials. We'll use a vault password file to encrypt & decrypt the Ansible Vault .yml file.
+
+Create the vault password file with:
+
+    vi ansible_vaultpasswd.user
+    chmod 400 ansible_vaultpasswd.user
+    echo 'ansible_vaultpasswd.user' >> .gitignore
+
+One way to create encrypted password files is using stdin, i.e. typing it in a prompt. Press Ctrl-D twice to end input, if you use <Enter>, then the <Enter> is appended!
+
+    ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_username' >> ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_password' >> ansible_vault.yml
+
+Use the following Ansible snippet to load the password file:
+```
+--- 
+- name: Check inputs 
+hosts: localhost 
+connection: local 
+gather_facts: false 
+
+tasks: 
+- name: Check if Red Hat password file exists 
+  stat: 
+    path: passwords/vault-logins.yml 
+    register: vault_logins 
+
+- name: Terminate if password file is missing 
+  fail: msg="Password file is missing" 
+  when: vault_logins.stat.exists is undefined 
+
+- name: Parse password var input file 
+  include_vars: 
+  file: passwords/vault-logins.yml 
+```
 
 --- WIP from here on ---
 
