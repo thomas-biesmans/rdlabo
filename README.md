@@ -31,6 +31,7 @@ Create the vault password file with:
 
 One way to create encrypted password files is using stdin, i.e. typing it in a prompt. Press Ctrl-D twice to end input, if you use <Enter>, then the <Enter> is appended!
 
+    echo 'ansible_vault.yml' >> .gitignore
     ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_username' >> ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_password' >> ansible_vault.yml
 
@@ -38,23 +39,23 @@ Use the following Ansible snippet to load the password file:
 ```
 --- 
 - name: Check inputs 
-hosts: localhost 
-connection: local 
-gather_facts: false 
+  hosts: localhost 
+  connection: local 
+  gather_facts: false 
 
-tasks: 
-- name: Check if Red Hat password file exists 
-  stat: 
-    path: passwords/vault-logins.yml 
+  tasks: 
+  - name: Check if Red Hat password file exists 
+    stat: 
+      path: passwords/ansible_vault.yml 
     register: vault_logins 
 
-- name: Terminate if password file is missing 
-  fail: msg="Password file is missing" 
-  when: vault_logins.stat.exists is undefined 
+  - name: Terminate if password file is missing 
+    fail: msg="Password file is missing" 
+    when: not vault_logins.stat.exists 
 
-- name: Parse password var input file 
-  include_vars: 
-  file: passwords/vault-logins.yml 
+  - name: Parse password var input file 
+    include_vars: 
+      file: passwords/ansible_vault.yml 
 ```
 
 --- WIP from here on ---

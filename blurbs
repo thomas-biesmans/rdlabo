@@ -1,0 +1,21 @@
+  - name: RDLOKD3MSTR01.rdlabo.local
+    profile: "{{ tinyCentos8_vm }}"
+    domain: localdomain
+    cloud_init:
+      nic_name: enp1s0
+      nic_boot_protocol: static
+      #nic_on_boot: true # only in ovirt.ovirt.ovirt_vm
+      nic_ip_address: 192.168.1.62
+      nic_netmask: 255.255.255.0
+      nic_gateway: 192.168.1.1
+
+
+
+
+  - name: RDLOKD3MSTR01.rdlabo.local
+  - name: RDLOKD3MSTR02.rdlabo.local
+  - name: RDLOKD3MSTR03.rdlabo.local
+  - name: RDLOKD3INFR01.rdlabo.local
+  - name: RDLOKD3INFR02.rdlabo.local
+  - name: RDLOKD3WRKR01.rdlabo.local
+  - name: RDLOKD3WRKR02.rdlabo.local

@@ -1,19 +1,66 @@
 --- 
-- name: Check inputs 
-hosts: localhost 
-connection: local 
-gather_facts: false 
+- import_playbook: check_all.yml
 
-tasks: 
-- name: Check if Red Hat password file exists 
-  stat: 
-    path: passwords/vault-logins.yml 
-    register: vault_logins 
+- name: Deploy VMs
+  hosts: rhel8_vms
+  gather_facts: false
+  vars_files:
+  - group_vars/rhel8_vms.yml
 
-- name: Terminate if password file is missing 
-  fail: msg="Password file is missing" 
-  when: vault_logins.stat.exists is undefined 
+  tasks:
+  - name: Print all variables
+    vars: 
+      msg: |
+        Module Variables ("vars"):
+        --------------------------------
+        {{ vars | to_nice_json }} 
+        
+        Environment Variables ("environment"):
+        --------------------------------
+        {{ environment | to_nice_json }} 
+        
+        GROUP NAMES Variables ("group_names"):
+        --------------------------------
+        {{ group_names | to_nice_json }}
+        
+        GROUPS Variables ("groups"):
+        --------------------------------
+        {{ groups | to_nice_json }}
+        
+        HOST Variables ("hostvars"):
+        --------------------------------
+        {{ hostvars | to_nice_json }} 
+    debug: 
+      msg: "{{ msg.split('\n') }}"  
 
-- name: Parse password var input file 
-  include_vars: 
-  file: passwords/vault-logins.yml 
+  - name: Biep list VMs
+    ansible.builtin.debug:
+      msg: "{{ state }}"
+    # loop: "{{ groups['rhel8_vms'] }}"
+
+  # - name: Biep list detail
+  #   ansible.builtin.debug:
+  #     msg: "{{ item.community.vmware.vmware_guest.state }}"
+  #   when: hostvars[item]['inventory_hostname'] == 'rdlokd3infr02.rdlabo.local'
+  #   loop: "{{ rhel8_vms }}"
+
+# - name: Configure VMs
+#   hosts: vcenter_vms
+#   gather_facts: false
+
+#   tasks:
+#   - name: Biep
+#     ansible.builtin.debug:
+#       msg: "{{ item }}"
+#     loop: "{{ rhel8_vms }}"
+
+
+- name: Tasks
+  hosts: localhost 
+  connection: local 
+  gather_facts: false 
+
+  tasks:
+  - name: Biep
+    ansible.builtin.debug:
+      msg: "biep" 

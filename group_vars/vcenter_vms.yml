@@ -1,0 +1,5 @@
+---
+vcenter_vms:
+  hostname: rdlvc11a.rdlabo.local
+  username: "{{ vmware_sa_username }}"
+  password: "{{ vmware_sa_password }}" 
