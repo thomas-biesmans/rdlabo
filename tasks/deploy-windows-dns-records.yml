@@ -1,8 +1,12 @@
 ---
-
-- name: Debug check names
-  debug:
-    msg: "Name '{{ inventory_hostname }}', domain '{{ inventory_hostname[inventory_hostname.index('.')+1:] }}', IP '{{ vars.ip }}', vlans '{{ vars.vlans }}'"
+# - name: check var
+#   debug:
+#     msg: "{{ vars.target_group_dns }}"
+# # - name: halt
+# #   fail: {}
+# - name: Debug check names
+#   debug:
+#     msg: "Name '{{ inventory_hostname }}', domain '{{ inventory_hostname[inventory_hostname.index('.')+1:] }}', IP '{{ vars.ip }}', vlans '{{ vars.vlans }}'"
 
 - name: Find matching reverse lookup zone
   set_fact:
@@ -10,18 +14,25 @@
   loop: "{{ vars.vlans }}"
   when: item.name == vars.vmware_networkportgroup
 
+# - name: check
+#   debug:
+#     msg: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
+#     msg: "{{ inventory_hostname }}, {{ vars.ip }}, {{ inventory_hostname[inventory_hostname.index('.')+1:] }}"
+
 - name: Create Windows DNS A record
   community.windows.win_dns_record:
-    name: "{{ inventory_hostname }}"
+    name: "{{ inventory_hostname_short }}"
     type: A
     value: "{{ vars.ip }}"
     zone: "{{ inventory_hostname[inventory_hostname.index('.')+1:] }}"
-  delegate_to: windows_dns
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups.windows_dns }}"
 
 - name: Create Windows DNS PTR record
   community.windows.win_dns_record:
-    name: "{{ vars.ip }}"
-    type: PTR lookup
-    value: "{{ inventory_hostname_short }}"
+    name: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
+    type: PTR
+    value: "{{ inventory_hostname }}"
     zone: "{{ vars.found_revlookupzonename }}"
-  delegate_to: windows_dns
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups.windows_dns }}"

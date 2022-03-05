@@ -11,6 +11,7 @@ Make sure the Ansible requirements are installed next with the following command
     ansible-galaxy collection install -r requirements.yml
     ansible-galaxy role install -r requirements.yml 
     pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt
+    pip3 install pywinrm
 
 Versions used in this pass:
  - ovirt.ovirt:1.6.6
