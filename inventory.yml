@@ -17,7 +17,7 @@ rhel8_vms:
     rdlokd3wrkr02.rdlabo.local:
       ip: 10.255.254.150
   vars:
-    vmware_networkportgroup: VLAN665 - RD Labo
+    vmware_networkportgroup: VLAN665-RD Labo
 
 vcenter_vms:
   children:

@@ -1,5 +1,10 @@
 ---
-vcenter_vms:
-  hostname: rdlvc11a.rdlabo.local
-  username: "{{ vmware_sa_username }}"
-  password: "{{ vmware_sa_password }}" 
+vcenter_hostname: rdlvc11a.rdlabo.local
+vcenter_username: "{{ vmware_sa_username }}"
+vcenter_password: "{{ vmware_sa_password }}"
+default_vmware_portgroup:
+- name: VLAN665 - RD Labo
+  device_type: vmxnet3
+  connected: true
+  start_connected: true
+  type: dynamic

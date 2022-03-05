@@ -1,5 +1,5 @@
 # RDLabo
-## Requirements
+## Requirements - Ansible
 This is an Ansible playbook configuration. This requires Ansible to be installed. We'll also update pip to prevent issues updating requirements.
 
     sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
@@ -20,7 +20,7 @@ Versions used in this pass:
  - community.okd:2.1.0
  - kubernetes.core:2.2.3
 
-## Further prep
+## Requirements - Ansible Vault
 Ansible Vault is used to store credentials. We'll use a vault password file to encrypt & decrypt the Ansible Vault .yml file.
 
 Create the vault password file with:
@@ -58,6 +58,44 @@ Use the following Ansible snippet to load the password file:
       file: passwords/ansible_vault.yml 
 ```
 
+## Requirements - Linux VMware template
+
+To be able to deploy Linux VMs we have to verify that open-vm-tools is installed on our template VM (done by default on RHEL 8.5), as well as several other packages required by deployPkg:
+
+RHEL 8.5
+
+  mkdir /mnt/rhel-dvd && mount -t iso9660 -o ro /dev/cdrom /mnt/rhel-dvd
+  
+  # Add for RHEL 8:
+  cat << EOF >> /etc/yum.repos.d/rhel-dvd.repo
+  [rhel-dvd-BaseOS]
+  name=Red Hat Enterprise Linux $releasever - $basearch - DVD BaseOS
+  baseurl=file:///mnt/rhel-dvd/BaseOS
+  enabled=1
+  gpgcheck=0
+  
+  [rhel-dvd-AppStream]
+  name=Red Hat Enterprise Linux $releasever - $basearch - DVD AppStream
+  baseurl=file:///mnt/rhel-dvd/AppStream
+  enabled=1
+  gpgcheck=0
+  EOF
+  
+  yum clean all
+  yum --noplugins list
+
+  yum install open-vm-tools perl cloud-init
+
+
+## Execution
+
+To execute a playbook and capture the output (--ask-become-pass not needed):
+
+  ansible-playbook -i inventory.yml deploy_OKD_3.11_nodes.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user 2>&1 | tee -a output_run_20210507_1345.log
+
+
+
+
 --- WIP from here on ---
 
 To be able to manage hosts through Ansible Python needs to be installed, including some other pre-reqs
@@ -90,6 +128,3 @@ And we need access to the host, e.g.:
     Activate the web console with: systemctl enable --now cockpit.socket
 
 
-To execute a playbook and capture the output:
-
-    ansible-playbook -i inventory.yml ovirt-provision.yml --ask-become-pass --vault-id donisaurs@passwords/vaultpassword 2>&1 | tee -a output_run_20210507_1345.log

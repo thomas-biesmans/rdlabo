@@ -2,42 +2,28 @@
 - import_playbook: check_all.yml
 
 - name: Deploy VMs
-  hosts: rhel8_vms
+  hosts: rdlokd3wrkr01.rdlabo.local # rhel8_vms # 
   gather_facts: false
   vars_files:
-  - group_vars/rhel8_vms.yml
+  - passwords/ansible_vault.yml
 
   tasks:
-  - name: Print all variables
-    vars: 
-      msg: |
-        Module Variables ("vars"):
-        --------------------------------
-        {{ vars | to_nice_json }} 
-        
-        Environment Variables ("environment"):
-        --------------------------------
-        {{ environment | to_nice_json }} 
-        
-        GROUP NAMES Variables ("group_names"):
-        --------------------------------
-        {{ group_names | to_nice_json }}
-        
-        GROUPS Variables ("groups"):
-        --------------------------------
-        {{ groups | to_nice_json }}
-        
-        HOST Variables ("hostvars"):
-        --------------------------------
-        {{ hostvars | to_nice_json }} 
-    debug: 
-      msg: "{{ msg.split('\n') }}"  
 
-  - name: Biep list VMs
-    ansible.builtin.debug:
-      msg: "{{ state }}"
-    # loop: "{{ groups['rhel8_vms'] }}"
+  # - name: Biep 
+  #   ansible.builtin.debug:
+  #     msg: "Test: {{ vars.community_vmware_vmware__guest.folder }}"
+    #loop: "{{ groups.rhel8_vms }}"
 
+  - name: Deploy VMs
+    ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+
+  - name: Check alive
+    debug:
+      msg: 'Biep from host!'
+  
+  
+  
+  
   # - name: Biep list detail
   #   ansible.builtin.debug:
   #     msg: "{{ item.community.vmware.vmware_guest.state }}"
