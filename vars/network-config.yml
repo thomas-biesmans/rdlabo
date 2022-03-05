@@ -1,0 +1,13 @@
+dns_servers: 10.255.255.101,10.255.254.102
+domain: rdlabo.local
+vlans:
+- name: VLAN665-RD Labo
+  network: 10.255.254.0
+  netmask: 255.255.255.0
+  gateway: 10.255.254.254
+  revlookupzonename: 254.255.10.in-addr.arpa
+- name: VLAN666-BURA
+  network: 10.255.255.0
+  netmask: 255.255.255.0
+  gateway: 10.255.255.254
+  revlookupzonename: 255.255.10.in-addr.arpa

@@ -13,6 +13,7 @@ collections:
 - community.vmware
 - community.kubernetes
 - community.okd
+- community.windows
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml

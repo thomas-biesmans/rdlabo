@@ -1,3 +1,4 @@
+deployment_username: root
 community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo

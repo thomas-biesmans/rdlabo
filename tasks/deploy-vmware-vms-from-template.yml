@@ -121,7 +121,6 @@
     #   domain: rdlabo.local
     #   #mac: aa:bb:dd:aa:00:14
     wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default('true') }}"
-  vars:
 
   delegate_to: localhost
   register: deploy

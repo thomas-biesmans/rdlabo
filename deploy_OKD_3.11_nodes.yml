@@ -6,6 +6,7 @@
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
+  - vars/network-config.yml
 
   tasks:
 
@@ -14,8 +15,14 @@
   #     msg: "Test: {{ vars.community_vmware_vmware__guest.folder }}"
     #loop: "{{ groups.rhel8_vms }}"
 
-  - name: Deploy VMs
-    ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+  # - name: Deploy VMs
+  #   ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+
+  - name: Deploy DNS records
+    ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
+
+  - name: Deploy SSH key on VMs
+    ansible.builtin.include_tasks: tasks/deploy-ssh-key.yml
 
   - name: Check alive
     debug:

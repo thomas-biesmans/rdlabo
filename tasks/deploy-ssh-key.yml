@@ -1,1 +1,18 @@
 ---
+
+- name: Check local SSH key
+  stat:
+    path: ~/.ssh/id_rsa.pub
+  register: local_ssh_key
+  delegate_to: localhost
+
+- name: Create SSH key locally if it does not exist
+  shell: ssh-keygen -q -b 2048 -t rsa -N "" -f ~/.ssh/id_rsa #        creates="~/.ssh/id_rsa"
+  when: not local_ssh_key.stat.exists
+  delegate_to: localhost
+
+- name: Copy public SSH key to VM
+  authorized_key:
+    user: "{{ vars.deployment_username }}"
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"

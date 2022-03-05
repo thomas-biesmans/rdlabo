@@ -19,6 +19,12 @@ rhel8_vms:
   vars:
     vmware_networkportgroup: VLAN665-RD Labo
 
+
+windows_dns:
+  hosts:
+    rdldc01.rdlabo.local:
+
 vcenter_vms:
   children:
     rhel8_vms:
+
