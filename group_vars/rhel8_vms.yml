@@ -1,4 +1,7 @@
-deployment_username: root
+---
+deployment_username: "{{ template_lin_username }}"
+deployment_template_password: "{{ template_lin_password }}"
+deployment_password: "{{ client_password }}"
 community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo

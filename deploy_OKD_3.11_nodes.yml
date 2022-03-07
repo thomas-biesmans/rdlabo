@@ -34,8 +34,14 @@
 
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
-  - name: halt
-    fail: {}
+
+  - name: Import VM's SSH key to prevent accept question
+    ansible.builtin.include_tasks: tasks/import-host-ssh-key.yml
+
+  - name: biep
+    debug:
+      msg: "{{ template_lin_username }}"
+
   - name: Deploy SSH key on VMs
     ansible.builtin.include_tasks: tasks/deploy-ssh-key.yml
 
@@ -44,6 +50,9 @@
       msg: 'Biep from host!'
   
   
+  - name: halt
+    fail: {}
+
   
   
   # - name: Biep list detail

@@ -11,8 +11,16 @@
   when: not local_ssh_key.stat.exists
   delegate_to: localhost
 
-- name: Copy public SSH key to VM
+- name: Copy public SSH key to VM, from scratch might fail
   authorized_key:
-    user: "{{ vars.deployment_username }}"
+    user: "{{ deployment_username }}"
     state: present
     key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  register: regular_copy_attempt
+  ignore_errors: yes
+  delegate_to: localhost
+
+- name: Copy public key to VM ssh-copy-id if failed
+  shell: sshpass -p {{ deployment_template_password }} ssh-copy-id -i ~/.ssh/id_rsa.pub -o StrictHostKeyChecking=no {{ deployment_username }}@{{ inventory_hostname }}
+  when: regular_copy_attempt is failed 
+  delegate_to: localhost

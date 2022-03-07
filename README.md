@@ -6,7 +6,7 @@ This is an Ansible playbook configuration. This requires Ansible to be installed
     sudo yum install -y ansible
     sudo pip3 install --upgrade pip
 
-Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/<user>/.ansible/ dir. Some collections require additional requirement installations.
+Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/\<user\>/.ansible/ dir. Some collections require additional requirement installations.
 
     ansible-galaxy collection install -r requirements.yml
     ansible-galaxy role install -r requirements.yml 
@@ -27,15 +27,19 @@ Ansible Vault is used to store credentials. We'll use a vault password file to e
 
 Create the vault password file with:
 
-    vi ansible_vaultpasswd.user
-    chmod 400 ansible_vaultpasswd.user
-    echo 'ansible_vaultpasswd.user' >> .gitignore
+    mkdir passwords
+    vi passwords/ansible_vaultpasswd.user
+    chmod 400 passwords/ansible_vaultpasswd.user
+    echo 'passwords/ansible_vaultpasswd.user' >> .gitignore
 
-One way to create encrypted password files is using stdin, i.e. typing it in a prompt. Press Ctrl-D twice to end input, if you use <Enter>, then the <Enter> is appended!
+One way to create encrypted password files is using stdin, i.e. typing it in a prompt. Press Ctrl-D twice to end input, if you use \<Enter\>, then the \<Enter\> is appended!
 
     echo 'ansible_vault.yml' >> .gitignore
-    ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_username' >> ansible_vault.yml
-    ansible-vault encrypt_string --vault-id donisaurs@ansible_vaultpasswd.user --stdin-name 'vmware_sa_password' >> ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_sa_username' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_sa_password' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'template_lin_username' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'template_lin_password' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'client_password' >> passwords/ansible_vault.yml
 
 Use the following Ansible snippet to load the password file:
 ```
