@@ -15,17 +15,20 @@
 
 
 - name: Deploy VMs
-  hosts: rdlokd3wrkr01.rdlabo.local # rhel8_vms # 
+  hosts: rdlokd3mstr01.rdlabo.local # rhel8_vms # 
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   tasks:
 
-  # - name: Biep 
-  #   ansible.builtin.debug:
-  #     msg: "Test: {{ vars.community_vmware_vmware__guest.folder }}"
-    #loop: "{{ groups.rhel8_vms }}"
+  - name: Combine customized VM config
+    set_fact:
+      community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest, recursive=true) }}"
+
+  # - name: biep
+  #   debug:
+  #     msg: "{{ vars.community_vmware_vmware__guest }}"
 
   - name: Deploy DNS records
     vars:
@@ -38,18 +41,22 @@
   - name: Import VM's SSH key to prevent accept question
     ansible.builtin.include_tasks: tasks/import-host-ssh-key.yml
 
-  - name: biep
-    debug:
-      msg: "{{ template_lin_username }}"
-
   - name: Deploy SSH key on VMs
-    ansible.builtin.include_tasks: tasks/deploy-ssh-key.yml
+    ansible.builtin.include_tasks: tasks/deploy-ssh-key-authentication.yml
 
   - name: Check alive
     debug:
       msg: 'Biep from host!'
   
-  
+
+
+
+
+  - name: test
+    yum:
+      name:
+        open-vm-tools
+      state: present
   - name: halt
     fail: {}
 

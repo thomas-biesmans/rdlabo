@@ -1,6 +1,6 @@
 ---
 
-rhel8_vms:
+rhel8_vms_master_nodes:
   hosts:
     rdlokd3mstr01.rdlabo.local:
       ip: 10.255.254.144
@@ -8,6 +8,8 @@ rhel8_vms:
       ip: 10.255.254.145
     rdlokd3mstr03.rdlabo.local:
       ip: 10.255.254.146
+rhel8_vms_regular_nodes:
+  hosts:
     rdlokd3infr01.rdlabo.local:
       ip: 10.255.254.147
     rdlokd3infr02.rdlabo.local: 
@@ -16,12 +18,17 @@ rhel8_vms:
       ip: 10.255.254.149
     rdlokd3wrkr02.rdlabo.local:
       ip: 10.255.254.150
-  vars:
-    vmware_networkportgroup: VLAN665-RD Labo
 
 windows_dns:
   hosts:
     rdldc02.rdlabo.local:
+
+rhel8_vms:
+  children:
+    rhel8_vms_master_nodes:
+    rhel8_vms_regular_nodes:
+  vars:
+    vmware_networkportgroup: VLAN665-RD Labo
 
 vcenter_vms:
   children:

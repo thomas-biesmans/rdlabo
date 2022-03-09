@@ -1,0 +1,9 @@
+---
+custom_community_vmware_vmware__guest:
+  disk:
+  - size_gb: 40
+    type: eagerzeroedthick # thin, thick, eagerzeroedthick
+    datastore: RDL3PAR01_ESXCORE_VMFS_L101
+  hardware:
+    memory_mb: 16384
+    num_cpus: 4

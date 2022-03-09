@@ -1,8 +1,10 @@
 ---
-deployment_username: "{{ template_lin_username }}"
+ansible_user: ansible
+# deployment_username: "{{ template_lin_username }}"
 deployment_template_password: "{{ template_lin_password }}"
 deployment_password: "{{ client_password }}"
-community_vmware_vmware__guest:
+deployment_ssh_filename: id_rsa_okd3
+default_community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo
   folder: /RD Labo/Various/OpenShift-OKD 3.11

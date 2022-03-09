@@ -64,11 +64,21 @@ Use the following Ansible snippet to load the password file:
       file: passwords/ansible_vault.yml 
 ```
 
+## Requirements - Template SSH certificate for Ansible deployment
+
+There are two options two connect to a deployed VM:
+  1. Using username and passwords if 'PasswordAuthentication yes' is set in /etc/ssh/sshd_config. Cleartext passwords aren't considered safe.
+  2. Pre-deploying an 'ansible' user and public SSH key for the first connections. This can be used to deploy a new SSH key.
+
+Create the SSH key with the following command:
+
+  ssh-keygen -q -b 2048 -t rsa -N "" -f ~/.ssh/id_rsa_ansibledeployment
+
 ## Requirements - Linux VMware template
 
-To be able to deploy Linux VMs we have to verify that open-vm-tools is installed on our template VM (done by default on RHEL 8.5), as well as several other packages required by deployPkg:
+To be able to deploy Linux VMs we have to verify that open-vm-tools is installed on our template VM (done by default on RHEL 8.5), as well as several other packages required by deployPkg. We'll also create our 'ansible' user and import our SSH deployment certificate.
 
-RHEL 8.5
+ ### RHEL 8.5
 
   mkdir /mnt/rhel-dvd && mount -t iso9660 -o ro /dev/cdrom /mnt/rhel-dvd
   
@@ -91,6 +101,19 @@ RHEL 8.5
   yum --noplugins list
 
   yum install open-vm-tools perl cloud-init
+
+  useradd -d /home/ansible -m ansible -s /bin/bash
+  passwd ansible
+  usermod -a -G wheel ansible
+
+  mkdir /home/ansible/.ssh
+  chmod 700 /home/ansible/.ssh
+  touch /home/ansible/.ssh/authorized_keys
+  chmod 600 /home/ansible/.ssh/authorized_keys
+  chown -R ansible:ansible /home/ansible/.ssh
+  scp \<user\>@\<IP\>:/home/\<user\>/.ssh/id_rsa_ansibledeployment.pub /tmp/
+  cat /tmp/id_rsa_ansibledeployment.pub >> /home/ansible/.ssh/authorized_keys
+  rm /tmp/id_rsa_ansibledeployment.pub
 
 
 ## Execution
