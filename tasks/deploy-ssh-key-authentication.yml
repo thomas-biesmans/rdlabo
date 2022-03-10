@@ -26,24 +26,32 @@
 
 - name: Temporarily set ansible_become_password
   set_fact:
-    ansible_become_password: "{{ deployment_template_password | password_hash('sha512') }}"
+    ansible_become_password: "{{ deployment_template_password }}"
+
+- name: biep
+  debug:
+    msg: "{{ ansible_become_password }}"
 
 - name: Reset passwords for current account "{{ ansible_user }}"
   ansible.builtin.user:
     name: "{{ ansible_user }}"
     password: "{{ deployment_password | password_hash('sha512') }}"
+  run_once: yes
   become: yes
   become_user: root
   ignore_errors: yes
 
 - name: Temporarily set ansible_become_password to new password
   set_fact:
-    ansible_become_password: "{{ deployment_password | password_hash('sha512') }}"
+    ansible_become_password: "{{ deployment_password }}"
 
 - name: Reset passwords for current account root
   ansible.builtin.user:
     name: root
     password: "{{ deployment_password | password_hash('sha512') }}"
+  run_once: yes
   become: yes
   become_user: root
   ignore_errors: yes
+
+# ToDo: Password & remove old SSH cert

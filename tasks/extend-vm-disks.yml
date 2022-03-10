@@ -1,0 +1,32 @@
+---
+- name: Read device information (always use unit when probing)
+  community.general.parted: device=/dev/sda unit=MiB
+  register: sda_info
+  become: yes
+
+- name: Extend an existing partition to fill all available space
+  community.general.parted:
+    device: /dev/sda
+    number: "{{ sda_info.partitions | length }}"
+    label: gpt
+    part_end: "100%"
+    resize: true
+    state: present
+  become: yes
+
+- name: Extend the vg to the PV's new maximum size
+  community.general.lvg:
+    vg: rhel
+    pvs: /dev/sda3
+    pvresize: yes
+  become: yes
+  
+- name: Extend the logical volume to take all remaining space of the PVs and resize the underlying filesystem
+  community.general.lvol:
+    vg: rhel
+    lv: root
+    size: +100%FREE
+    resizefs: true
+  become: yes
+
+# ToDo: with_items: "{{ community_vmware_vmware__guest.disks }}"

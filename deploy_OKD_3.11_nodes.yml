@@ -38,11 +38,14 @@
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
 
-  - name: Import VM's SSH key to prevent accept question
+  - name: Import VM's SSH key to prevent acceptance question
     ansible.builtin.include_tasks: tasks/import-host-ssh-key.yml
 
   - name: Deploy SSH key on VMs
     ansible.builtin.include_tasks: tasks/deploy-ssh-key-authentication.yml
+
+  - name: Grow the templates disk to their maximum size
+    ansible.builtin.include_tasks: tasks/extend-vm-disks.yml
 
   - name: Check alive
     debug:

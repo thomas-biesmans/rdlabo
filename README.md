@@ -21,6 +21,7 @@ Versions used in this pass:
  - community.okd:2.1.0
  - kubernetes.core:2.2.3
  - community.windows:1.9.0
+ - community.general:4.5.0
 
 ## Requirements - Ansible Vault
 Ansible Vault is used to store credentials. We'll use a vault password file to encrypt & decrypt the Ansible Vault .yml file.
