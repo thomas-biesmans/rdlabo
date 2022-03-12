@@ -1,4 +1,8 @@
 ---
+- name: Combine customized VM config
+  set_fact:
+    ansible_become_password: "{{ deployment_password }}"
+
 - name: Read device information (always use unit when probing)
   community.general.parted: device=/dev/sda unit=MiB
   register: sda_info

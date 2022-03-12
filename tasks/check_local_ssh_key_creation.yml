@@ -1,0 +1,12 @@
+---
+- name: Check local SSH key
+  stat:
+    path: "~/.ssh/{{ deployment_ssh_filename }}.pub"
+  register: local_ssh_key
+  delegate_to: localhost
+
+- name: Create a new SSH key locally if it does not exist
+  shell: "ssh-keygen -q -b 2048 -t rsa -N '' -f ~/.ssh/{{ deployment_ssh_filename }}" #        creates="~/.ssh/id_rsa"
+  when: not local_ssh_key.stat.exists
+  delegate_to: localhost
+      

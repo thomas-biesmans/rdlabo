@@ -1,0 +1,2 @@
+---
+ansible_ssh_private_key_file: id_rsa_ansibledeployment

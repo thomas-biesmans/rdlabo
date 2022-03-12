@@ -1,5 +1,5 @@
 --- 
-- import_playbook: check_all.yml
+- import_playbook: tasks/check_all.yml
 
 # - name: Deploy DNS records
 #   hosts: windows_dns
@@ -15,7 +15,7 @@
 
 
 - name: Deploy VMs
-  hosts: rdlokd3mstr01.rdlabo.local # rhel8_vms # 
+  hosts: rhel8_vms # rhel8_vms # 
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -25,6 +25,8 @@
   - name: Combine customized VM config
     set_fact:
       community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest, recursive=true) }}"
+      ansible_becomes_password: "{{ client_password }}"
+    tags: always
 
   # - name: biep
   #   debug:
@@ -38,6 +40,10 @@
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
 
+  - name: Check whether new SSH key is already created
+    ansible.builtin.include_tasks: tasks/check_local_ssh_key_creation.yml
+    run_once: true
+
   - name: Import VM's SSH key to prevent acceptance question
     ansible.builtin.include_tasks: tasks/import-host-ssh-key.yml
 
@@ -45,7 +51,12 @@
     ansible.builtin.include_tasks: tasks/deploy-ssh-key-authentication.yml
 
   - name: Grow the templates disk to their maximum size
-    ansible.builtin.include_tasks: tasks/extend-vm-disks.yml
+    ansible.builtin.include_tasks:
+      file: tasks/extend-vm-disks.yml
+      apply:
+        tags: current
+    tags: current
+  
 
   - name: Check alive
     debug:
@@ -82,12 +93,3 @@
 #     loop: "{{ rhel8_vms }}"
 
 
-- name: Tasks
-  hosts: localhost 
-  connection: local 
-  gather_facts: false 
-
-  tasks:
-  - name: Biep
-    ansible.builtin.debug:
-      msg: "biep" 

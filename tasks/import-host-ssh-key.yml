@@ -1,26 +1,52 @@
 ---
 
-- name: Remove existing VM host keys by name and IP
-  shell: "ssh-keygen -R {{ item }}"
-  with_items:
-   - "{{ vars.IP }}"
-   - "{{ vars.inventory_hostname }}"
-   - "{{ vars.inventory_hostname_short }}"
-  ignore_errors: yes
-  delegate_to: localhost
+# - name: Remove existing VM host keys by name and IP
+#   shell: "ssh-keygen -R {{ item }}"
+#   with_items:
+#    - "{{ vars.IP }}"
+#    - "{{ vars.inventory_hostname }}"
+#    - "{{ vars.inventory_hostname_short }}"
+#   ignore_errors: yes
+#   delegate_to: localhost
 
-- name: Query the new SSH host key
-  shell: "ssh-keyscan -T 10 {{ vars.ip }},{{ inventory_hostname }}"
-  register: ssh_results
-  retries: 12
-  delay: 5
-  until: ssh_results is not failed
-  delegate_to: localhost
+# - name: Query the new SSH host key
+#   shell: "ssh-keyscan -T 10 {{ vars.ip }},{{ inventory_hostname }}"
+#   register: ssh_results
+#   retries: 12
+#   delay: 5
+#   until: ssh_results is not failed
+#   delegate_to: localhost
 
-- name: Write the new SSH host key to known hosts @ {{ lookup('env','HOME') + '/.ssh/known_hosts' }}
+# - name: Write the new SSH host key to known hosts @ {{ lookup('env','HOME') + '/.ssh/known_hosts' }}
+#   known_hosts:
+#     path: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
+#     name: "{{ inventory_hostname }}"
+#     key: "{{ ssh_results.stdout }}"
+#     state: present 
+#   delegate_to: localhost
+
+
+- name: Remove the old known host keys for this VM
+  throttle: 1 # This prevents concurrent access to the known_hosts file
   known_hosts:
     path: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
     name: "{{ inventory_hostname }}"
-    key: "{{ ssh_results.stdout }}"
+    state: absent 
+  delegate_to: localhost
+
+- name: Query the new SSH host key
+  shell: "ssh-keyscan -T 10 -t ssh-rsa {{ vars.ip }},{{ inventory_hostname }}"
+  register: ssh_results_rsa_key
+  retries: 12
+  delay: 5
+  until: ssh_results_rsa_key is not failed
+  delegate_to: localhost
+
+- name: Write the new SSH host key to known hosts @ {{ lookup('env','HOME') + '/.ssh/known_hosts' }}
+  throttle: 1 # This prevents concurrent access to the known_hosts file
+  known_hosts:
+    path: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
+    name: "{{ inventory_hostname }}"
+    key: "{{ ssh_results_rsa_key.stdout }}"
     state: present 
   delegate_to: localhost

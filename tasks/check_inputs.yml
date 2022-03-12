@@ -3,11 +3,11 @@
   hosts: localhost 
   connection: local 
   gather_facts: false 
-
-  tasks: 
+  
+  tasks:
   - name: Check if Red Hat password file exists 
     stat: 
-      path: passwords/ansible_vault.yml 
+      path: ../passwords/ansible_vault.yml 
     register: vault_logins 
 
   - name: Terminate if password file is missing 
@@ -16,6 +16,4 @@
 
   - name: Parse password var input file 
     include_vars: 
-      file: passwords/ansible_vault.yml 
-
-      
+      file: ../passwords/ansible_vault.yml 

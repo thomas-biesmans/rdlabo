@@ -63,12 +63,12 @@
   set_fact:
     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip }, recursive=true)] }}"
 
-- name: Show newly added IP
-  debug:
-    msg: "IP: {{ vars.new_networks[0].ip }}"
-
+# - name: Show newly added IP
+#   debug:
+#     msg: "IP: {{ vars.new_networks[0].ip }}"
 
 - name: Deploy the VM from a regular template
+  throttle: "{{ parallel_deployments }}"
   community.vmware.vmware_guest:
     validate_certs: "{{ validate_certs | default(false) }}"
     hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
@@ -125,4 +125,7 @@
   delegate_to: localhost
   register: deploy
 
-  
+- name: Double check VM's IP and fail them if they don't (check if IP already used)
+  fail:
+    msg: "VM not showing the correct IP, should be '{{ vars.ip }}', currently {{ deploy.instance.hw_eth0.ipaddresses }}"
+  when: not vars.ip in deploy.instance.hw_eth0.ipaddresses
