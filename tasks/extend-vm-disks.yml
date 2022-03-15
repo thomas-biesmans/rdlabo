@@ -1,8 +1,4 @@
 ---
-- name: Combine customized VM config
-  set_fact:
-    ansible_become_password: "{{ deployment_password }}"
-
 - name: Read device information (always use unit when probing)
   community.general.parted: device=/dev/sda unit=MiB
   register: sda_info
@@ -12,7 +8,7 @@
   community.general.parted:
     device: /dev/sda
     number: "{{ sda_info.partitions | length }}"
-    label: gpt
+    label: "{{ sda_info.disk.table }}"
     part_end: "100%"
     resize: true
     state: present
@@ -20,14 +16,14 @@
 
 - name: Extend the vg to the PV's new maximum size
   community.general.lvg:
-    vg: rhel
-    pvs: /dev/sda3
+    vg: "{{ defaultvg }}"
+    pvs: "/dev/sda{{ sda_info.partitions | length }}"
     pvresize: yes
   become: yes
   
 - name: Extend the logical volume to take all remaining space of the PVs and resize the underlying filesystem
   community.general.lvol:
-    vg: rhel
+    vg: "{{ defaultvg }}"
     lv: root
     size: +100%FREE
     resizefs: true

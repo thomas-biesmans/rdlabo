@@ -1,21 +1,8 @@
 --- 
 - import_playbook: tasks/check_all.yml
 
-# - name: Deploy DNS records
-#   hosts: windows_dns
-#   vars_files:
-#   - passwords/ansible_vault.yml
-#   - vars/network-config.yml
-#   tasks:
-
-#   - name: Deploy DNS records
-#     vars:
-#       target_group_dns: "{{ groups.rhel8_vms }}"
-#     ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
-
-
 - name: Deploy VMs
-  hosts: rhel8_vms # rhel8_vms # 
+  hosts: rhel_vms
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -28,13 +15,19 @@
       ansible_becomes_password: "{{ client_password }}"
     tags: always
 
+  - name: Ensure Ansible become password is set
+    set_fact:
+      ansible_become_password: "{{ deployment_password }}"
+    when: ansible_become_password is undefined or ansible_become_password != deployment_password
+    tags: always
+
   # - name: biep
   #   debug:
   #     msg: "{{ vars.community_vmware_vmware__guest }}"
 
   - name: Deploy DNS records
     vars:
-      target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel8_vms }}"
+      target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
     ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
 
   - name: Deploy VMs
@@ -48,48 +41,46 @@
     ansible.builtin.include_tasks: tasks/import-host-ssh-key.yml
 
   - name: Deploy SSH key on VMs
-    ansible.builtin.include_tasks: tasks/deploy-ssh-key-authentication.yml
-
-  - name: Grow the templates disk to their maximum size
     ansible.builtin.include_tasks:
-      file: tasks/extend-vm-disks.yml
+      file: tasks/deploy-ssh-key-authentication.yml
+    #   apply:
+    #     tags: current
+    # tags: current
+
+  - name: Ensure that cloud-init does not prevent network configuration persistence
+    ansible.builtin.include_tasks: tasks/deploy-vmware-vms-persist-networking.yml
+    
+  - name: Grow the templates disk to their maximum size
+    ansible.builtin.include_tasks: tasks/extend-vm-disks.yml
+
+
+- name: Configure VMs
+  hosts: rhel_vms
+  gather_facts: true
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Configure yum for epel, no dvd
+    ansible.builtin.include_tasks:
+      file: tasks/configure-yum-epel.yml
       apply:
-        tags: current
-    tags: current
-  
+        tags: yum
+    tags: yum
 
-  - name: Check alive
-    debug:
-      msg: 'Biep from host!'
-  
-
-
-
-
-  - name: test
+  - name: test Yum
     yum:
       name:
         open-vm-tools
       state: present
-  - name: halt
-    fail: {}
+    become: yes
+    tags: yum
 
-  
-  
-  # - name: Biep list detail
-  #   ansible.builtin.debug:
-  #     msg: "{{ item.community.vmware.vmware_guest.state }}"
-  #   when: hostvars[item]['inventory_hostname'] == 'rdlokd3infr02.rdlabo.local'
-  #   loop: "{{ rhel8_vms }}"
-
-# - name: Configure VMs
-#   hosts: vcenter_vms
-#   gather_facts: false
-
-#   tasks:
-#   - name: Biep
-#     ansible.builtin.debug:
-#       msg: "{{ item }}"
-#     loop: "{{ rhel8_vms }}"
-
-
+  - name: Deploy additional OpenShift 3.11 pre-reqs
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-openshift-prereqs.yml
+      apply:
+        tags: okd
+    tags: okd
+    

@@ -67,65 +67,85 @@
 #   debug:
 #     msg: "IP: {{ vars.new_networks[0].ip }}"
 
-- name: Deploy the VM from a regular template
-  throttle: "{{ parallel_deployments }}"
-  community.vmware.vmware_guest:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-    cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
-    folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
-    name: "{{ inventory_hostname_short }}"
-    state: "{{ vars.community_vmware_vmware__guest.state | default('poweredon') }}"
-    template: "{{ vars.community_vmware_vmware__guest.template | default('v') }}"
-    disk: "{{ vars.community_vmware_vmware__guest.disk }}"
-    # - size_gb: 30
-    #   type: eagerzeroedthick # thin, thick, eagerzeroedthick
-    #   datastore: RDL3PAR01_ESXCORE_VMFS_L101
-    # # Add another disk from an existing VMDK
-    # #- filename: "[datastore1] testvms/testvm_2_1/testvm_2_1.vmdk"
-    hardware:
-      memory_mb: "{{ vars.community_vmware_vmware__guest.hardware.memory_mb | default('4096') }}"
-      num_cpus: "{{ vars.community_vmware_vmware__guest.hardware.num_cpus | default('1') }}"
-      num_cpu_cores_per_socket: "{{ vars.community_vmware_vmware__guest.hardware.num_cpu_cores_per_socket | default('1') }}"
-      scsi: "{{ vars.community_vmware_vmware__guest.hardware.scsi | default('paravirtual') }}"
-      # memory_reservation_lock: true
-      # mem_limit: 8096
-      # mem_reservation: 4096
-      # cpu_limit: 8096
-      # cpu_reservation: 4096
-      max_connections: "{{ vars.community_vmware_vmware__guest.hardware.max_connections | default('5') }}"
-      # hotadd_cpu: True
-      # hotremove_cpu: True
-      # hotadd_memory: False
-      version: "{{ vars.community_vmware_vmware__guest.hardware.version | default('14') }}" # Hardware version of virtual machine
-      boot_firmware: "{{ vars.community_vmware_vmware__guest.hardware.boot_firmware | default('efi') }}"
-    # cdrom:
-    #     - controller_number: 0
-    #       unit_number: 0
-    #       state: present
-    #       type: iso
-    #       iso_path: "[datastore1] livecd.iso"
-    networks: "{{ vars.new_networks }}" #| default( default_vmware_portgroup ) }}"
-    # - name: VLAN665-RD Labo
-    #   device_type: vmxnet3
-    #   connected: true
-    #   start_connected: true
-    #   type: static
-    #   ip: "{{ ip }}"
-    #   gateway: 10.255.254.254 # move to network yml
-    #   netmask: 255.255.255.0
-    #   dns_servers: 10.255.255.101,10.255.254.102 # check
-    #   domain: rdlabo.local
-    #   #mac: aa:bb:dd:aa:00:14
-    wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default('true') }}"
+- name: Deploy the VM including retry and rescue
+  block:
 
-  delegate_to: localhost
-  register: deploy
+  - name: Deploy the VM from a regular template
+    throttle: "{{ parallel_deployments }}"
+    retries: 3
+    delay: 10
+    community.vmware.vmware_guest:
+      validate_certs: "{{ validate_certs | default(false) }}"
+      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+      cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
+      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+      name: "{{ inventory_hostname_short }}"
+      state: "{{ vars.community_vmware_vmware__guest.state | default('poweredon') }}"
+      template: "{{ vars.community_vmware_vmware__guest.template | default('v') }}"
+      disk: "{{ vars.community_vmware_vmware__guest.disk }}"
+      # - size_gb: 30
+      #   type: eagerzeroedthick # thin, thick, eagerzeroedthick
+      #   datastore: RDL3PAR01_ESXCORE_VMFS_L101
+      # # Add another disk from an existing VMDK
+      # #- filename: "[datastore1] testvms/testvm_2_1/testvm_2_1.vmdk"
+      hardware:
+        memory_mb: "{{ vars.community_vmware_vmware__guest.hardware.memory_mb | default('4096') }}"
+        num_cpus: "{{ vars.community_vmware_vmware__guest.hardware.num_cpus | default('1') }}"
+        num_cpu_cores_per_socket: "{{ vars.community_vmware_vmware__guest.hardware.num_cpu_cores_per_socket | default('1') }}"
+        scsi: "{{ vars.community_vmware_vmware__guest.hardware.scsi | default('paravirtual') }}"
+        # memory_reservation_lock: true
+        # mem_limit: 8096
+        # mem_reservation: 4096
+        # cpu_limit: 8096
+        # cpu_reservation: 4096
+        max_connections: "{{ vars.community_vmware_vmware__guest.hardware.max_connections | default('5') }}"
+        # hotadd_cpu: True
+        # hotremove_cpu: True
+        # hotadd_memory: False
+        version: "{{ vars.community_vmware_vmware__guest.hardware.version | default('14') }}" # Hardware version of virtual machine
+        boot_firmware: "{{ vars.community_vmware_vmware__guest.hardware.boot_firmware | default('efi') }}"
+      # cdrom:
+      #     - controller_number: 0
+      #       unit_number: 0
+      #       state: present
+      #       type: iso
+      #       iso_path: "[datastore1] livecd.iso"
+      networks: "{{ vars.new_networks }}" #| default( default_vmware_portgroup ) }}"
+      # - name: VLAN665-RD Labo
+      #   device_type: vmxnet3
+      #   connected: true
+      #   start_connected: true
+      #   type: static
+      #   ip: "{{ ip }}"
+      #   gateway: 10.255.254.254 # move to network yml
+      #   netmask: 255.255.255.0
+      #   dns_servers: 10.255.255.101,10.255.254.102 # check
+      #   domain: rdlabo.local
+      #   #mac: aa:bb:dd:aa:00:14
+      customization: "{{ vars.community_vmware_vmware__guest.customization }}"
 
-- name: Double check VM's IP and fail them if they don't (check if IP already used)
-  fail:
-    msg: "VM not showing the correct IP, should be '{{ vars.ip }}', currently {{ deploy.instance.hw_eth0.ipaddresses }}"
-  when: not vars.ip in deploy.instance.hw_eth0.ipaddresses
+      wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default('true') }}"
+
+    delegate_to: localhost
+    register: deploy
+    failed_when: not vars.ip in deploy.instance.hw_eth0.ipaddresses
+  
+  rescue:
+  - name: Remove the VM prior to retry
+    community.vmware.vmware_guest:
+      validate_certs: "{{ validate_certs | default(false) }}"
+      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+      cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
+      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+      name: "{{ inventory_hostname_short }}"
+      state: absent
+      force: yes
+    delegate_to: localhost
+
+

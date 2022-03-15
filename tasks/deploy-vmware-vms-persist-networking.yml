@@ -1,0 +1,22 @@
+---
+- name: Check whether config file already exists
+  ansible.builtin.stat:
+    path: /etc/cloud/cloud.cfg.d/99-disablle-network-config.cfg
+  register: cloud_init_config
+
+# - name: "Prevent reboots from resorting to DHCP, caused by cloud-init, even when masked"
+#   ansible.builtin.lineinfile:
+#     path: /etc/cloud/cloud.cfg.d/99-disablle-network-config.cfg
+#     insertafter: EOF
+#     state: present
+#     line: "\n# Prevent cloud-init from resorting to DHCP upon reboots, even when masked\nnetwork:\n  config: disabled"
+#   become: yes
+#   when: not cloud_init_config.stat.exists
+
+
+- name: "Prevent reboots from resorting to DHCP, caused by cloud-init, even when masked"
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-disablle-network-config.cfg
+    content: "\n# Prevent cloud-init from resorting to DHCP upon reboots, even when masked\nnetwork:\n  config: disabled"
+  become: yes
+  when: not cloud_init_config.stat.exists

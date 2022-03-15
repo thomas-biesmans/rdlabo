@@ -1,54 +1,37 @@
 ---
+
 - name: Copy the new public SSH key to VM
   authorized_key:
     user: "{{ ansible_user }}"
     state: present
     key: "{{ lookup('file', '~/.ssh/'+deployment_ssh_filename+'.pub') }}"
 
-  # register: regular_copy_attempt
-  # ignore_errors: yes
+# - name: Ensure that the ansible_become_password is changed from the template password to the new password
+#   set_fact:
+#     ansible_become_password: "{{ deployment_password }}"
 
-# - name: Copy public key to VM ssh-copy-id if failed
-#   shell: sshpass -p {{ deployment_template_password }} ssh-copy-id -f -i ~/.ssh/{{ deployment_ssh_filename}}.pub -o StrictHostKeyChecking=no {{ deployment_username }}@{{ inventory_hostname }}
-#   when: regular_copy_attempt is failed 
-#   delegate_to: localhost
+- name: Reset Ansible connections
+  meta: reset_connection
 
-- name: Test ansible user's password is already set to new deployment password
-  debug:
-    msg: "Test whether sudo works"
-  become: yes
-  become_user: "{{ ansible_user }}"
-  ignore_errors: yes
-  register: ansible_user_passwordcheck
-
-- name: Temporarily set ansible_become_password and change {{ ansible_user }}'s password
-  block:
-  - set_fact:
-      ansible_become_password: "{{ deployment_template_password }}"
-  - ansible.builtin.user:
-      name: "{{ ansible_user }}"
-      password: "{{ deployment_password | password_hash('sha512') }}"
-    become: yes
-    become_user: root
-    ignore_errors: yes
-    changed_when: False
-  when: ansible_user_passwordcheck.failed
-
-- name: Reset ansible_become_password to original deployment password
-  set_fact:
-    ansible_become_password: "{{ deployment_password }}"
-  when: ansible_user_passwordcheck.failed
-
-
-- name: Test root user's password is already set to new deployment password
-  debug:
-    msg: "Test whether sudo works"
+- name: Change root's password from the template one to the new one
+  ansible.builtin.user:
+    name: root
+    password: "{{ deployment_password | password_hash('sha512') }}"
   become: yes
   become_user: root
   ignore_errors: yes
-  register: root_user_passwordcheck
+  register: ansible_user_passwordcheck
 
-- name: Temporarily set ansible_become_password and change {{ ansible_user }}'s password
+- name: Change {{ ansible_user }}'s password from the template one to the new one
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    password: "{{ deployment_password | password_hash('sha512') }}"
+  become: yes
+  become_user: root
+  ignore_errors: yes
+
+
+- name: Retry changing root's password using the template password if the previous try failed
   block:
   - set_fact:
       ansible_become_password: "{{ deployment_template_password }}"
@@ -58,12 +41,28 @@
     become: yes
     become_user: root
     ignore_errors: yes
-    changed_when: False
-  when: root_user_passwordcheck.failed
-  
-- name: Reset ansible_become_password to deployment password
+  when: ansible_user_passwordcheck.failed
+
+
+- name: Retry changing {{ ansible_user }}'s password using the template password if the previous try failed
+  block:
+  - set_fact:
+      ansible_become_password: "{{ deployment_template_password }}"
+  - ansible.builtin.user:
+      name: "{{ ansible_user }}"
+      password: "{{ deployment_password | password_hash('sha512') }}"
+    become: yes
+    become_user: root
+    ignore_errors: yes
+  when: ansible_user_passwordcheck.failed
+
+- name: Ensure that the ansible_become_password is changed back to the new password
   set_fact:
     ansible_become_password: "{{ deployment_password }}"
-  when: root_user_passwordcheck.failed
+  when: ansible_user_passwordcheck.failed
 
-# ToDo: remove old SSH cert
+- name: Reset Ansible connection
+  meta: reset_connection
+
+
+# ToDo: remove old SSH cert ?

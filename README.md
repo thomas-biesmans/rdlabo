@@ -79,6 +79,27 @@ Create the SSH key with the following command:
 
 To be able to deploy Linux VMs we have to verify that open-vm-tools is installed on our template VM (done by default on RHEL 8.5), as well as several other packages required by deployPkg. We'll also create our 'ansible' user and import our SSH deployment certificate.
 
+ ### RHEL 7.9
+  yum update
+
+  yum clean all
+  yum --noplugins list
+
+  yum install open-vm-tools perl cloud-init yum-util
+
+  useradd -d /home/ansible -m ansible -s /bin/bash
+  passwd ansible
+  usermod -a -G wheel ansible
+
+  mkdir /home/ansible/.ssh
+  chmod 700 /home/ansible/.ssh
+  touch /home/ansible/.ssh/authorized_keys
+  chmod 600 /home/ansible/.ssh/authorized_keys
+  chown -R ansible:ansible /home/ansible/.ssh
+  scp \<user\>@\<IP\>:/home/\<user\>/.ssh/id_rsa_ansibledeployment.pub /tmp/
+  cat /tmp/id_rsa_ansibledeployment.pub >> /home/ansible/.ssh/authorized_keys
+  rm /tmp/id_rsa_ansibledeployment.pub
+
  ### RHEL 8.5
 
   mkdir /mnt/rhel-dvd && mount -t iso9660 -o ro /dev/cdrom /mnt/rhel-dvd
@@ -101,7 +122,7 @@ To be able to deploy Linux VMs we have to verify that open-vm-tools is installed
   yum clean all
   yum --noplugins list
 
-  yum install open-vm-tools perl cloud-init
+  yum install open-vm-tools perl cloud-init yum-util
 
   useradd -d /home/ansible -m ansible -s /bin/bash
   passwd ansible

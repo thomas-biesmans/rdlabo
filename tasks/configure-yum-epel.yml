@@ -1,0 +1,54 @@
+---
+- name: Remove DVD Repositories on RHEL / CentOS 8
+  yum_repository:
+    name: rhel-dvd-AppStream
+    file: rhel-dvd
+    state: absent
+  become: yes
+
+- name: Remove DVD Repositories on RHEL / CentOS 8
+  yum_repository:
+    name: rhel-dvd-BaseOS
+    file: rhel-dvd
+    state: absent
+  become: yes
+  # notify: yum-clean-metadata
+
+- name: yum-clean-metadata
+  command: yum clean metadata
+  args:
+    warn: no
+    
+# - name: Ensure DVD is disabled
+#   yum:
+#     disablerepo:
+#     - rhel-dvd-BaseOS
+#     - rhel-dvd-AppStream
+#   become: yes
+
+# - name: yum-clean-metadata
+#   command: yum clean metadata
+#   args:
+#     warn: no
+    
+
+- name: Enable EPEL Repository on RHEL / CentOS 8
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm#
+    disable_gpg_check: yes
+    state: present
+  become: yes
+  when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
+
+- name: Enable EPEL Repository on RHEL / CentOS 7
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm#
+    disable_gpg_check: yes
+    state: present
+  become: yes
+  when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '7'
+
+- name: yum-clean-metadata
+  command: yum clean metadata
+  args:
+    warn: no
