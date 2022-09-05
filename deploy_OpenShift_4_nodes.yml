@@ -32,19 +32,21 @@
 
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+    tags: vm
 
 
-
-- name: Deploy VMs
+- name: Prepare OpenShift deployment
   hosts: localhost
   gather_facts: false
+  become: true
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   - group_vars/openshift_upi_vms.yml
+  - group_vars/vcenter_vms.yml
   tasks:
 
-  - name: OpenShift tasks
+  - name: OpenShift deployment preparation
     tags: openshift
     block:
 
@@ -87,40 +89,175 @@
         dest: "{{ vars.openshift_download_dir }}"
         creates: "{{ vars.openshift_download_dir }}/oc"
     
-    - name: Copy client files to the local user's bin, instead of /usr/local/bin which would need become
+    # - name: Copy client files to the local user's bin, instead of /usr/local/bin which would need become
+    #   copy:
+    #     src: "{{ item }}"
+    #     dest: $HOME/bin/
+    #   with_items: 
+    #   - "{{ vars.openshift_download_dir }}/oc"
+    #   - "{{ vars.openshift_download_dir }}/kubectl"
+
+    - name: Copy client files to /usr/local/bin for all users
       copy:
         src: "{{ item }}"
-        dest: $HOME/bin/
+        dest: /usr/local/bin
       with_items: 
       - "{{ vars.openshift_download_dir }}/oc"
       - "{{ vars.openshift_download_dir }}/kubectl"
-
-
-    - name: Copy the inventory file to the config dir
-      copy:
-        src: vars/openshift_4_install_config.yml
-        dest: "{{ vars.openshift_config_dir }}/install-config.yaml"
-        force: yes # change back to no
 
     - name: Check whether new SSH key is already created
       include_tasks: tasks/check_local_ssh_key_creation.yml
       run_once: true
 
-    - name: Replace SSH key
-      replace:
-        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
-        regexp: "replaceme_sshKey"
-        replace: "{{ item }}"
-      with_file: "~/.ssh/{{ vars.deployment_ssh_filename }}.pub"
+    - name: Read SSH key
+      slurp:
+        src: "~/.ssh/{{ vars.deployment_ssh_filename }}.pub"
+      register: sshKey
+      
+    - name: Check whether manifests were already created
+      stat:
+        path: "{{ vars.openshift_config_dir }}/manifests"
+      register: manifests_dir
 
-    - name: Replace pull secret
-      replace:
-        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
-        regexp: "replaceme_pullSecret"
-        replace: "{{ vars.openshift_auth_code }}"
+    - name: Check whether ignition files were already created
+      stat:
+        path: "{{ vars.openshift_config_dir }}/master.ign"
+      register: ignition_file
 
-    - name: Replace cluster name
-      replace:
-        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
-        regexp: "replaceme_clustername"
-        replace: "{{ vars.openshift_cluster_name }}"
+    - name: Create manifests
+      when: not manifests_dir.stat.exists and not ignition_file.stat.exists
+      block:
+
+      - name: Template out the inventory file to the config dir
+        template:
+          src: vars/openshift_4_upi_install_config_vmware.yml
+          dest: "{{ vars.openshift_config_dir }}/install-config.yaml"
+          force: no
+
+      - name: Take a copy of the install-config as a backup
+        copy:
+          src: "{{ vars.openshift_config_dir }}/install-config.yaml"
+          dest: "{{ vars.openshift_config_dir }}/install-config.yaml.bak"
+          force: no
+
+      - name: Create manifest files
+        shell: "{{ vars.openshift_download_dir }}/openshift-install create manifests --dir {{ vars.openshift_config_dir }}"
+  
+      - name: Remove unneeded manifest files
+        file:
+          path: "{{ item }}"
+          state: absent
+        with_fileglob:
+        - "{{ vars.openshift_config_dir }}/openshift/99_openshift-cluster-api_master-machines-*.yaml"
+        - "{{ vars.openshift_config_dir }}/openshift/99_openshift-cluster-api_worker-machineset-*.yaml"
+        
+      - name: Set masters to non-Schedulable
+        replace:
+          path: "{{ vars.openshift_config_dir }}/manifests/cluster-scheduler-02-config.yml"
+          regexp: 'mastersSchedulable: true'
+          replace: 'mastersSchedulable: false'
+
+
+    - name: Create ignition files
+      shell: "{{ vars.openshift_download_dir }}/openshift-install create ignition-configs --dir {{ vars.openshift_config_dir }}"
+      when: not ignition_file.stat.exists
+ 
+    - name: Query the cluster's random identifier
+      shell: "jq -r .infraID {{ vars.openshift_config_dir }}/metadata.json"
+      register: cluster_id
+
+    - name: Report cluster name
+      debug:
+        msg: "Cluster ID: {{ cluster_id.stdout }}"
+
+
+  - name: Configure a web server for the ignition files
+    tags:
+    - web
+    - openshift
+    block:
+  
+      - name: Install podman
+        ansible.builtin.yum:
+          name: podman
+          state: latest
+  
+      - name: Allow traffic to httpd on port 8080
+        ansible.posix.firewalld:
+          zone: public
+          port: 8080/tcp
+          permanent: yes
+          state: enabled
+        vars:
+          ansible_python_interpreter: /usr/bin/python3.6
+  
+      - name: Pull Apache httpd container image
+        containers.podman.podman_image:
+          name: httpd
+          pull: true
+          tag: latest
+  
+      - name: Configure webroot - permissions
+        file:
+          path: "{{ vars.bastion_webroot }}"
+          state: directory
+          mode: '0777'
+
+      - name: Configure webroot - SELinux file context, should be idempotent, isn't...
+        become: yes
+        community.general.sefcontext:
+          target: "{{ vars.bastion_webroot }}(/.*)?"
+          setype: "container_share_t"
+          state: present
+        register: webroot_dir_fcontext
+        vars:
+          ansible_python_interpreter: /usr/bin/python3.6
+
+      - name: Create a custom index.html
+        copy:
+          dest: "{{ vars.bastion_webroot }}/index.html"
+          content: |
+            Custom Web Page, hosting ignition files
+  
+      - name: Copy the ignition file
+        copy:
+          src: "{{ vars.openshift_config_dir }}/bootstrap.ign"
+          dest: "{{ vars.bastion_webroot }}/bootstrap.ign"
+  
+      - name: Apply SELinux fcontext if it wasn't already added
+        become: yes
+        shell: restorecon -irv {{ vars.bastion_webroot }}
+        when: webroot_dir_fcontext.changed
+  
+      - name: Run Apache httpd container
+        containers.podman.podman_container:
+          name: webserver
+          image: httpd
+          state: started
+          detach: true
+          expose:
+          - 80
+          ports:
+            - 8080:80
+          volume:
+          - "{{ vars.bastion_webroot }}:/usr/local/apache2/htdocs/:exec"
+
+      - name: Query index.html
+        shell: curl http://127.0.0.1:8080/index.html 
+        register: index_curl
+
+      - name: Show output received from web server
+        debug:
+          msg: "Output index.html: {{ index_curl.stdout }}"
+
+      - name: Query bootstrap ignition
+        shell: curl http://127.0.0.1:8080/bootstrap.ign
+        register: bootstrap_curl
+
+      - name: Show output received from web server
+        debug:
+          msg: "Output bootstrap.ign: {{ bootstrap_curl.stdout[:12] }}"
+
+      - name: Stop if ignition config isn't available
+        fail:
+        when: bootstrap_curl.stdout[:12] != "{\"ignition\":"

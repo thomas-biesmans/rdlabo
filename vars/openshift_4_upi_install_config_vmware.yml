@@ -1,0 +1,40 @@
+apiVersion: v1
+baseDomain: {{ vars.openshift_cluster_domain }}
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 0
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: {{ vars.openshift_cluster_name }}
+networking:
+  clusterNetwork: 
+  - cidr: {{ vars.openshift_clusterNetwork_cidr }}
+    hostPrefix: {{ vars.openshift_clusterNetwork_hostPrefix }}
+  machineNetwork:
+  - cidr: {{ vars.openshift_machineNetwork_cidr }}
+  networkType: OpenShiftSDN
+  serviceNetwork: {{ vars.openshift_serviceNetwork }}
+platform:
+  vsphere:
+    apiVIP: {{ vars.openshift_api_ip }}
+    cluster: {{ vars.default_community_vmware_vmware__guest.cluster }}
+    datacenter: {{ vars.default_community_vmware_vmware__guest.datacenter }}
+    defaultDatastore: {{ vars.default_community_vmware_vmware__guest.disk[0].datastore }}
+    ingressVIP: {{ vars.openshift_ingress_ip }}
+    network: {{ vars.default_community_vmware_vmware__guest.networks[0].name }}
+    password: {{ vmware_sa_password }}
+    username: {{ vmware_sa_username }}
+    vCenter: {{ vars.vcenter_hostname }}
+publish: External
+pullSecret: '{{ vars.openshift_auth_code }}'
+sshKey: |
+  {{ sshKey['content'] | b64decode  }}
