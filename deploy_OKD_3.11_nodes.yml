@@ -28,7 +28,7 @@
   - name: Deploy DNS records
     vars:
       target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
-    ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
+    ansible.builtin.import_tasks: tasks/deploy-windows-dns-records.yml
 
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
@@ -51,7 +51,11 @@
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-persist-networking.yml
     
   - name: Grow the templates disk to their maximum size
-    ansible.builtin.include_tasks: tasks/extend-vm-disks.yml
+    ansible.builtin.include_tasks:
+      file: tasks/extend-vm-disks.yml
+      apply:
+        tags: storage_extend
+    tags: storage_extend
 
 
 - name: Configure VMs
@@ -79,8 +83,11 @@
 
   - name: Deploy additional OpenShift 3.11 pre-reqs
     ansible.builtin.include_tasks:
-      file: tasks/deploy-openshift-prereqs.yml
+      file: tasks/deploy-openshift-3-prereqs.yml
       apply:
         tags: okd
     tags: okd
+    
+
+
     
