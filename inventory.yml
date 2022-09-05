@@ -1,5 +1,6 @@
 ---
 
+# OKD 3.11 nodes
 rhel_vms_master_nodes:
   hosts:
     rdlokd3mstr01.rdlabo.local:
@@ -19,10 +20,6 @@ rhel_vms_regular_nodes:
     rdlokd3wrkr02.rdlabo.local:
       ip: 10.255.254.99
 
-windows_dns:
-  hosts:
-    rdldc02.rdlabo.local:
-
 rhel_vms:
   children:
     rhel_vms_master_nodes:
@@ -30,9 +27,61 @@ rhel_vms:
   vars:
     vmware_networkportgroup: VLAN665-RD Labo
 
+# OpenShift 4 UPI nodes
+openshift_upi_vms_master_nodes:
+  hosts:
+    upi-master-0.rdlabo.local:
+      ip: 10.255.254.240
+      mac: 00:05:69:aa:aa:00
+    upi-master-1.rdlabo.local:
+      ip: 10.255.254.241
+      mac: 00:05:69:aa:aa:01
+    upi-master-2.rdlabo.local:
+      ip: 10.255.254.242
+      mac: 00:05:69:aa:aa:02
+
+openshift_upi_vms_infra_nodes:
+  hosts:
+    upi-infra-0.rdlabo.local:
+      ip: 10.255.254.243
+      mac: 00:05:69:aa:aa:03
+    upi-infra-1.rdlabo.local:
+      ip: 10.255.254.244
+      mac: 00:05:69:aa:aa:04
+
+openshift_upi_vms_worker_nodes:
+  hosts:
+    upi-worker-0.rdlabo.local:
+      ip: 10.255.254.245
+      mac: 00:05:69:aa:aa:05
+    upi-worker-1.rdlabo.local:
+      ip: 10.255.254.246
+      mac: 00:05:69:aa:aa:06
+
+openshift_upi_vms_bootstrap_node:
+  hosts:
+    upi-bootstrap.rdlabo.local:
+      ip: 10.255.254.247
+      mac: 00:05:69:aa:aa:07
+
+openshift_upi_vms:
+  children:
+    openshift_upi_vms_master_nodes:
+    openshift_upi_vms_infra_nodes:
+    openshift_upi_vms_worker_nodes:
+    openshift_upi_vms_storage_nodes:
+    openshift_upi_vms_bootstrap_node:
+  vars:
+    vmware_networkportgroup: VLAN665-RD Labo
+
 vcenter_vms:
   children:
     rhel_vms:
+    openshift_upi_vms:
+
+windows_dns:
+  hosts:
+    rdldc02.rdlabo.local:
 
 windows_clients:
   children:

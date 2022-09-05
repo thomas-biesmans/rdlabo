@@ -1,0 +1,82 @@
+---
+ansible_user: ansible
+# # deployment_username: "{{ template_lin_username }}"
+# deployment_template_password: "{{ template_lin_password }}"
+# deployment_password: "{{ client_password }}"
+# deployment_ssh_filename: id_rsa_okd3
+# defaultvg: centos # centos for CentOS 7, rhel for RedHat 8
+os_customization_for_ip: false
+openshift_cluster_name: openshift-upi
+openshift_cluster_domain: rdlabo.local
+api_url: api.openshift-upi.rdlabo.local
+# api-int_url: api-int.openshift-upi.rdlabo.local
+openshift_api_ip: 10.255.254.84
+openshift_apps_url: "*.apps.openshift-upi.rdlabo.local"
+openshift_apps_ip: 10.255.254.85
+openshift_download_dir: /home/user1/openshift-install-4.9-upi-installer
+openshift_config_dir: /home/user1/openshift-install-4.9-upi-config
+openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.9/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
+openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-install-linux.tar.gz
+openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
+# You can find your own auth code on https://console.redhat.com/openshift/install/vsphere, the pull secret
+openshift_auth_code: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfNTZmZjFkYTg2ZWMyNDlkOGExNWY0NDQ0YmZlNmYyZjA6UUVOMk9DWlBVUEdRMEwzVU5VNEtTVlRCMTYwV1pKWDBCOTdFT1RRWUJUMkVEWVA2OFoyUU1MMVJYQjQ3UUE2Vw==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"quay.io\":{\"auth\":\"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfNTZmZjFkYTg2ZWMyNDlkOGExNWY0NDQ0YmZlNmYyZjA6UUVOMk9DWlBVUEdRMEwzVU5VNEtTVlRCMTYwV1pKWDBCOTdFT1RRWUJUMkVEWVA2OFoyUU1MMVJYQjQ3UUE2Vw==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"registry.connect.redhat.com\":{\"auth\":\"fHVoYy1wb29sLWU3YjIxY2E2LWMzNGEtNDAxNS05NzQ2LWE1MjgzMGU1MDVhYTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTBZVEF5WldJMU4yVXdOemswTURCalltVmtPREF6TTJWaVlUaG1NVEUxTlNKOS5OOGxBMVQzSGNXWERfS3lXNzljeUZJZV9Fc3NJSzh5cTRxUE9MMjMycVIwSmlycXVFd1ZLRm10N2NhdnQ4N3padVA3V2taTXdHeUE0T2FfV1pwQkdtOXk5Zm9pMWo2UmlvV0JhNC03MkdHY0FtSmpKeVM3bjNMRWxxR1U1ZmFIVDZrc05lQTkxQXMtSE5UZmpzaktycUd6NUthV2J0QlZPR1VROW1pOFFJWkEtQ2c4MWo3Q2ttOF9kTXJkR2N3NnlpOXJ2YkxCR3hxbENIa19pN3h4aWRMQ1hzbjdSWVdWUjZrTmEtR21haGpBMzdJTU52RFJZcW0yYWpUYXhwakpUWlhCM21jeWNpMnRBQVhOV05tampQaVJYRmVzY1l2dFZkbVZtWlF1cjFXajNfcHVLU3JBeS1OUjVfZlcxVm9EVHkyYTRFQUlwQmxMU1JpbFlLZ2ktTUR4czlfMl9lZGE5ak9pUkJzVTF1Snd5RUU0bm9mT3NBZUlyNnBCeWdhaDNkZjhrTC15cGVGeE4xOE5oVFI0YmFjLTJnbVVGS3NYdVBjUGRmR0hxNFQyYUM5SFQxYlg0TDJaOTNpcFRXUmVqZ2MwOWVKM3NORGdXZDJvZ3NCb2o5b0dYemlSR3hxZjQ1dUNONmNQNXJkMFR1V0ltdVJzNUlLTmxJak5NbDd4QUhpUVRtMXllbjEyZkx1N1BJYTc2Ul9mQ1dyMkw5S0xBbmFGR21LbldyR3Q2a3dSQ1hROEVEWHNfME9oT3lyMDJlUXY5VHVLb3BxRXBOa3lLcm1VWFprSjFMQnI1N1dmZmlhVDY5aWZibzNJS3NvcTZOMFU2Y0E2LUF3THpBQTN4aDU2UGlrWF9mb1laRExlUDJNeUtfYjduNzNJZW1Zd19tTDhCSWRHUmFwNA==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"registry.redhat.io\":{\"auth\":\"fHVoYy1wb29sLWU3YjIxY2E2LWMzNGEtNDAxNS05NzQ2LWE1MjgzMGU1MDVhYTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTBZVEF5WldJMU4yVXdOemswTURCalltVmtPREF6TTJWaVlUaG1NVEUxTlNKOS5OOGxBMVQzSGNXWERfS3lXNzljeUZJZV9Fc3NJSzh5cTRxUE9MMjMycVIwSmlycXVFd1ZLRm10N2NhdnQ4N3padVA3V2taTXdHeUE0T2FfV1pwQkdtOXk5Zm9pMWo2UmlvV0JhNC03MkdHY0FtSmpKeVM3bjNMRWxxR1U1ZmFIVDZrc05lQTkxQXMtSE5UZmpzaktycUd6NUthV2J0QlZPR1VROW1pOFFJWkEtQ2c4MWo3Q2ttOF9kTXJkR2N3NnlpOXJ2YkxCR3hxbENIa19pN3h4aWRMQ1hzbjdSWVdWUjZrTmEtR21haGpBMzdJTU52RFJZcW0yYWpUYXhwakpUWlhCM21jeWNpMnRBQVhOV05tampQaVJYRmVzY1l2dFZkbVZtWlF1cjFXajNfcHVLU3JBeS1OUjVfZlcxVm9EVHkyYTRFQUlwQmxMU1JpbFlLZ2ktTUR4czlfMl9lZGE5ak9pUkJzVTF1Snd5RUU0bm9mT3NBZUlyNnBCeWdhaDNkZjhrTC15cGVGeE4xOE5oVFI0YmFjLTJnbVVGS3NYdVBjUGRmR0hxNFQyYUM5SFQxYlg0TDJaOTNpcFRXUmVqZ2MwOWVKM3NORGdXZDJvZ3NCb2o5b0dYemlSR3hxZjQ1dUNONmNQNXJkMFR1V0ltdVJzNUlLTmxJak5NbDd4QUhpUVRtMXllbjEyZkx1N1BJYTc2Ul9mQ1dyMkw5S0xBbmFGR21LbldyR3Q2a3dSQ1hROEVEWHNfME9oT3lyMDJlUXY5VHVLb3BxRXBOa3lLcm1VWFprSjFMQnI1N1dmZmlhVDY5aWZibzNJS3NvcTZOMFU2Y0E2LUF3THpBQTN4aDU2UGlrWF9mb1laRExlUDJNeUtfYjduNzNJZW1Zd19tTDhCSWRHUmFwNA==\",\"email\":\"thomas.biesmans@realdolmen.com\"}}}"
+deployment_ssh_filename: id_rsa_openshift4
+
+default_community_vmware_vmware__guest:
+  datacenter: P250
+  cluster: RDLabo
+  folder: /RD Labo/Various/OpenShift-4-UPI
+  name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
+  state: poweredoff
+  template: Template-RHCOS # Case sensitive
+  disk:
+  - size_gb: 120
+    type: eagerzeroedthick # thin, thick, eagerzeroedthick
+    datastore: RDL3PAR01_ESXCORE_VMFS_L102
+  # Add another disk from an existing VMDK
+  #- filename: "[datastore1] testvms/testvm_2_1/testvm_2_1.vmdk"
+  hardware:
+    memory_mb: 16384
+    num_cpus: 4
+    num_cpu_cores_per_socket: 2
+    scsi: paravirtual
+    # memory_reservation_lock: true
+    # mem_limit: 8096
+    # mem_reservation: 4096
+    # cpu_limit: 8096
+    # cpu_reservation: 4096
+    max_connections: 5
+    # hotadd_cpu: True
+    # hotremove_cpu: True
+    # hotadd_memory: False
+    version: 19 # Hardware version of virtual machine
+    boot_firmware: "efi"
+  # cdrom:
+  #     - controller_number: 0
+  #       unit_number: 0
+  #       state: present
+  #       type: iso
+  #       iso_path: "[datastore1] livecd.iso"
+  networks:
+  - name: "VLAN665-RD Labo"
+    device_type: vmxnet3
+    connected: true
+    start_connected: true
+    # type: static # Used for the IP and for O/S customization
+    # ip: {} # Set through inventory, used for O/S customization
+    # gateway: 10.255.254.254 # Used for O/S customization
+    # netmask: 255.255.255.0 # Used for O/S customization
+    # mac: aa:bb:dd:aa:00:14
+  # customization:
+  #   dns_servers: "{{ dns_servers }}" # definition on networks is only for Windows
+  #   domain: "{{ dns_domain }}" # definition on networks is only for Windows
+  wait_for_ip_address: false
+  advanced_settings: # Use '{}' or uncomment any of the lower options
+    - key: disk.EnableUUID
+      value: true
+    - key: ethernet0.checkMACAddress
+      value: false
+    - key: guestinfo.ignition.config.data.encoding
+      value: base64
+    - key: guestinfo.ignition.config.data
+      value: 'TBD'

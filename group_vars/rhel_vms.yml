@@ -5,6 +5,7 @@ deployment_template_password: "{{ template_lin_password }}"
 deployment_password: "{{ client_password }}"
 deployment_ssh_filename: id_rsa_okd3
 defaultvg: centos # centos for CentOS 7, rhel for RedHat 8
+os_customization_for_ip: true
 default_community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo

@@ -1,0 +1,126 @@
+--- 
+- import_playbook: tasks/check_all.yml
+
+- name: Deploy VMs
+  hosts: openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Combine customized VM config
+    set_fact:
+      community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest | default({}), recursive=true) }}"
+      ansible_becomes_password: "{{ client_password }}"
+    tags: always
+
+  # - name: Ensure Ansible become password is set
+  #   set_fact:
+  #     ansible_become_password: "{{ deployment_password }}"
+  #   when: ansible_become_password is undefined or ansible_become_password != deployment_password
+  #   tags: always
+
+  # - name: biep
+  #   debug:
+  #     msg: "{{ vars.community_vmware_vmware__guest }}"
+
+  # - name: Deploy DNS records - BROKEN
+  #   vars:
+  #     target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
+  #   ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
+
+  - name: Deploy VMs
+    ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+
+
+
+- name: Deploy VMs
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/openshift_upi_vms.yml
+  tasks:
+
+  - name: OpenShift tasks
+    tags: openshift
+    block:
+
+    - name: Create config & install dir
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+      - "{{ vars.openshift_config_dir }}"
+      - "{{ vars.openshift_download_dir }}"
+
+
+    - name: Download specific sources
+      get_url:
+        url: "{{ vars.openshift_custom_version_source }}"
+        dest: "{{ vars.openshift_download_dir }}/openshift-install-linux.tar.gz"
+      when: vars.openshift_custom_version_source | length > 0
+
+    - name: Download default stable sources if no specific version is set
+      get_url:
+        url: "{{ vars.openshift_default_source }}"
+        dest: "{{ vars.openshift_download_dir }}/openshift-install-linux.tar.gz"
+      when: vars.openshift_custom_version_source | length <= 0
+    
+    - name: Untar the installation file
+      unarchive:
+        src: "{{ vars.openshift_download_dir }}/openshift-install-linux.tar.gz"
+        dest: "{{ vars.openshift_download_dir }}"
+        creates: "{{ vars.openshift_download_dir }}/openshift-install"
+
+
+    - name: Download default stable client
+      get_url:
+        url: "{{ vars.openshift_default_client_source }}"
+        dest: "{{ vars.openshift_download_dir }}/openshift-client-linux.tar.gz"
+    
+    - name: Untar the client file
+      unarchive:
+        src: "{{ vars.openshift_download_dir }}/openshift-client-linux.tar.gz"
+        dest: "{{ vars.openshift_download_dir }}"
+        creates: "{{ vars.openshift_download_dir }}/oc"
+    
+    - name: Copy client files to the local user's bin, instead of /usr/local/bin which would need become
+      copy:
+        src: "{{ item }}"
+        dest: $HOME/bin/
+      with_items: 
+      - "{{ vars.openshift_download_dir }}/oc"
+      - "{{ vars.openshift_download_dir }}/kubectl"
+
+
+    - name: Copy the inventory file to the config dir
+      copy:
+        src: vars/openshift_4_install_config.yml
+        dest: "{{ vars.openshift_config_dir }}/install-config.yaml"
+        force: yes # change back to no
+
+    - name: Check whether new SSH key is already created
+      include_tasks: tasks/check_local_ssh_key_creation.yml
+      run_once: true
+
+    - name: Replace SSH key
+      replace:
+        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
+        regexp: "replaceme_sshKey"
+        replace: "{{ item }}"
+      with_file: "~/.ssh/{{ vars.deployment_ssh_filename }}.pub"
+
+    - name: Replace pull secret
+      replace:
+        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
+        regexp: "replaceme_pullSecret"
+        replace: "{{ vars.openshift_auth_code }}"
+
+    - name: Replace cluster name
+      replace:
+        path: "{{ vars.openshift_config_dir }}/install-config.yaml"
+        regexp: "replaceme_clustername"
+        replace: "{{ vars.openshift_cluster_name }}"

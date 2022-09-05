@@ -14,9 +14,39 @@
 #   when: not cloud_init_config.stat.exists
 
 
-- name: "Prevent reboots from resorting to DHCP, caused by cloud-init, even when masked"
+- name: Prevent reboots from resorting to DHCP, caused by cloud-init, even when masked
   ansible.builtin.copy:
     dest: /etc/cloud/cloud.cfg.d/99-disablle-network-config.cfg
     content: "\n# Prevent cloud-init from resorting to DHCP upon reboots, even when masked\nnetwork:\n  config: disabled"
   become: yes
   when: not cloud_init_config.stat.exists
+
+
+- name: Check dnsmasq folder exists
+  ansible.builtin.file:
+    path: /etc/dnsmasq.d
+    state: directory
+    owner: root
+    mode: '0777'
+  become: yes
+
+- name: Check whether dnsmasq forwarding config file already exists
+  ansible.builtin.stat:
+    path: /etc/dnsmasq.d/origin-upstream-dns.conf 
+  register: dnsmasq_forwarding_config
+
+- name: Set dnsmasq forwarding due to NM_CONTROLLED missing from ifcfg due to deployment
+  ansible.builtin.copy:
+    dest: /etc/dnsmasq.d/origin-upstream-dns.conf 
+    content: "server=10.255.254.102" #\nserver=10.255.254.101" # address=/rdlabo.local/10.255.254.88\naddress=/rdlabo.local/10.255.254.101
+  become: yes
+  when: not dnsmasq_forwarding_config.stat.exists
+# content: "server=10.255.254.102\nserver=10.255.254.101"
+
+- name: Check that the dnsmasq service is enabled & restarted
+  ansible.builtin.systemd:
+    name: dnsmasq
+    enabled: yes
+    state: restarted
+  ignore_errors: yes
+  become: yes

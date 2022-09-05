@@ -9,11 +9,18 @@ This is an Ansible playbook configuration. This requires Ansible to be installed
 Make sure the Ansible requirements are installed next with the following command. This will install external roles & collections to the user's /home/\<user\>/.ansible/ dir. Some collections require additional requirement installations.
 
     ansible-galaxy collection install -r requirements.yml
-    ansible-galaxy role install -r requirements.yml 
-    pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt
-    pip3 install pywinrm
+    ansible-galaxy role install -r requirements.yml
 
-Versions used in this pass:
+    # You can use a specific Python version by specifying python3.8:
+    python3.8 -m pip install packaging --user
+    python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
+    python3.8 -m pip install pywinrm --user
+
+    # Using pip3 is deprecated, the previous solution should be used
+    # pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt
+    # pip3 install pywinrm
+
+Versions used in the OKD pass:
  - ovirt.ovirt:1.6.6
  - ansible.posix:1.3.0
  - community.vmware:2.1.0
@@ -22,6 +29,16 @@ Versions used in this pass:
  - kubernetes.core:2.2.3
  - community.windows:1.9.0
  - community.general:4.5.0
+
+Versions used in the OpenShift pass:
+ - ovirt.ovirt:2.2.3
+ - ansible.posix:1.4.0
+ - community.vmware:2.8.0
+ - community.kubernetes:2.0.1
+ - community.okd:2.2.0
+ - kubernetes.core:2.3.2
+ - community.windows:1.11.0
+ - community.general:5.5.0
 
 ## Requirements - Ansible Vault
 Ansible Vault is used to store credentials. We'll use a vault password file to encrypt & decrypt the Ansible Vault .yml file.
@@ -79,12 +96,18 @@ Create the SSH key with the following command:
 
 To be able to deploy Linux VMs we have to verify that open-vm-tools is installed on our template VM (done by default on RHEL 8.5), as well as several other packages required by deployPkg. We'll also create our 'ansible' user and import our SSH deployment certificate.
 
+ ### VM Setting 
+
+ We'll be using VMware as our default storageClass provider. This requires us to set the following advanced setting on our VMs. Adding it to the template is the easiest way:
+
+  disk.enable
+
  ### RHEL 7.9
   yum update
 
   yum clean all
   yum --noplugins list
-
+api.okd3.rdlabo.local:8443
   yum install open-vm-tools perl cloud-init yum-util
 
   useradd -d /home/ansible -m ansible -s /bin/bash
@@ -144,9 +167,18 @@ To execute a playbook and capture the output (--ask-become-pass not needed):
 
   ansible-playbook -i inventory.yml deploy_OKD_3.11_nodes.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user 2>&1 | tee -a output_run_20210507_1345.log
 
+If you want to execute a specific tag, then you can do so as well:
+
+  ansible-playbook -i inventory.yml deploy_OKD_3.11_nodes.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user --tags=storage_extend 2>&1 | tee -a output_run_20210507_1345.log
 
 
 
+
+
+
+
+
+## Crap moved forward
 --- WIP from here on ---
 
 To be able to manage hosts through Ansible Python needs to be installed, including some other pre-reqs

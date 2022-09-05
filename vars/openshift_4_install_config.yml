@@ -1,0 +1,41 @@
+apiVersion: v1
+baseDomain: rdlabo.local
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 0
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: replaceme_clustername
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.255.254.0/24
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  vsphere:
+    apiVIP: 10.255.254.84
+    cluster: RDLabo
+    datacenter: P250
+    defaultDatastore: RDL3PAR01_ESXCORE_VMFS_L102
+    ingressVIP: 10.255.254.85
+    network: VLAN665-RD Labo
+    password: Nemlod01!
+    username: administrator@vsphere.local
+    vCenter: rdlvc11a.rdlabo.local
+publish: External
+pullSecret: 'replaceme_pullSecret'
+sshKey: |
+  replaceme_sshKey
