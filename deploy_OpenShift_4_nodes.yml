@@ -2,7 +2,7 @@
 - import_playbook: tasks/check_all.yml
 
 - name: Deploy VMs
-  hosts: openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
+  hosts: openshift_upi_vms # openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -31,7 +31,10 @@
   #   ansible.builtin.include_tasks: tasks/deploy-windows-dns-records.yml
 
   - name: Deploy VMs
-    ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-vmware-vms-from-template.yml
+      apply:
+        tags: vm
     tags: vm
 
 

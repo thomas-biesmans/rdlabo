@@ -55,34 +55,56 @@
   delegate_to: localhost
 
 
-- name: Update VM network IP based on inventory, creating list
-  set_fact:
-    new_networks: []
-    new_networks_with_mac: []
+# - debug:
+#     msg: "{{ vars.community_vmware_vmware__guest }}"
+# - name: Test - Update VM network MAC only based on inventory, adding network to the list
+#   ansible.utils.update_fact:
+#     updates:
+#     - path: community_vmware_vmware__guest.networks[0].mac
+#       value: "{{ vars.mac }}"
+#   register: community_vmware_vmware__guest
+#   when: not vars.os_customization_for_ip and vars.mac is defined
+
+# - debug:
+#     msg: "{{ vars.community_vmware_vmware__guest }}"
+# - pause:
+
 
 - name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
-    new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-    new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true) | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
-  when: vars.os_customization_for_ip and vars.mac is defined
+    patch:
+    - mac: "{{ vars.mac }}"
 
-- name: Update VM network IP only based on inventory, adding network to the list
+- name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
-    new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-    new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-  when: vars.os_customization_for_ip and vars.mac is not defined
+    new_networks: "{{ [] + [community_vmware_vmware__guest.networks | combine(patch, recursive=True)] }}"
 
-- name: Update VM network MAC only based on inventory, adding network to the list
-  set_fact:
-    new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
-    new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
-  when: not vars.os_customization_for_ip and vars.mac is defined
+- debug:
+    msg: "{{ new_networks }}"
 
-- name: Do not update VM network when no IP or MAC are added based on inventory, adding network to the list
-  set_fact:
-    new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
-    new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
-  when: not vars.os_customization_for_ip and vars.mac is not defined
+# - name: Update VM network IP & MAC based on inventory, adding network to the list
+#   set_fact:
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true) | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
+#   when: vars.os_customization_for_ip and vars.mac is defined
+
+# - name: Update VM network IP only based on inventory, adding network to the list
+#   set_fact:
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
+#   when: vars.os_customization_for_ip and vars.mac is not defined
+
+# - name: Update VM network MAC only based on inventory, adding network to the list
+#   set_fact:
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
+#   when: not vars.os_customization_for_ip and vars.mac is defined
+
+# - name: Do not update VM network when no IP or MAC are added based on inventory, adding network to the list
+#   set_fact:
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
+#   when: not vars.os_customization_for_ip and vars.mac is not defined
 
 - name: Show added IPs and MACs
   debug:
@@ -134,7 +156,7 @@
       #       state: present
       #       type: iso
       #       iso_path: "[datastore1] livecd.iso"
-      #networks: "{{ vars.new_networks }}" #| default( default_vmware_portgroup ) }}"
+      networks: "{{ new_networks }}" #| default( default_vmware_portgroup ) }}"
       customization: "{{ vars.community_vmware_vmware__guest.customization | default ({}) }}"
       advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
 
@@ -161,36 +183,29 @@
     when: vars.delete_during_retry
 
 
-# - name: Add VMNics
-#   throttle: "{{ parallel_deployments }}"
-#   retries: 3
-#   delay: 10
-#   community.vmware.vmware_guest_network:
-#     validate_certs: "{{ validate_certs | default(false) }}"
-#     hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-#     username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-#     password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-#     name: "{{ inventory_hostname_short }}"
-#     state: present
-#     #network_name: "{{ item.name }}"
-#     vlan_id: 665
-#     device_type: "{{ item.device_type | default('vmxnet3') }}"
-#     connected: "{{ item.connected | default('true') }}"
-#     start_connected: "{{ item.start_connected | default('true') }}"
-#     mac_address: "{{ vars.mac | default (omit)}}"
-#     gather_network_info : false
+- name: Update VMNics with fixed macs
+  throttle: "{{ parallel_deployments }}"
+  retries: 3
+  delay: 10
+  community.vmware.vmware_guest_network:
+    validate_certs: "{{ validate_certs | default(false) }}"
+    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+    name: "{{ inventory_hostname_short }}"
+    state: present
+    network_name: "{{ item.name }}"
+    device_type: "{{ item.device_type | default('vmxnet3') }}"
+    connected: "{{ item.connected | default('true') }}"
+    start_connected: "{{ item.start_connected | default('true') }}"
+    mac_address: "{{ vars.mac | default (omit)}}"
+    label: "{{ item.label | default (omit)}}"
 
-#   delegate_to: localhost
-#   register: deploy_macchange
-#   with_items: "{{ vars.community_vmware_vmware__guest.networks }}"
-
-# - ansible.builtin.pause:
-
-
-- name: Show hosts with fixed MAC addresses
-  debug:
-    msg: "IP: {{ vars.ip | default ('Not defined')}}, MAC: {{ vars.mac | default ('Not defined') }}, current MAC {{ deploy.instance.hw_eth0.macaddress | default('') }}"
+  delegate_to: localhost
+  register: deploy_macchange
+  loop: "{{ vars.new_networks }}"
   when: vars.mac is defined
+
 
 - name: Get VM facts
   retries: 3
@@ -201,52 +216,13 @@
     username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
     password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
     datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-    name: "RDLDC01" #"{{ inventory_hostname_short }}"
+    name: "{{ inventory_hostname_short }}"
     gather_network_info : true
   delegate_to: localhost
   register: facts_post_deploy
   when: vars.mac is defined
 
-# - name: Show hosts with fixed MAC addresses
-#   debug:
-#     msg: "{{ facts_post_deploy }}"
+- name: Show hosts with fixed MAC addresses
+  debug:
+    msg: "{{ facts_post_deploy }}"
 
-
-- name: Remove current vNICs
-  throttle: "{{ parallel_deployments }}"
-  retries: 3
-  delay: 10
-  community.vmware.vmware_guest_network:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    name: "{{ inventory_hostname_short }}"
-    mac_address: "{{ deploy.instance.hw_eth0.macaddress }}"
-    gather_network_info : false
-    state: absent
-
-  delegate_to: localhost
-  register: deploy_macchange
-  when: vars.mac is defined
-  with_items: "{{ deploy.instance.hw_interfaces }}"
-
-- name: Change hosts with fixed MAC addresses
-  throttle: "{{ parallel_deployments }}"
-  retries: 3
-  delay: 10
-  community.vmware.vmware_guest_network:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    name: "{{ inventory_hostname_short }}"
-    #network_name: "{{ vars.new_networks_with_mac[0].name }}"
-    vlan_id: 665
-    mac_address: "{{ vars.new_networks_with_mac[0].mac }}"
-    gather_network_info : false
-    state: present
-
-  delegate_to: localhost
-  register: deploy_macchange
-  when: vars.mac is defined
