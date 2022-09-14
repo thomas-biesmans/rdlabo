@@ -11,11 +11,11 @@ collections:
 # - gluster.gluster
 - ansible.posix
 - community.vmware
-- community.kubernetes
 - community.okd
 - community.windows
 - community.general
 - citrix.adc
+- kubernetes.core # Used to be community.kubernetes
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml

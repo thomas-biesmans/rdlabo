@@ -14,6 +14,7 @@ Make sure the Ansible requirements are installed next with the following command
     # You can use a specific Python version by specifying python3.8:
     python3.8 -m pip install packaging --user
     python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
+    python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
     python3.8 -m pip install pywinrm --user
 
     # Using pip3 is deprecated, the previous solution should be used
@@ -24,21 +25,20 @@ Versions used in the OKD pass:
  - ovirt.ovirt:1.6.6
  - ansible.posix:1.3.0
  - community.vmware:2.1.0
- - community.kubernetes:2.0.1
  - community.okd:2.1.0
  - kubernetes.core:2.2.3
  - community.windows:1.9.0
  - community.general:4.5.0
 
-Versions used in the OpenShift pass:
+Versions used in the OpenShift 4 pass:
  - ovirt.ovirt:2.2.3
  - ansible.posix:1.4.0
- - community.vmware:2.8.0
+ - community.vmware:2.9.1
  - community.kubernetes:2.0.1
  - community.okd:2.2.0
- - kubernetes.core:2.3.2
  - community.windows:1.11.0
- - community.general:5.5.0
+ - community.general:5.6.0
+ - kubernetes.core: 2.3.2
 
 ## Requirements - Ansible Vault
 Ansible Vault is used to store credentials. We'll use a vault password file to encrypt & decrypt the Ansible Vault .yml file.

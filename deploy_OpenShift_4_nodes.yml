@@ -398,6 +398,125 @@
 
 
 
+- name: Prepare OpenShift deployment
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/openshift_upi_vms.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Check whether OpenShift cluster exists already
+    tags: deploy_cluster
+    block:
+
+    - name: Check whether OpenShift cluster exists already
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: openshift-kube-apiserver
+      register: namespace_kube_apiserver
+
+    - name: "Log when namespace 'openshift-kube-apiserver' already exists"
+      debug:
+        msg: "Namespace 'openshift-kube-apiserver' already exists, no need to redeploy."
+      when: namespace_kube_apiserver.resources[0].status.phase == "Active"
+
+
+- name: Power on bootstrap node if bootstrap is needed
+  hosts: openshift_upi_vms_bootstrap_node
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Start the bootstrap node
+    when: hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    tags: deploy_cluster
+    block:
+
+    - name: Power on bootstrap node if bootstrap is needed
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredon
+      delegate_to: localhost
+
+    - name: Query ignition files served by the bootstrap node, waiting up to 5 minutes
+      shell: "curl -k https://{{ openshift_api_url }}:22623/config/master"
+      retries: 10
+      delay: 30
+      until: ignition_curl.stdout[:20] == "{\"ignition\":{\"versio"
+      register: ignition_curl
+      delegate_to: localhost
+
+    - name: Show output received from bootstrapped cluster
+      debug:
+        msg: "Output: {{ ignition_curl.stdout[:20] }}"
+
+
+- name: Power on master nodes if bootstrap is needed
+  hosts: openshift_upi_vms_master_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Start the master nodes if bootstrap is needed
+    when: hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    tags: deploy_cluster
+    block:
+
+    - name: Power on master nodes if bootstrap is needed
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredon
+      delegate_to: localhost
+
+
+- name: Power on worker nodes if bootstrap is needed
+  hosts: openshift_upi_vms_worker_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Start the worker nodes if bootstrap is needed
+    when: hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    tags: deploy_cluster
+    block:
+
+    - name: Power on worker nodes if bootstrap is needed
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredon
+      delegate_to: localhost
+
+
 - name: Deploy OpenShift
   hosts: localhost
   gather_facts: false
@@ -406,9 +525,234 @@
   - vars/network-config.yml
   - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
-  - name: Start install wait-for bootstratp-complete
+  - name: Deploy cluster if the namespace 'openshift-kube-apiserver' doesn't exist
+    when: namespace_kube_apiserver.resources[0].status.phase == "Active" #ToDo: needed?
+    tags: deploy_cluster
+    block:
+
+    - name: Start install wait-for bootstrap-complete
+      shell: "{{ vars.openshift_download_dir }}/openshift-install --dir {{ vars.openshift_config_dir }} wait-for bootstrap-complete --log-level=debug"
+      register: deploy_bootstrap_results
+      retries: 3
+      delay: 3
+      until: '"level=info msg=It is now safe to remove the bootstrap resources" in deploy_bootstrap_results.stderr_lines'
+      ignore_errors: yes
+
+    - name: Fail / halt if there is an error with command parameters
+      fail:
+        msg: "Error with command parameters, help is shown"
+      when: '"Wait for install-time events." in deploy_bootstrap_results.stdout_lines'
+
+    - name: Fail / halt if bootstrap didn't complete
+      fail:
+        msg: ["Error with command, you can gather bootstrap information with the following command:",
+              "{{ vars.openshift_download_dir }}/openshift-install --dir {{ vars.openshift_config_dir }} gather bootstrap
+                --bootstrap {{ hostvars[groups.openshift_upi_vms_bootstrap_node[0]].ip }}
+                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[0]].ip }}
+                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[1]].ip }}
+                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[2]].ip }}
+              "]
+      when: 'not "level=info msg=It is now safe to remove the bootstrap resources" in deploy_bootstrap_results.stderr_lines'
+
+    - name: Show wait-for bootstrap-complete output
+      debug:
+        msg: "{{ ['Command executed in ' + deploy_bootstrap_results.attempts | string + ' tries, output:',
+                  '-----------------------------------'] +
+                  deploy_bootstrap_results.stderr_lines }}"
+
+
+- name: Power off bootstrap node if bootstrap is finished
+  hosts: openshift_upi_vms_bootstrap_node
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Power off the bootstrap node
+    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    tags: deploy_cluster
+    block:
+
+    - name: Power off bootstrap node if bootstrap is finished
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredoff
+      delegate_to: localhost
+
+
+- name: Finalize OpenShift deployment
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/openshift_upi_vms.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy cluster if the namespace 'openshift-kube-apiserver' doesn't exist
+    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    tags: deploy_cluster
+    block:
+
+    - name: Check etcd members
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Etcd
+      register: etcd_list
+
+    - name: Print found Etcd members
+      debug:
+        msg: "{{ item.nodeName }}"
+      with_items: "{{ etcd_list.resources[0].status.nodeStatuses }}"
+      loop_control:
+        label: "Etcd member hostname"
+
+
+    - name: Get pendings CSRs
+      kubernetes.core.k8s_info:
+        api_version: certificates.k8s.io/v1
+        kind: CertificateSigningRequest
+      register: csr_list
+      
+    - name: Approve pending CSRs
+      shell: "oc adm certificate approve {{ item.metadata.name }}"
+      when: 'item.status | length == 0'
+      with_items: "{{ csr_list.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+      delegate_to: localhost
+
+
+    - name: Set 'image-registry' ClusterOperator config to recreate itself
+      kubernetes.core.k8s:
+        api_version: imageregistry.operator.openshift.io/v1
+        definition:
+          api_version: imageregistry.operator.openshift.io/v1
+          kind: Config
+          metadata:
+            name: cluster
+          spec:
+            managementState: Managed
+            rolloutStrategy: Recreate
+            replicas: 1
+            storage:
+              pvc:
+                claim:
+      register: image_registry_config
+
+
+    - name: Get 'cloud-provider-config' ConfigMap to specify a custom VM Folder
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        name: cloud-provider-config
+        namespace: openshift-config
+      register: cloud_provider_config
+
+    - name: Set 'cloud-provider-config' ConfigMap to correct VM folder
+      kubernetes.core.k8s:
+        api_version: v1
+        definition:
+          api_version: sv1
+          kind: ConfigMap
+          metadata:
+            name: cloud-provider-config
+            namespace: openshift-config 
+          data:
+            config: "{{ cloud_provider_config.resources[0].data.config | regex_replace ('folder = (.*)', 'folder = \"/' +
+                          default_community_vmware_vmware__guest.datacenter + '/vm' + default_community_vmware_vmware__guest.folder + '\"') }}"
+
+ 
+    - name: Add PVC to 'image-registry' ClusterOperator
+      kubernetes.core.k8s:
+        api_version: v1
+        definition:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: image-registry-storage
+            namespace: openshift-image-registry 
+          spec:
+            accessModes:
+            - ReadWriteOnce 
+            resources:
+              requests:
+                storage: 100Gi 
+
+
+
+    - name: Start install wait-for install-complete
+      shell: "{{ vars.openshift_download_dir }}/openshift-install --dir {{ vars.openshift_config_dir }} wait-for install-complete --log-level=debug"
+      register: deploy_install_results
+      retries: 3
+      delay: 3
+      until: '"level=info msg=Install complete!" in deploy_install_results.stderr_lines'
+      ignore_errors: yes
+
+    - name: Fail / halt if there is an error with command parameters
+      fail:
+        msg: "Error with command parameters, help is shown"
+      when: '"Wait for install-time events." in deploy_install_results.stdout_lines'
+
+    - name: Show wait-for install-complete output
+      debug:
+        msg: "{{ ['Command executed in ' + deploy_install_results.attempts | string + ' tries, output:',
+                  '-----------------------------------'] +
+                  deploy_install_results.stderr_lines }}"
+
+
+    - name: List ClusterOperators
+      shell: oc get co
+      delegate_to: localhost
+      register: cli_co_results
+
+    - debug:
+        msg: "{{ ['ClusterOperators:'] + cli_co_results.stdout_lines }}"
+
+
+    - name: List ClusterVersion
+      shell: oc get clusterversion
+      delegate_to: localhost
+      register: cli_cv_results
+
+    - debug:
+        msg: "{{ ['ClusterVersion:'] + cli_cv_results.stdout_lines }}"
+
+
+    # - name: Get ClusterOerators
+    #   kubernetes.core.k8s_info:
+    #     api_version: v1
+    #     kind: ClusterOperator
+    #   register: clusteroperators_list
+ 
+    # - debug:
+    #     msg: "{{ item.status.conditions[0].type }}"
+    #   with_items: "{{ clusteroperators_list.resources }}"
+    #   loop_control:
+    #     label: "{{ item.metadata.name}}"
+      
+
+    # - name: Start install wait-for bootstratp-complete
+    #   shell: "{{ vars.openshift_download_dir }}/openshift-install --dir {{ vars.openshift_config_dir }} wait-for bootstrap-complete --log-level=debug"
+    #   when: not ignition_file.stat.exists
+
+
+
+
 
   # ToDo: Infra nodes
   # ToDo: Creating a separate /var partition
