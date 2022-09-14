@@ -15,6 +15,7 @@ collections:
 - community.okd
 - community.windows
 - community.general
+- citrix.adc
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml

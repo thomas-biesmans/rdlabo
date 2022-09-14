@@ -7,6 +7,8 @@ ansible_user: ansible
 # defaultvg: centos # centos for CentOS 7, rhel for RedHat 8
 os_customization_for_ip: false
 bastion_webroot: /home/user1/var-www-html
+bastion_ip: 10.255.254.23
+bastion_port: 8080
 openshift_download_dir: /home/user1/openshift-install-4.9-upi-installer
 openshift_config_dir: /home/user1/openshift-install-4.9-upi-config
 openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.9/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
@@ -14,11 +16,12 @@ openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 openshift_cluster_name: openshift-upi
 openshift_cluster_domain: rdlabo.local
-openshift_clusterNetwork_cidr: 10.128.0.0/14
-openshift_clusterNetwork_hostPrefix: 23
-openshift_machineNetwork_cidr: 10.255.254.0/24
+openshift_clusterNetwork_cidr: 10.128.0.0/14 # Default: 10.128.0.0/14
+openshift_clusterNetwork_hostPrefix: 23 # Default: 23
+openshift_machineNetwork_cidr: 10.255.254.0/24 # Default: 10.0.0.0/16
+openshift_machineNetwork_cidr: 172.16.0.0/16 # Default: 10.0.0.0/16
 openshift_serviceNetwork:
-- 172.30.0.0/16
+- 172.30.0.0/16  # Default: 172.30.0.0/16
 openshift_api_url: "api.openshift-upi.rdlabo.local"
 # api_url: api.openshift-upi.rdlabo.local
 # api-int_url: api-int.openshift-upi.rdlabo.local
@@ -56,7 +59,7 @@ default_community_vmware_vmware__guest:
     # hotadd_cpu: True
     # hotremove_cpu: True
     # hotadd_memory: False
-    version: 19 # Hardware version of virtual machine
+    version: 19 # Hardware version of virtual machine, already up-to-date
     boot_firmware: "efi"
   # cdrom:
   #     - controller_number: 0

@@ -1,0 +1,22 @@
+---
+
+- name: Find matching network
+  set_fact:
+    found_network: "{{ item.network }}"
+  loop: "{{ vars.vlans }}"
+  when: item.name == vars.vmware_networkportgroup
+
+- name: Create DHCP Reservations
+  community.windows.win_dhcp_lease:
+    type: reservation
+    reservation_name: "{{ inventory_hostname_short }}"
+    description: "{{ inventory_hostname_short }}"
+    ip: "{{ vars.ip }}"
+    scope_id: "{{ vars.found_network }}"
+    mac: "{{ vars.mac | replace(':','-') }}"
+    dns_hostname: "{{ inventory_hostname_short }}"
+    dns_regtype: noreg
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups.windows_dns }}"
+
+  

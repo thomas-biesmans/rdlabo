@@ -87,4 +87,6 @@ windows_clients:
   children:
     windows_dns:
 
-
+citrix_load_balancer:
+  hosts:
+    rdlns02.rdlabo.local:

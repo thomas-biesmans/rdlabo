@@ -28,7 +28,7 @@
   - name: Deploy DNS records
     vars:
       target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
-    ansible.builtin.import_tasks: tasks/deploy-windows-dns-records.yml
+    ansible.builtin.import_tasks: tasks/deploy-windows-dns-records-old.yml
 
   - name: Deploy VMs
     ansible.builtin.include_tasks: tasks/deploy-vmware-vms-from-template.yml

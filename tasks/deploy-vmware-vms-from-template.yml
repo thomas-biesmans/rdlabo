@@ -79,9 +79,6 @@
   set_fact:
     new_networks: "{{ [] + [community_vmware_vmware__guest.networks | combine(patch, recursive=True)] }}"
 
-- debug:
-    msg: "{{ new_networks }}"
-
 # - name: Update VM network IP & MAC based on inventory, adding network to the list
 #   set_fact:
 #     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
@@ -157,8 +154,8 @@
       #       type: iso
       #       iso_path: "[datastore1] livecd.iso"
       networks: "{{ new_networks }}" #| default( default_vmware_portgroup ) }}"
-      customization: "{{ vars.community_vmware_vmware__guest.customization | default ({}) }}"
-      advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
+      customization: "{{ vars.community_vmware_vmware__guest.customization | default (omit) }}"
+      # advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
 
       wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default(false) }}"
 
@@ -182,6 +179,22 @@
     delegate_to: localhost
     when: vars.delete_during_retry
 
+
+- name: Update VMs' Advanced Settings
+  throttle: "{{ parallel_deployments }}"
+  retries: 3
+  delay: 10
+  community.vmware.vmware_guest:
+    validate_certs: "{{ validate_certs | default(false) }}"
+    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+    name: "{{ inventory_hostname_short }}"
+    state: present
+    advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default (omit) }}"
+
+  delegate_to: localhost
+  when: vars.community_vmware_vmware__guest.advanced_settings is defined
 
 - name: Update VMNics with fixed macs
   throttle: "{{ parallel_deployments }}"
@@ -210,19 +223,18 @@
 - name: Get VM facts
   retries: 3
   delay: 10
-  community.vmware.vmware_guest_network:
+  community.vmware.vmware_guest:
     validate_certs: "{{ validate_certs | default(false) }}"
     hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
     username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
     password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
     datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
     name: "{{ inventory_hostname_short }}"
-    gather_network_info : true
   delegate_to: localhost
   register: facts_post_deploy
   when: vars.mac is defined
 
-- name: Show hosts with fixed MAC addresses
+- name: Show VM info
   debug:
     msg: "{{ facts_post_deploy }}"
 
