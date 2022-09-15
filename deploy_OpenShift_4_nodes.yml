@@ -787,6 +787,8 @@
           kind: Node
           metadata:
             name: "{{ hostvars[item].inventory_hostname_short }}"
+            labels:
+              node-role.kubernetes.io/infra: ""
           spec:
             taints:
             - effect: NoSchedule
@@ -794,6 +796,50 @@
       with_items: "{{ groups.openshift_upi_vms_infra_nodes }}"
 
 
+    - name: Deploy a new default router definition allowing scheduling on infra nodes only, as json to prevent issues on number of replicas not being an int
+      kubernetes.core.k8s:
+        state: present
+        template: 'vars/openshift_4_router-default.yml'
+
+
+    - name: Allow taint for 'image-registry' ClusterOperator to run on infra nodes
+      kubernetes.core.k8s:
+        api_version: imageregistry.operator.openshift.io/v1
+        definition:
+          api_version: imageregistry.operator.openshift.io/v1
+          kind: Config
+          metadata:
+            name: cluster
+          spec:
+            tolerations:
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/infra
+              operator: "Exists"
+            nodeSelector:
+              node-role.kubernetes.io/infra: ""
+            affinity:
+              podAffinity: 
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: "kubernetes.io/hostname"
+                    namespaces:
+                    - "openshift-image-registry"
+
+
+    - name: Deploy a new monitoring ConfigMap definition allowing scheduling on infra nodes only
+      kubernetes.core.k8s:
+        state: present
+        template: 'vars/openshift_4_cluster-monitoring-config.yml'
+
+
+    - name: List ClusterOperators
+      shell: oc get co
+      delegate_to: localhost
+      register: cli_co_results
+
+    - debug:
+        msg: "{{ ['ClusterOperators:'] + cli_co_results.stdout_lines }}"
 
 
 
