@@ -1,0 +1,22 @@
+---
+
+- name: Get pendings CSRs
+  kubernetes.core.k8s_info:
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+  register: csr_list
+  
+- name: Approve pending CSRs
+  shell: "oc adm certificate approve {{ csr.metadata.name }}"
+  when: 'csr.status | length == 0'
+  with_items: "{{ csr_list.resources }}"
+  loop_control:
+    loop_var: csr
+    label: "{{ csr.metadata.name }}"
+  register: csrs_processed
+  delegate_to: localhost
+
+- name: Wait for bootstrap to progress if a certificate was accepted
+  pause:
+    seconds: 30
+  when: "csrs_processed.results | select('changed') | length > 0"

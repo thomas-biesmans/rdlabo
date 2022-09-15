@@ -340,7 +340,7 @@
       - "master"
 
 - name: Deploy ignition configs on workers
-  hosts: openshift_upi_vms_worker_nodes
+  hosts: openshift_upi_vms_worker_nodes, openshift_upi_vms_infra_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -622,19 +622,9 @@
         label: "Etcd member hostname"
 
 
-    - name: Get pendings CSRs
-      kubernetes.core.k8s_info:
-        api_version: certificates.k8s.io/v1
-        kind: CertificateSigningRequest
-      register: csr_list
-      
-    - name: Approve pending CSRs
-      shell: "oc adm certificate approve {{ item.metadata.name }}"
-      when: 'item.status | length == 0'
-      with_items: "{{ csr_list.resources }}"
-      loop_control:
-        label: "{{ item.metadata.name }}"
-      delegate_to: localhost
+    - name: Accept worker node bootstrap & node serving CSRs
+      ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr.yml
+      loop: "{{ range(2) }}"
 
 
     - name: Set 'image-registry' ClusterOperator config to recreate itself
@@ -733,6 +723,94 @@
         msg: "{{ ['ClusterVersion:'] + cli_cv_results.stdout_lines }}"
 
 
+
+- name: Power on infra nodes
+  hosts: openshift_upi_vms_infra_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Start the infra nodes
+    tags: deploy_cluster_infra
+    block:
+
+    - name: Power on infra nodes
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredon
+      delegate_to: localhost
+      register: infra_node_boot
+
+    - name: If booted, wait 5 minutes before proceeding so the node can bootstrap
+      pause:
+        minutes: 5
+      when: infra_node_boot.changed
+
+
+
+- name: Deploy dedicated OpenShift infra nodes
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/openshift_upi_vms.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy infra nodes
+    tags: deploy_cluster_infra
+    block:
+
+    - name: Accept infra node bootstrap & node serving CSRs
+      ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr.yml
+      loop: "{{ range(2) }}"
+    # - debug:
+    #     msg: "{{ hostvars[item] }}"
+    #   with_items: "{{ groups.openshift_upi_vms_infra_nodes }}"
+
+    - name: Mark infra nodes unschedulable with a proper taint
+      kubernetes.core.k8s:
+        api_version: v1
+        definition:
+          api_version: v1
+          kind: Node
+          metadata:
+            name: "{{ hostvars[item].inventory_hostname_short }}"
+          spec:
+            taints:
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/infra
+      with_items: "{{ groups.openshift_upi_vms_infra_nodes }}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # - name: Get ClusterOerators
     #   kubernetes.core.k8s_info:
     #     api_version: v1
@@ -757,5 +835,5 @@
   # ToDo: Infra nodes
   # ToDo: Creating a separate /var partition
   # ToDo: Updating the bootloader using bootupd
-
+  # ToDo: test MachineNetwork in 10.255.254.0/24
 
