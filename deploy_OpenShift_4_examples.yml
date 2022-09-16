@@ -1,0 +1,195 @@
+
+- name: Deploy OpenShift example projects
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/openshift_upi_vms.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy example projects
+    tags: deploy_examples
+    block:
+
+    # Quick Nginx Hello World HTTP CLI
+    - name: Add Nginx Hello World HTTP CLI namespace
+      shell: |
+        oc new-project test-nginx-http-cli
+        oc new-app --name hello-world-nginx https://github.com/RedHatTraining/DO280-apps --context-dir hello-world-nginx
+        oc expose service hello-world-nginx
+      ignore_errors: yes
+
+    # Quick Nginx Hello World HTTP Ansible
+    - name: Nginx Hello World HTTP Ansible example from source
+      vars:
+        app_name: hello-world-nginx
+        app_namespace: test-nginx-http-ansible
+        app_git_source: https://github.com/RedHatTraining/DO280-apps 
+        app_git_contextdir: hello-world-nginx
+        app_tag_name: hello-world-nginx:latest
+        app_build_on_tag_name: registry.access.redhat.com/ubi8:8.0 # ubi8:8.0
+        app_service_port: 8080
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_generic_secret: UizJ9CQw5Oyd5uza9Hgy #"{{ lookup ('password', '/dev/null chars=ascii_letters length=24') }}"
+      block:
+
+
+      - name: Split build image's source if specified...
+        set_fact:
+          app_build_on_tag_name_source: "{{ app_build_on_tag_name.split('/')[0] }}/"
+          app_build_on_tag_name_image: "{{ app_build_on_tag_name.split('/')[1] }}"
+        when: app_build_on_tag_name is search("/")
+
+      - name: ... or resort to defaults
+        set_fact:
+          app_build_on_tag_name_source: ""
+          app_build_on_tag_name_image: "{{ app_build_on_tag_name }}"
+        when: not app_build_on_tag_name is search("/")
+
+      - name: Add namespace
+        kubernetes.core.k8s:
+          api_version: v1
+          definition:
+            api_version: v1
+            kind: Namespace
+            metadata:
+              name: "{{ app_namespace }}"
+
+      - name: Add BuildConfig
+        kubernetes.core.k8s:
+          api_version: build.openshift.io/v1
+          definition:
+            api_version: build.openshift.io/v1
+            kind: BuildConfig
+            metadata:
+              name: "{{ app_name }}"
+              namespace: "{{ app_namespace }}"
+              labels:
+                app: "{{ app_name }}"
+            spec:
+              output:
+                to:
+                  kind: ImageStreamTag
+                  name: "{{ app_tag_name }}"
+              source:
+                contextDir: "{{ app_git_contextdir }}"
+                git:
+                  uri: "{{ app_git_source }}"
+                type: Git
+              strategy:
+                dockerStrategy:
+                  from:
+                    kind: ImageStreamTag
+                    name: "{{ app_build_on_tag_name_image }}"
+                type: Docker
+              triggers:
+              - type: ConfigChange
+              - imageChange: {}
+                type: ImageChange
+              - generic:
+                  secret: "{{ app_generic_secret }}" 
+                type: Generic
+      
+      - name: "Import tags of dependant image '{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}' into image stream"
+        community.okd.openshift_import_image:
+          namespace: "{{ app_namespace }}"
+          name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
+          source: "{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}"
+
+      # - name: Wait until the ImageStream has an available ImageStreamTag
+      #   kubernetes.core.k8s_info:
+      #     api_version: image.openshift.io/v1
+      #     kind: ImageStream
+      #     name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
+      #     namespace: "{{ app_namespace }}"
+      #   register: app_image
+      #   until: app_image.resources[0].status.tags | length > 0
+      #   # until: app_image.resources[0].spec.tags[0] is defined
+      #   retries: 20
+      #   delay: 30
+      # # - debug:
+      # #     msg: "{{ app_image.resources[0].status.tags | length > 0 }}"
+      # # - pause:
+
+      - name: Wait 120 seconds to add a specific tag
+        pause:
+          seconds: 120
+        when: app_build_on_tag_name_image.split(':') | length > 0
+
+      - name: "Import tags of dependant image '{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}' again to get specific tag"
+        community.okd.openshift_import_image:
+          namespace: "{{ app_namespace }}"
+          name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
+          source: "{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}"
+        when: app_build_on_tag_name_image.split(':') | length > 0
+
+
+      - name: "Import tags of required image '{{ app_tag_name }}' into image stream"
+        community.okd.openshift_import_image:
+          namespace: "{{ app_namespace }}"
+          name: "{{ app_tag_name.split(':')[0] }}"
+          source: "{{ app_tag_name }}"
+
+      - name: Wait until the built ImageStreamTag is available
+        kubernetes.core.k8s_info:
+          api_version: image.openshift.io/v1
+          kind: ImageStreamTag
+          name: "{{ app_tag_name }}"
+          namespace: "{{ app_namespace }}"
+        register: app_imagestream
+        until: app_imagestream.resources[0].image.dockerImageReference is defined
+        retries: 20
+        delay: 30
+
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          definition:
+            api_version: apps/v1
+            kind: Deployment
+            metadata:
+              name: "{{ app_name }}"
+              namespace: "{{ app_namespace }}"
+              labels:
+                app: "{{ app_name }}"
+            spec:
+              selector:
+                matchLabels:
+                  deployment: "{{ app_name }}"
+              template:
+                metadata:
+                  labels:
+                    deployment: "{{ app_name }}"
+                spec:
+                  containers:
+                  - image: "{{ app_imagestream.resources[0].image.dockerImageReference }}" 
+                    imagePullPolicy: Always
+                    name: "{{ app_name }}"
+                    ports:
+                    - containerPort: "{{ app_container_port }}"
+                      protocol: "{{ app_service_protocol | upper }}"
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          api_version: v1
+          definition:
+            api_version: v1
+            kind: Service
+            metadata:
+              name: "{{ app_name }}"
+              namespace: "{{ app_namespace }}"
+              labels:
+                app: "{{ app_name }}"
+            spec:
+              ports:
+              - name: "{{ app_service_port }}-{{ app_service_protocol }}"
+                port: "{{ app_service_port }}"
+                protocol: "{{ app_service_protocol | upper }}"
+                targetPort: "{{ app_container_port }}"
+              selector:
+                deployment: "{{ app_name }}"
