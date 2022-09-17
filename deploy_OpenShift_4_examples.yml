@@ -95,44 +95,17 @@
                   secret: "{{ app_generic_secret }}" 
                 type: Generic
       
+
       - name: "Import tags of dependant image '{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}' into image stream"
         community.okd.openshift_import_image:
           namespace: "{{ app_namespace }}"
-          name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
+          name: "{{ app_build_on_tag_name_image }}" # include tag for IS or ISTag 'latest' is picked!
           source: "{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}"
-
-      # - name: Wait until the ImageStream has an available ImageStreamTag
-      #   kubernetes.core.k8s_info:
-      #     api_version: image.openshift.io/v1
-      #     kind: ImageStream
-      #     name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
-      #     namespace: "{{ app_namespace }}"
-      #   register: app_image
-      #   until: app_image.resources[0].status.tags | length > 0
-      #   # until: app_image.resources[0].spec.tags[0] is defined
-      #   retries: 20
-      #   delay: 30
-      # # - debug:
-      # #     msg: "{{ app_image.resources[0].status.tags | length > 0 }}"
-      # # - pause:
-
-      - name: Wait 120 seconds to add a specific tag
-        pause:
-          seconds: 120
-        when: app_build_on_tag_name_image.split(':') | length > 0
-
-      - name: "Import tags of dependant image '{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}' again to get specific tag"
-        community.okd.openshift_import_image:
-          namespace: "{{ app_namespace }}"
-          name: "{{ app_build_on_tag_name_image.split(':')[0] }}"
-          source: "{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}"
-        when: app_build_on_tag_name_image.split(':') | length > 0
-
 
       - name: "Import tags of required image '{{ app_tag_name }}' into image stream"
         community.okd.openshift_import_image:
           namespace: "{{ app_namespace }}"
-          name: "{{ app_tag_name.split(':')[0] }}"
+          name: "{{ app_tag_name}}"
           source: "{{ app_tag_name }}"
 
       - name: Wait until the built ImageStreamTag is available
