@@ -234,7 +234,7 @@
   register: facts_post_deploy
   when: vars.mac is defined
 
-- name: Show VM info
-  debug:
-    msg: "{{ facts_post_deploy }}"
+# - name: Show VM info
+#   debug:
+#     msg: "{{ facts_post_deploy }}"
 

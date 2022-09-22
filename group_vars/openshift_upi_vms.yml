@@ -11,6 +11,7 @@ bastion_ip: 10.255.254.23
 bastion_port: 8080
 openshift_download_dir: /home/user1/openshift-install-4.9-upi-installer
 openshift_config_dir: /home/user1/openshift-install-4.9-upi-config
+openshift_example_dir: /home/user1/openshift-install-4.9-upi-examples
 openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.9/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
 openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-install-linux.tar.gz
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz

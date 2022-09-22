@@ -1,0 +1,14 @@
+---
+- name: Query URL, waiting up to 60s
+  shell: "curl -k {{ item.url }}"
+  retries: 12
+  delay: 5
+  until: curl_output is search( item.text_to_find )
+  ignore_errors: yes
+  register: curl_output
+
+- name: Output results
+  debug:
+    msg: "{{ ['Output:',
+              '-------'] +
+              curl_output.stdout_lines }}"

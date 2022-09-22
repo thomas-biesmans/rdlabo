@@ -1,0 +1,40 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_name: name of the application
+# - app_tag_name: name for the ImageStreamTag's name
+# - app_git_source: source to build from
+# - app_git_contextdir specific dir to build from
+# - app_build_on_tag_name_image: name for the ImageStreamTag's name that will be used to build on
+# - app_generic_secret: secret to be used to trigger builds
+
+api_version: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: "{{ app_name }}"
+  namespace: "{{ app_namespace }}"
+  labels:
+    app: "{{ app_name }}"
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: "{{ app_tag_name }}"
+  source:
+    contextDir: "{{ app_git_contextdir }}"
+    git:
+      uri: "{{ app_git_source }}"
+    type: Git
+  strategy:
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: "{{ app_build_on_tag_name_image }}"
+    type: Docker
+  triggers:
+  - type: ConfigChange
+  - imageChange: {}
+    type: ImageChange
+  - generic:
+      secret: "{{ app_generic_secret }}" 
+    type: Generic

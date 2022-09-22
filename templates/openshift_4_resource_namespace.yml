@@ -1,0 +1,8 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+
+api_version: v1
+kind: Namespace
+metadata:
+  name: "{{ app_namespace }}"

@@ -11,20 +11,36 @@
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
+  - name: Create examples dir
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ vars.openshift_example_dir }}"
+
+
   - name: Deploy example projects
-    tags: deploy_examples
+    tags: deploy_example_all, deploy_example_http
     block:
 
     # Quick Nginx Hello World HTTP CLI
-    - name: Add Nginx Hello World HTTP CLI namespace
+    - name: Add Nginx Hello World HTTP app through CLI
       shell: |
         oc new-project test-nginx-http-cli
+        oc project test-nginx-http-cli
         oc new-app --name hello-world-nginx https://github.com/RedHatTraining/DO280-apps --context-dir hello-world-nginx
         oc expose service hello-world-nginx
       ignore_errors: yes
 
+    - name: Query Nginx HTTP CLI example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        text_to_find: "Hello, world from nginx!"
+
+
     # Quick Nginx Hello World HTTP Ansible
-    - name: Nginx Hello World HTTP Ansible example from source
+    - name: Nginx Hello World HTTP app from source through Ansible  
       vars:
         app_name: hello-world-nginx
         app_namespace: test-nginx-http-ansible
@@ -38,7 +54,11 @@
         app_generic_secret: UizJ9CQw5Oyd5uza9Hgy #"{{ lookup ('password', '/dev/null chars=ascii_letters length=24') }}"
       block:
 
-
+      - name: Add namespace for Nginx Hello World HTTP app from source through Ansible 
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+          
       - name: Split build image's source if specified...
         set_fact:
           app_build_on_tag_name_source: "{{ app_build_on_tag_name.split('/')[0] }}/"
@@ -51,51 +71,11 @@
           app_build_on_tag_name_image: "{{ app_build_on_tag_name }}"
         when: not app_build_on_tag_name is search("/")
 
-      - name: Add namespace
-        kubernetes.core.k8s:
-          api_version: v1
-          definition:
-            api_version: v1
-            kind: Namespace
-            metadata:
-              name: "{{ app_namespace }}"
-
       - name: Add BuildConfig
         kubernetes.core.k8s:
-          api_version: build.openshift.io/v1
-          definition:
-            api_version: build.openshift.io/v1
-            kind: BuildConfig
-            metadata:
-              name: "{{ app_name }}"
-              namespace: "{{ app_namespace }}"
-              labels:
-                app: "{{ app_name }}"
-            spec:
-              output:
-                to:
-                  kind: ImageStreamTag
-                  name: "{{ app_tag_name }}"
-              source:
-                contextDir: "{{ app_git_contextdir }}"
-                git:
-                  uri: "{{ app_git_source }}"
-                type: Git
-              strategy:
-                dockerStrategy:
-                  from:
-                    kind: ImageStreamTag
-                    name: "{{ app_build_on_tag_name_image }}"
-                type: Docker
-              triggers:
-              - type: ConfigChange
-              - imageChange: {}
-                type: ImageChange
-              - generic:
-                  secret: "{{ app_generic_secret }}" 
-                type: Generic
+          state: present
+          template: 'templates/openshift_4_resource_buildconfig.yml'
       
-
       - name: "Import tags of dependant image '{{ app_build_on_tag_name_source + app_build_on_tag_name_image }}' into image stream"
         community.okd.openshift_import_image:
           namespace: "{{ app_namespace }}"
@@ -119,50 +99,406 @@
         retries: 20
         delay: 30
 
+      - name: Set Image reference
+        set_fact:
+          app_container_source: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
+
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
-          definition:
-            api_version: apps/v1
-            kind: Deployment
-            metadata:
-              name: "{{ app_name }}"
-              namespace: "{{ app_namespace }}"
-              labels:
-                app: "{{ app_name }}"
-            spec:
-              selector:
-                matchLabels:
-                  deployment: "{{ app_name }}"
-              template:
-                metadata:
-                  labels:
-                    deployment: "{{ app_name }}"
-                spec:
-                  containers:
-                  - image: "{{ app_imagestream.resources[0].image.dockerImageReference }}" 
-                    imagePullPolicy: Always
-                    name: "{{ app_name }}"
-                    ports:
-                    - containerPort: "{{ app_container_port }}"
-                      protocol: "{{ app_service_protocol | upper }}"
+          template: 'templates/openshift_4_resource_deployment.yml'
 
       - name: Add Service
         kubernetes.core.k8s:
-          api_version: v1
-          definition:
-            api_version: v1
-            kind: Service
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Query Nginx HTTP Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "http://hello-world-nginx-test-nginx-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+          text_to_find: "Hello, world from nginx!"
+
+
+  - name: Deploy example projects
+    tags: deploy_example_all, deploy_example_https
+    block:
+
+    # Quick Nginx Hello World HTTPS CLI
+    - name: Add Nginx Hello World HTTPS app through CLI
+      shell: |
+        oc new-project test-nginx-https-cli
+        oc project test-nginx-https-cli
+        openssl req -nodes -x509 -newkey rsa:4096 -keyout {{ openshift_example_dir }}/hello-secure-key.pem -out {{ openshift_example_dir }}/hello-secure-combined.pem -days 365 -subj '/CN=hello-secure'
+        oc new-app --name hello-secure quay.io/redhattraining/hello-world-secure:v1.0
+        oc create secret tls hello-secure --cert {{ openshift_example_dir }}/hello-secure-combined.pem --key {{ openshift_example_dir }}/hello-secure-key.pem
+        oc set volumes deployment/hello-secure --add --type secret --secret-name hello-secure --mount-path /run/secrets/nginx
+        oc create route passthrough hello-secure --service hello-secure --hostname hello-world-nginx-test-nginx-https-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}
+      ignore_errors: yes
+
+    - name: Query Nginx HTTPS CLI example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "https://hello-world-nginx-test-nginx-https-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        text_to_find: "Hello, world from nginx!"
+
+
+    # Quick Nginx Hello World HTTPS Ansible
+    - name: Nginx Hello World HTTPS app through Ansible  
+      vars:
+        app_name: hello-secure
+        app_namespace: test-nginx-https-ansible
+        app_git_source: quay.io/redhattraining/hello-world-secure:v1.0
+        app_git_contextdir:
+        app_tag_name: hello-secure:v1.0
+        app_service_port: 8443
+        app_service_protocol: tcp
+        app_container_port: 8443
+        app_secret_name: "{{ app_name }}-secret"
+        app_secret_tls_crt: "hello-secure-combined.pem"
+        app_secret_tls_key: "hello-secure-key.pem"
+        app_volumeMounts:
+        - mountPath: /run/secrets/nginx
+          name: volume-tls
+        app_volumes:
+        - name: volume-tls
+          secret:
+            defaultMode: 420
+            secretName: "{{ app_name }}"
+        app_route_ssl_termination: passthrough
+        app_route_hostname: "hello-world-nginx-test-nginx-https-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+
+      block:
+
+      - name: Add namespace for Nginx Hello World HTTPS app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+  
+      - name: "Import tags of required image '{{ app_tag_name }}' into image stream"
+        community.okd.openshift_import_image:
+          namespace: "{{ app_namespace }}"
+          name: "{{ app_tag_name}}"
+          source: "{{ app_git_source }}"
+
+      - name: Check certificate key
+        stat:
+          path: "{{ openshift_example_dir }}/{{ app_secret_tls_key }}"
+        register: local_cert_key
+
+      - name: Check certificate 
+        stat:
+          path: "{{ openshift_example_dir }}/{{ app_secret_tls_crt }}"
+        register: local_cert
+
+      - name: Create a new certificate if it does not exist
+        shell: "openssl req -nodes -x509 -newkey rsa:4096 -keyout {{ openshift_example_dir }}/{{ app_secret_tls_key }} -out {{ openshift_example_dir }}/{{ app_secret_tls_crt }} -days 365 -subj '/CN={{ app_name }}'"
+        when: not local_cert_key.stat.exists or not local_cert.stat.exists
+
+      - name: Add TLS secret
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_secret_tls.yml'
+
+      - name: Wait until the ImageStreamTag is available
+        kubernetes.core.k8s_info:
+          api_version: image.openshift.io/v1
+          kind: ImageStreamTag
+          name: "{{ app_tag_name }}"
+          namespace: "{{ app_namespace }}"
+        register: app_imagestream
+        until: app_imagestream.resources[0].image.dockerImageReference is defined
+        retries: 20
+        delay: 30
+
+      - name: Set Image reference
+        set_fact:
+          app_container_source: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route_ssl.yml'
+
+      - name: Query Nginx HTTPS Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "https://hello-world-nginx-test-nginx-https-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+          text_to_find: "Hello, world from nginx!"
+                    
+
+  - name: Deploy example projects
+    tags: deploy_example_all, deploy_example_todo
+    block:
+
+    # ToDo CLI
+    - name: Add ToDo app through CLI
+      shell: |
+        oc new-project test-todo-http-cli
+        oc project test-todo-http-cli
+        cat > {{ openshift_example_dir }}/todo-http.yaml <<EOL
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: todo-http
+          labels:
+            app: todo-http
+            name: todo-http
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: todo-http
+              name: todo-http
+          template:
             metadata:
-              name: "{{ app_name }}"
-              namespace: "{{ app_namespace }}"
               labels:
-                app: "{{ app_name }}"
+                app: todo-http
+                name: todo-http
             spec:
-              ports:
-              - name: "{{ app_service_port }}-{{ app_service_protocol }}"
-                port: "{{ app_service_port }}"
-                protocol: "{{ app_service_protocol | upper }}"
-                targetPort: "{{ app_container_port }}"
-              selector:
-                deployment: "{{ app_name }}"
+              containers:
+              - resources:
+                  limits:
+                    cpu: '0.5'
+                image: quay.io/redhattraining/todo-angular:v1.1
+                name: todo-http
+                ports:
+                - containerPort: 8080
+                  name: todo-http
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          labels:
+            app: todo-http
+            name: todo-http
+          name: todo-http
+        spec:
+          ports:
+          - port: 80
+            protocol: TCP
+            targetPort: 8080
+          selector:
+            name: todo-http
+        EOL
+        oc create -f {{ openshift_example_dir }}/todo-http.yaml
+        oc expose svc todo-http
+
+      ignore_errors: yes
+
+    - name: Query ToDo CLI example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://todo-http-test-todo-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+                  
+
+    # ToDo Ansible
+    - name: ToDo app through Ansible  
+      vars:
+        app_name: todo-http
+        app_namespace: test-todo-http-ansible
+        app_container_source: quay.io/redhattraining/todo-angular:v1.1
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_resources:
+          limits:
+            cpu: '0.5'
+      block:
+
+      - name: Add namespace for ToDo app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Query ToDo Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "http://todo-http-test-todo-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+          text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+
+
+
+  - name: Deploy example projects
+    tags: deploy_example_all, deploy_example_wordpress
+    block:
+
+    # WordPress on MySQL CLI
+    # - name: Add WordPress on MySQL app through CLI
+    #   shell: |
+    #     oc new-project test-wordpress-mysql-cli
+    #     oc project test-wordpress-mysql-cli
+
+    #     oc create secret generic mysql --from-literal password=r3dh4t123
+
+    #     oc new-app --name mysql registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7
+    #     oc set env deployment/mysql --from secret/mysql --prefix MYSQL_ROOT_
+    #     oc set volumes deployment/mysql --add --type pvc --claim-mode rwo --claim-size 2Gi --mount-path /var/lib/mysql/data
+
+    #     sleep 30s
+
+    #     oc new-app --name wordpress --docker-image docker.io/library/wordpress:5.3.0 -e WORDPRESS_DB_HOST=mysql -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_DB_USER=root
+    #     oc set env deployment/wordpress --from secret/mysql --prefix WORDPRESS_DB_
+    #     oc create sa wordpress-sa
+    #     oc adm policy add-scc-to-user anyuid -z wordpress-sa
+    #     oc set serviceaccount deployment/wordpress wordpress-sa
+    #     oc expose svc wordpress --hostname wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}
+    #   ignore_errors: yes
+
+    - name: Query WordPress on MySQL CLI example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
+        text_to_find: "<title>"
+
+
+    # WordPress on MySQL Ansible - Part 1
+    - name: Add WordPress on MySQL app through Ansible
+      vars:
+        app_namespace: test-wordpress-mysql-ansible
+        app_name: mysql
+        app_secret_name: "{{ app_name }}-secret"
+        app_secret_literals:
+          password: "{{ 'r3dh4t123' | b64encode }}"
+        app_container_source: registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7
+        app_envarguments:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: "{{ app_name }}-secret"
+        app_service_port: 3306
+        app_service_protocol: tcp
+        app_container_port: 3306
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteOnce
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: thin
+        app_pvc_mount_path: 
+        app_volumeMounts:
+        - mountPath: /var/lib/mysql/data
+          name: "{{ app_name }}-pv"
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+
+      block:
+
+      - name: Add namespace for app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+  
+      - name: Add literal secret
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_secret_literal.yml'
+          
+      - name: Add PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+
+    # WordPress on MySQL Ansible - Part 2
+    - name: Add WordPress on MySQL app through Ansible
+      vars:
+        app_namespace: test-wordpress-mysql-ansible
+        app_name: wordpress
+        app_container_source: docker.io/library/wordpress:5.3.0
+        app_envarguments:
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: mysql-secret
+        - name: WORDPRESS_DB_HOST
+          value: mysql
+        - name: WORDPRESS_DB_NAME
+          value: wordpress
+        - name: WORDPRESS_DB_USER
+          value: root
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 80
+        app_route_hostname: "wordpress-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_sa_name: wordpress-sa
+        app_sa_scc: anyuid
+
+      block:
+
+      - name: Add Service Account
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_serviceaccount.yml'
+
+      - name: Add SCC to  Service Account
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_scc_to_user.yml'
+
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Query WordPress on MySQL Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "http://wordpress-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
+          text_to_find: "<title>"
+
+# ToDo:
+# - app_git_contextdir: omit to be added

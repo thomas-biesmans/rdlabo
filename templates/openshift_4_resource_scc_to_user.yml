@@ -1,0 +1,19 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_sa_name: name of the service account
+# - app_sa_scc: SCC to be added
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "system:openshift:scc:{{ app_sa_scc }}"
+  namespace: "{{ app_namespace }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "system:openshift:scc:{{ app_sa_scc }}"
+subjects:
+- kind: ServiceAccount
+  name: "{{ app_sa_name }}"
+  namespace: "{{ app_namespace }}"

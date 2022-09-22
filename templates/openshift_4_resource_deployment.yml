@@ -1,0 +1,42 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_name: name of the application
+# - app_container_port: port used by the container
+# - app_service_protocol: protocol used by the container
+# - app_container_source: external or internal image reference to run app from
+# - app_volumeMounts (optional): volume mounts on containers
+# - app_volumes (optional): volumes to be mounted on containers
+# - app_resources (optional): resource limits or requests for containers
+# - app_envarguments (optional): environment variables to be used on containers   
+# - app_sa_name (optional): service account to be used for the containers
+
+api_version: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ app_name }}"
+  namespace: "{{ app_namespace }}"
+  labels:
+    app: "{{ app_name }}"
+spec:
+  selector:
+    matchLabels:
+      deployment: "{{ app_name }}"
+  template:
+    metadata:
+      labels:
+        deployment: "{{ app_name }}"
+    spec:
+      containers:
+      - image: "{{ app_container_source }}" 
+        imagePullPolicy: Always
+        name: "{{ app_name }}"
+        ports:
+        - containerPort: {{ app_container_port | int }}
+          protocol: "{{ app_service_protocol | upper }}"
+        resources: {{ app_resources | default (omit) }}
+        volumeMounts: {{ app_volumeMounts | default (omit) }}
+        env: {{ app_envarguments | default (omit) }}
+      volumes: {{ app_volumes | default (omit) }}
+      serviceAccount: {{ app_sa_name | default (omit) }}
+      serviceAccountName: {{ app_sa_name | default (omit) }}

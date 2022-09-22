@@ -1,0 +1,26 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_name: name of the application
+# - app_service_protocol: protocol used by the container
+# - app_service_port: external port to be used to access the container
+# - app_route_hostname (optional): custom hostname for the route
+# - app_route_ssl_termination (optional): where to terminate SSL, e.g. passthrough, TLS secret.
+
+api_version: route.openshift.io/v1
+kind: Route
+metadata:
+  name: "{{ app_name }}"
+  namespace: "{{ app_namespace }}"
+  labels:
+    app: "{{ app_name }}"
+spec:
+  host: "{{ app_route_hostname | default(omit) }}"
+  tls:
+    termination: "{{ app_route_ssl_termination | default(omit) }}"
+  port:
+    targetPort: "{{ app_service_port }}-{{ app_service_protocol }}"
+  to:
+    kind: Service
+    name: "{{ app_name }}"
+  

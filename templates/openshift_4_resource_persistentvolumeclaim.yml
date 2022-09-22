@@ -1,0 +1,21 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_pvc_name: name of the PVC
+# - app_pvc_size: size of the PVC
+# - app_pvc_accessmode: access mode of the PVC
+# - app_pvc_storageclass: storage class of the PVC
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ app_pvc_name }}"
+  namespace: "{{ app_namespace }}"
+spec:
+  accessModes:
+  - "{{ app_pvc_accessmode }}"
+  resources:
+    requests:
+      storage: "{{ app_pvc_size }}"
+  storageClassName: "{{ app_pvc_storageclass | default ('thin') }}"
+  # volumeMode: Filesystem

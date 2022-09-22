@@ -1,0 +1,23 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_name: name of the application
+# - app_container_port: port used by the container
+# - app_service_protocol: protocol used by the container
+# - app_service_port: external port to be used to access the container
+
+api_version: v1
+kind: Service
+metadata:
+  name: "{{ app_name }}"
+  namespace: "{{ app_namespace }}"
+  labels:
+    app: "{{ app_name }}"
+spec:
+  ports:
+  - name: "{{ app_service_port }}-{{ app_service_protocol }}"
+    port: {{ app_service_port }}
+    protocol: "{{ app_service_protocol | upper }}"
+    targetPort: {{ app_container_port }}
+  selector:
+    deployment: "{{ app_name }}"
