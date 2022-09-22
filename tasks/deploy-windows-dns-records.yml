@@ -32,7 +32,7 @@
   community.windows.win_dns_record:
     name: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
     type: PTR
-    value: "{{ inventory_hostname }}"
+    value: "{{ inventory_hostname_short }}"
     zone: "{{ vars.found_revlookupzonename }}"
   delegate_to: "{{ item }}"
   with_items: "{{ groups.windows_dns }}"
