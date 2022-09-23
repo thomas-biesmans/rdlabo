@@ -1,7 +1,7 @@
 ---
 custom_community_vmware_vmware__guest:
   networks:
-  - name: "VLAN701-OpenShift1"
+  - name: "VLAN702-OpenShift2"
     device_type: vmxnet3
     connected: true
     start_connected: true

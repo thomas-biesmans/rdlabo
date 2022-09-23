@@ -31,37 +31,37 @@ rhel_vms:
 openshift_upi_vms_master_nodes:
   hosts:
     upi-master-0.rdlabo.local:
-      ip: 10.255.254.240
+      ip: 10.255.242.1
       mac: 00:05:69:aa:aa:00
     upi-master-1.rdlabo.local:
-      ip: 10.255.254.241
+      ip: 10.255.242.2
       mac: 00:05:69:aa:aa:01
     upi-master-2.rdlabo.local:
-      ip: 10.255.254.242
+      ip: 10.255.242.3
       mac: 00:05:69:aa:aa:02
 
 openshift_upi_vms_infra_nodes:
   hosts:
     upi-infra-0.rdlabo.local:
-      ip: 10.255.254.243
+      ip: 10.255.244.1
       mac: 00:05:69:aa:aa:03
     upi-infra-1.rdlabo.local:
-      ip: 10.255.254.244
+      ip: 10.255.244.2
       mac: 00:05:69:aa:aa:04
 
 openshift_upi_vms_worker_nodes:
   hosts:
     upi-worker-0.rdlabo.local:
-      ip: 10.255.254.245
+      ip: 10.255.245.1
       mac: 00:05:69:aa:aa:05
     upi-worker-1.rdlabo.local:
-      ip: 10.255.254.246
+      ip: 10.255.245.2
       mac: 00:05:69:aa:aa:06
 
 openshift_upi_vms_bootstrap_node:
   hosts:
     upi-bootstrap.rdlabo.local:
-      ip: 10.255.254.247
+      ip: 10.255.242.4
       mac: 00:05:69:aa:aa:07
 
 openshift_upi_vms:
