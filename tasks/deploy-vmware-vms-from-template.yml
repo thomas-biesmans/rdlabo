@@ -1,6 +1,6 @@
 ---
 
-- name: Biep 
+- name: Display VM details 
   ansible.builtin.debug:
     msg: "Test: {{ vars.community_vmware_vmware__guest.folder }} & {{ vcenter_hostname }} & {{ inventory_hostname }} & {{ inventory_hostname_short }} & {{ vars.ip }}"
 

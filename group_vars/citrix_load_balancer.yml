@@ -1,3 +1,4 @@
 ---
-nitro_user: "{{ citrix_username }}"
-nitro_password: "{{ citrix_password }}"
+citrix_ip: "10.255.254.152"
+citrix_username_unecnrypted: "{{ citrix_username }}"
+citrix_password_unecnrypted: "{{ citrix_password }}"

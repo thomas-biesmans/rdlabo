@@ -31,6 +31,8 @@ openshift_api_url: "api.openshift-upi.rdlabo.local"
 # api_url: api.openshift-upi.rdlabo.local
 # api-int_url: api-int.openshift-upi.rdlabo.local
 openshift_api_ip: 10.255.254.84
+openshift_api_port: 6443
+openshift_api_ignition_port: 22623
 openshift_ingress_url: "*.apps.openshift-upi.rdlabo.local"
 openshift_ingress_ip: 10.255.254.85
 # You can find your own auth code on https://console.redhat.com/openshift/install/vsphere, the pull secret
