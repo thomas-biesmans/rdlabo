@@ -16,6 +16,7 @@ Make sure the Ansible requirements are installed next with the following command
     python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
     python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
     python3.8 -m pip install pywinrm --user
+    python3.8 -m pip install nsnitro
 
     # Using pip3 is deprecated, the previous solution should be used
     # pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt

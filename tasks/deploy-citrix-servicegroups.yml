@@ -1,19 +1,19 @@
 ---
-- name: Create Load-Balanced Virtual Servers
-  citrix.adc.citrix_adc_lb_vserver:
+- name: Create Service Groups
+  citrix.adc.citrix_adc_servicegroup:
     nsip: "{{ citrix_ip }}"
     nitro_user: "{{ citrix_username_unecnrypted }}"
     nitro_pass: "{{ citrix_password_unecnrypted }}"
     validate_certs: false
+    save_config: true
     state: present
-    name: "{{ item.name }}"
+    servicegroupname: "{{ item.name }}"
     servicetype: "{{ item.servicetype }}"
-    ipv46: "{{ item.ipaddress }}"
-    port: "{{ item.port }}"
-    servicegroupbindings:
-    - servicegroupname: "{{ item.servicegroup.name }}"
-  with_items: "{{ citrix_vservers }}"
-
+    servicemembers:
+      mode: "{{ item.mode }}"
+      attributes: "{{ item.members }}"
+  with_items: "{{ citrix_vservers | map(attribute='servicegroup') }}"
+  
 - name: Save running configuration
   citrix.adc.citrix_adc_save_config:
     nsip: "{{ citrix_ip }}"
