@@ -69,10 +69,10 @@
         target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
       ansible.builtin.import_tasks: tasks/deploy-windows-dns-records.yml
 
-    - name: Deploy DHCP reservations
-      vars:
-        target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
-      ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
+    # - name: Deploy DHCP reservations
+    #   vars:
+    #     target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
+    #   ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
 
     - name: Deploy VMs
       ansible.builtin.include_tasks:
@@ -488,8 +488,8 @@
 
     - name: Query ignition files served by the bootstrap node, waiting up to 5 minutes
       shell: "curl -k https://{{ openshift_api_url }}:22623/config/master"
-      retries: 10
-      delay: 30
+      retries: 5
+      delay: 1 # default curl timeout is 60s
       until: ignition_curl.stdout[:20] == "{\"ignition\":{\"versio"
       register: ignition_curl
       delegate_to: localhost
@@ -772,6 +772,7 @@
         msg: "{{ ['ClusterVersion:'] + cli_cv_results.stdout_lines }}"
 
 
+    - pause:
 
 - name: Power on infra nodes
   hosts: openshift_upi_vms_infra_nodes

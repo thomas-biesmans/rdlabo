@@ -4,7 +4,12 @@
   set_fact:
     found_network: "{{ item.network }}"
   loop: "{{ vars.vlans }}"
-  when: item.name == vars.vmware_networkportgroup
+  when: item.name == vars.custom_community_vmware_vmware__guest.networks[0].name
+
+- name: "DHCP Reservation: name - desc - ip - scope_id - mac - dns-hostname"
+  debug:
+    msg: "{{ inventory_hostname_short }} - {{ inventory_hostname_short }} - '{{ vars.ip }}' - {{ vars.found_network }} - {{ vars.mac | replace(':','-') }} - 
+            {{ inventory_hostname_short }}"
 
 - name: Create DHCP Reservations
   community.windows.win_dhcp_lease:
@@ -18,5 +23,5 @@
     dns_regtype: noreg
   delegate_to: "{{ item }}"
   with_items: "{{ groups.windows_dns }}"
+  ignore_errors: yes
 
-  

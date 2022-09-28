@@ -47,11 +47,16 @@
     debug:
       msg: "Continuing, {{ nodes_ready }} of {{ hostvars.localhost.number_of_ready_nodes }} nodes are ready."
 
+  - name: Resetting retry number
+    set_fact:
+      retry_counter: "{{ 0 | int }}"
+
+
   rescue:
 
   - fail:
-      msg: Ended after 10 retries
-    when: retry_counter | int >= 10
+      msg: Ended after 20 retries
+    when: retry_counter | int >= 20
 
   - name: Waiting 15 seconds
     pause:

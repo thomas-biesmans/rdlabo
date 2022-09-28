@@ -8,28 +8,34 @@ vlans:
   netmask: 255.255.255.0
   gateway: 10.255.254.254
   revlookupzonename: 254.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN666-BURA
   network: 10.255.255.0
   netmask: 255.255.255.0
   gateway: 10.255.255.254
   revlookupzonename: 255.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN701-OpenShift1
   network: 10.255.242.0
   netmask: 255.255.255.0
   gateway: 10.255.242.254
   revlookupzonename: 242.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN702-OpenShift2
   network: 10.255.244.0
   netmask: 255.255.255.0
   gateway: 10.255.244.254
   revlookupzonename: 244.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN703-OpenShift3
   network: 10.255.245.0
   netmask: 255.255.255.0
   gateway: 10.255.245.254
   revlookupzonename: 245.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN704-OpenShift4
   network: 10.255.246.0
   netmask: 255.255.255.0
   gateway: 10.255.246.254
   revlookupzonename: 246.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local

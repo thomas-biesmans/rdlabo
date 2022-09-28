@@ -19,8 +19,8 @@ networking:
   clusterNetwork: 
   - cidr: {{ vars.openshift_clusterNetwork_cidr }}
     hostPrefix: {{ vars.openshift_clusterNetwork_hostPrefix }}
-  machineNetwork:
-  - cidr: {{ vars.openshift_machineNetwork_cidr }}
+  machineNetwork: {{ vars.openshift_machineNetwork_cidr }}
+  # - cidr: {{ vars.openshift_machineNetwork_cidr }}
   networkType: OpenShiftSDN
   serviceNetwork: {{ vars.openshift_serviceNetwork }}
 platform:

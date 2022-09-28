@@ -5,7 +5,7 @@ vcenter_password: "{{ vmware_sa_password }}"
 parallel_deployments: 2
 delete_during_retry: true
 default_vmware_portgroup:
-- name: VLAN665 - RD Labo
+- name: "VLAN665-RD Labo"
   device_type: vmxnet3
   connected: true
   start_connected: true
