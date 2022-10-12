@@ -3,12 +3,11 @@
 
 
 - name: Check OpenShift deployment status
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
@@ -16,6 +15,7 @@
 
   - name: Check whether OpenShift cluster exists already
     tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Check whether OpenShift cluster exists already
@@ -33,9 +33,10 @@
         msg: "Namespace 'openshift-kube-apiserver' already exists, no need to redeploy."
       when: not namespace_kube_apiserver.failed and namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
 
+    - pause:
 
 - name: Deploy VMs
-  hosts: openshift_upi_vms # openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
+  hosts: openshift_clusters # openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -99,7 +100,6 @@
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   tasks:
 
@@ -126,19 +126,19 @@
 
 
 - name: Prepare OpenShift deployment
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   tasks:
 
 
   - name: Prepare bootstrap environment
     when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
-    tags: prep_bootstrap
+    tags: prep_bootstrap:
+    delegate_to: localhost
     block:
 
     - name: OpenShift deployment preparation
@@ -317,7 +317,7 @@
     
         - name: Run Apache httpd container
           containers.podman.podman_container:
-            name: webserver
+            name: "{{ vars.bastion_container_name }}"
             image: httpd
             state: started
             detach: true
@@ -368,7 +368,7 @@
 
 
 - name: Deploy ignition configs on masters
-  hosts: openshift_upi_vms_master_nodes
+  hosts: openshift_master_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -405,7 +405,7 @@
         - "master"
 
 - name: Deploy ignition configs on workers
-  hosts: openshift_upi_vms_worker_nodes, openshift_upi_vms_infra_nodes
+  hosts: openshift_worker_nodes, openshift_upi_vms_infra_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -439,7 +439,7 @@
 
 
 - name: Deploy ignition configs on bootstrap node
-  hosts: openshift_upi_vms_bootstrap_node
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -473,7 +473,7 @@
 
 
 - name: Deploy the Citrix load balancers
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -509,165 +509,168 @@
   #     headers:
   #       Cookie: "{{ login.cookies_string }}"
 
-
-  - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
-    stat:
-      path: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
-    register: citrix_sdk_file
-
-  - name: Download and extract the SDK
-    when: not citrix_sdk_file.stat.exists 
+  - name: Create Citrix Load-Balancers
+    delegate_to: localhost
     block:
       
-    - name: Check whether Citrix SDK was downloaded from http://<ip>/nitro-python.tgz
+    - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
       stat:
-        path: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
-      register: citrix_sdk_downloaded_archive
+        path: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
+      register: citrix_sdk_file
 
-    - name: Stop if file wasn't downloaded yet
-      fail:
-        msg: "Download the Citrix SDK for Python from the ADC > Downloads > SDK for Python"
-      when: not citrix_sdk_downloaded_archive.stat.exists 
+    - name: Download and extract the SDK
+      when: not citrix_sdk_file.stat.exists 
+      block:
+        
+      - name: Check whether Citrix SDK was downloaded from http://<ip>/nitro-python.tgz
+        stat:
+          path: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+        register: citrix_sdk_downloaded_archive
 
-    # - name: Download specific sources
-    #   get_url:
-    #     url: "http://{{ citrix_ip }}/nitro-python.tgz"
-    #     dest: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
-    #     validate_certs: no
-      # when: vars.openshift_custom_version_source | length > 0
+      - name: Stop if file wasn't downloaded yet
+        fail:
+          msg: "Download the Citrix SDK for Python from the ADC > Downloads > SDK for Python"
+        when: not citrix_sdk_downloaded_archive.stat.exists 
 
-    - name: Untar the Citrix SDK
-      unarchive:
-        src: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
-        dest: "{{ vars.openshift_download_dir }}/nitro-python"
-        creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
+      # - name: Download specific sources
+      #   get_url:
+      #     url: "http://{{ citrix_ip }}/nitro-python.tgz"
+      #     dest: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+      #     validate_certs: no
+        # when: vars.openshift_custom_version_source | length > 0
 
-    - name: Find archives inside of extracted dir
-      find:
-        paths: "{{ vars.openshift_download_dir }}/nitro-python"
-        patterns: "ns_nitro-python*.tar"
-      register: citrix_sdk_nested_tar
+      - name: Untar the Citrix SDK
+        unarchive:
+          src: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+          dest: "{{ vars.openshift_download_dir }}/nitro-python"
+          creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
 
-    - name: Untar the Citrix SDK
-      unarchive:
-        src: "{{ citrix_sdk_nested_tar.files[0].path }}"
-        dest: "{{ vars.openshift_download_dir }}/nitro-python/"
-        creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
+      - name: Find archives inside of extracted dir
+        find:
+          paths: "{{ vars.openshift_download_dir }}/nitro-python"
+          patterns: "ns_nitro-python*.tar"
+        register: citrix_sdk_nested_tar
 
-    - name: Find extracted directory inside of extracted dir
-      find:
-        paths: "{{ vars.openshift_download_dir }}/nitro-python"
-        file_type: directory
-        patterns: "nitro-python-*"
-      register: citrix_sdk_nested_tar_dir
+      - name: Untar the Citrix SDK
+        unarchive:
+          src: "{{ citrix_sdk_nested_tar.files[0].path }}"
+          dest: "{{ vars.openshift_download_dir }}/nitro-python/"
+          creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
 
-    - name: Copy extracted nested dir
-      ansible.posix.synchronize:
-        src: "{{ citrix_sdk_nested_tar_dir.files[0].path }}/"
-        dest: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
+      - name: Find extracted directory inside of extracted dir
+        find:
+          paths: "{{ vars.openshift_download_dir }}/nitro-python"
+          file_type: directory
+          patterns: "nitro-python-*"
+        register: citrix_sdk_nested_tar_dir
 
-    - name: Remove nested dir
-      file:
-        path: "{{ citrix_sdk_nested_tar_dir.files[0].path }}"
-        state: absent
+      - name: Copy extracted nested dir
+        ansible.posix.synchronize:
+          src: "{{ citrix_sdk_nested_tar_dir.files[0].path }}/"
+          dest: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
 
-  - name: Ensure Citrix SDK is installed
-    become: true
-    ansible.builtin.shell:
-      cmd: "python3.8 setup.py install"
-      chdir: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
+      - name: Remove nested dir
+        file:
+          path: "{{ citrix_sdk_nested_tar_dir.files[0].path }}"
+          state: absent
 
-  - name: Build load balancer topology - API service group
-    set_fact:
-      temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
-        "ip": hostvars[item].ip,
-        "port": openshift_api_port,
-        "weight": 1
-      }] }}'
-    vars:
-      temp_servicegroup_members_api: []
-    with_items:
-    - "{{ groups.openshift_upi_vms_master_nodes }}"
-    - "{{ groups.openshift_upi_vms_bootstrap_node }}"
+    - name: Ensure Citrix SDK is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: "python3.8 setup.py install"
+        chdir: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
 
-  - name: Build load balancer topology - API ignition service group
-    set_fact:
-      temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
-        "ip": hostvars[item].ip,
-        "port": openshift_api_ignition_port,
-        "weight": 1
-      }] }}'
-    vars:
-      temp_servicegroup_members_api_ignition: []
-    with_items:
-    - "{{ groups.openshift_upi_vms_master_nodes }}"
-    - "{{ groups.openshift_upi_vms_bootstrap_node }}"
+    - name: Build load balancer topology - API service group
+      set_fact:
+        temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
+          "ip": hostvars[item].ip,
+          "port": openshift_api_port,
+          "weight": 1
+        }] }}'
+      vars:
+        temp_servicegroup_members_api: []
+      with_items:
+      - "{{ groups.openshift_upi_vms_master_nodes }}"
+      - "{{ groups.openshift_upi_vms_bootstrap_node }}"
 
-  - name: Build load balancer topology - Apps service group
-    set_fact:
-      temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-        "ip": hostvars[item].ip,
-        "port": 65535,
-        "weight": 1
-      }] }}'
-    vars:
-      temp_servicegroup_members_apps: []
-    with_items:
-    - "{{ groups.openshift_upi_vms_worker_nodes }}"
+    - name: Build load balancer topology - API ignition service group
+      set_fact:
+        temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
+          "ip": hostvars[item].ip,
+          "port": openshift_api_ignition_port,
+          "weight": 1
+        }] }}'
+      vars:
+        temp_servicegroup_members_api_ignition: []
+      with_items:
+      - "{{ groups.openshift_upi_vms_master_nodes }}"
+      - "{{ groups.openshift_upi_vms_bootstrap_node }}"
+
+    - name: Build load balancer topology - Apps service group
+      set_fact:
+        temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
+          "ip": hostvars[item].ip,
+          "port": 65535,
+          "weight": 1
+        }] }}'
+      vars:
+        temp_servicegroup_members_apps: []
+      with_items:
+      - "{{ groups.openshift_upi_vms_worker_nodes }}"
 
 
-  - name: Build load balancer topology - API load balancer
-    set_fact:
-      citrix_vservers_api:
-      - name: "lb_openshift_{{ openshift_cluster_name }}_api"
-        servicetype: SSL_BRIDGE
-        ipaddress: "{{ openshift_api_ip }}"
-        port: "{{ openshift_api_port | int }}"
-        servicegroup:
-          name: "lb_svg_openshift_{{ openshift_cluster_name }}_api"
+    - name: Build load balancer topology - API load balancer
+      set_fact:
+        citrix_vservers_api:
+        - name: "lb_openshift_{{ openshift_cluster_name }}_api"
           servicetype: SSL_BRIDGE
-          mode: exact
-          members: "{{ temp_servicegroup_members_api }}"
+          ipaddress: "{{ openshift_api_ip }}"
+          port: "{{ openshift_api_port | int }}"
+          servicegroup:
+            name: "lb_svg_openshift_{{ openshift_cluster_name }}_api"
+            servicetype: SSL_BRIDGE
+            mode: exact
+            members: "{{ temp_servicegroup_members_api }}"
 
-      citrix_vservers_api_ignition:
-      - name: "lb_openshift_{{ openshift_cluster_name }}_api_ignition"
-        servicetype: SSL_BRIDGE
-        ipaddress: "{{ openshift_api_ip }}"
-        port: "{{ openshift_api_ignition_port | int }}"
-        servicegroup:
-          name: "lb_svg_openshift_{{ openshift_cluster_name }}_api_ignition"
+        citrix_vservers_api_ignition:
+        - name: "lb_openshift_{{ openshift_cluster_name }}_api_ignition"
           servicetype: SSL_BRIDGE
-          mode: exact
-          members: "{{ temp_servicegroup_members_api_ignition }}"
+          ipaddress: "{{ openshift_api_ip }}"
+          port: "{{ openshift_api_ignition_port | int }}"
+          servicegroup:
+            name: "lb_svg_openshift_{{ openshift_cluster_name }}_api_ignition"
+            servicetype: SSL_BRIDGE
+            mode: exact
+            members: "{{ temp_servicegroup_members_api_ignition }}"
 
-      citrix_vservers_apps:
-      - name: "lb_openshift_{{ openshift_cluster_name }}_apps_any"
-        servicetype: ANY
-        ipaddress: "{{ openshift_ingress_ip }}"
-        port: 65535
-        servicegroup:
-          name: "lb_svg_openshift_{{ openshift_cluster_name }}_apps"
+        citrix_vservers_apps:
+        - name: "lb_openshift_{{ openshift_cluster_name }}_apps_any"
           servicetype: ANY
-          mode: exact
-          members: "{{ temp_servicegroup_members_apps }}"
+          ipaddress: "{{ openshift_ingress_ip }}"
+          port: 65535
+          servicegroup:
+            name: "lb_svg_openshift_{{ openshift_cluster_name }}_apps"
+            servicetype: ANY
+            mode: exact
+            members: "{{ temp_servicegroup_members_apps }}"
 
-  - name: Build load balancer topology - Create list
-    set_fact:
-      citrix_vservers: "{{ citrix_vservers_api + citrix_vservers_api_ignition + citrix_vservers_apps }}"
+    - name: Build load balancer topology - Create list
+      set_fact:
+        citrix_vservers: "{{ citrix_vservers_api + citrix_vservers_api_ignition + citrix_vservers_apps }}"
 
-  - name: Display load balancer configuration
-    debug:
-      msg: "{{ citrix_vservers }}"
+    - name: Display load balancer configuration
+      debug:
+        msg: "{{ citrix_vservers }}"
 
-  - name: Deploy Service Groups
-    ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
+    - name: Deploy Service Groups
+      ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
 
-  - name: Deploy Load Balancers
-    ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
+    - name: Deploy Load Balancers
+      ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
 
 
 - name: Power on bootstrap node if bootstrap is needed
-  hosts: openshift_upi_vms_bootstrap_node
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -705,7 +708,7 @@
 
 
 - name: Power on master nodes if bootstrap is needed
-  hosts: openshift_upi_vms_master_nodes
+  hosts: openshift_master_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -731,7 +734,7 @@
 
 
 - name: Power on worker nodes if bootstrap is needed
-  hosts: openshift_upi_vms_worker_nodes
+  hosts: openshift_worker_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -757,12 +760,11 @@
 
 
 - name: Deploy OpenShift
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
@@ -770,6 +772,7 @@
 
   - name: Deploy cluster 
     tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Start install wait-for bootstrap-complete (30 minute time-out each retry)
@@ -804,7 +807,7 @@
 
 
 - name: Power off bootstrap node if bootstrap is finished
-  hosts: openshift_upi_vms_bootstrap_node
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -830,12 +833,11 @@
 
 
 - name: Remove bootstrap from load balancers
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/citrix_load_balancer.yml
   tags: prep_citrix
   tasks:
@@ -843,6 +845,7 @@
   - name: Remove bootstrap from load balancers
     when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Build load balancer topology - API service group
@@ -902,12 +905,11 @@
 
 
 - name: Finalize OpenShift deployment
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
@@ -916,6 +918,7 @@
   - name: Deploy cluster if the namespace 'openshift-kube-apiserver' doesn't exist
     when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Check etcd members
@@ -1051,7 +1054,7 @@
 
 
 - name: Power on infra nodes
-  hosts: openshift_upi_vms_infra_nodes
+  hosts: openshift_infra_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -1082,12 +1085,11 @@
 
 
 - name: Add infra nodes to load balancers
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/citrix_load_balancer.yml
   tags: prep_citrix
   tasks:
@@ -1095,6 +1097,7 @@
   - name: Add infra nodes to load balancers
     when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
     # tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Build load balancer topology - Apps service group
@@ -1132,7 +1135,7 @@
 
 
 - name: Deploy dedicated OpenShift infra nodes
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -1145,6 +1148,7 @@
 
   - name: Deploy infra nodes
     tags: deploy_cluster_infra
+    delegate_to: localhost
     block:
 
     - name: 'Set # of nodes to wait for'
@@ -1216,7 +1220,6 @@
 
     - name: List Nodes
       shell: oc get nodes
-      delegate_to: localhost
       register: cli_nodes_results
 
     - debug:
@@ -1224,7 +1227,6 @@
 
     - name: List ClusterOperators
       shell: oc get co
-      delegate_to: localhost
       register: cli_co_results
 
     - debug:
@@ -1232,7 +1234,7 @@
 
 
 - name: Add worker nodes from load balancers
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -1245,6 +1247,7 @@
   - name: Remove worker nodes from load balancers
     when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
     # tags: deploy_cluster
+    delegate_to: localhost
     block:
 
     - name: Build load balancer topology - Apps service group

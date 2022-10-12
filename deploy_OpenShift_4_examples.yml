@@ -5,7 +5,6 @@
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  # - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
