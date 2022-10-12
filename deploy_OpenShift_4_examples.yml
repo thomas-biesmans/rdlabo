@@ -1,11 +1,11 @@
 
 - name: Deploy OpenShift example projects
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
+  # - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
@@ -17,10 +17,11 @@
       state: directory
     with_items:
     - "{{ vars.openshift_example_dir }}"
-
+    delegate_to: localhost
 
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_http
+    delegate_to: localhost
     block:
 
     # Quick Nginx Hello World HTTP CLI
@@ -39,7 +40,7 @@
       - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
 
-
+    - fail:
     # Quick Nginx Hello World HTTP Ansible
     - name: Nginx Hello World HTTP app from source through Ansible  
       vars:
@@ -125,7 +126,7 @@
         - url: "http://hello-world-nginx-test-nginx-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
           text_to_find: "Hello, world from nginx!"
 
-
+  - pause:
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_https
     block:

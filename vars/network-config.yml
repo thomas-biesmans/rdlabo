@@ -39,3 +39,9 @@ vlans:
   gateway: 10.255.246.254
   revlookupzonename: 246.255.10.in-addr.arpa
   fwdlookupzonename: rdlabo.local
+- name: NSX-OpenShift-UPI-NSX
+  network: 10.10.0.0
+  netmask: 255.255.255.0
+  gateway: 10.10.0.254
+  revlookupzonename: 0.10.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local

@@ -74,6 +74,15 @@
     #     target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
     #   ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
 
+    - name: Deploy NSX segments
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-vmware-nsx-segments.yml
+        apply:
+          tags: vm
+      tags: vm
+      when: nsx_integration
+
+    - pause:
 
     - name: Deploy VMs
       ansible.builtin.include_tasks:
@@ -1040,7 +1049,6 @@
         msg: "{{ ['ClusterVersion:'] + cli_cv_results.stdout_lines }}"
 
 
-    - pause:
 
 - name: Power on infra nodes
   hosts: openshift_upi_vms_infra_nodes

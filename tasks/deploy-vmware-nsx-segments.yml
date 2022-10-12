@@ -1,0 +1,18 @@
+---
+
+- name: create Segment
+  nsxt_policy_segment:
+    hostname: "{{ nsx_hostname }}"
+    username: "{{ vmware_nsx_username }}"
+    password: "{{ vmware_nsx_password }}"
+    validate_certs: False
+    display_name: "{{ custom_community_vmware_vmware__guest.networks[0].name }}"
+    state: present
+    transport_zone_display_name: "{{ nsx_segment_config.transport_zone_display_name }}"
+    subnets: "{{ nsx_segment_config.subnets }}"
+    connectivity_path: "{{ nsx_segment_config.connectivity_path }}"
+    admin_state: UP
+
+  delegate_to: localhost
+
+- pause:

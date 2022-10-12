@@ -8,6 +8,13 @@
 #   debug:
 #     msg: "Name '{{ inventory_hostname }}', domain '{{ inventory_hostname[inventory_hostname.index('.')+1:] }}', IP '{{ vars.ip }}', vlans '{{ vars.vlans }}'"
 
+# - name: Ensure primary zone is present
+#   community.windows.win_dns_zone:
+#     name: 
+#     replication: domain
+#     type: primary
+#     state: present
+
 - name: Find matching reverse lookup zone
   set_fact:
     found_revlookupzonename: "{{ item.revlookupzonename }}"
