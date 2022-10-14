@@ -3,7 +3,7 @@
 
 
 - name: Check OpenShift deployment status
-  hosts: openshift_bootstrap_nodes
+  hosts: openshift_clusters
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -33,10 +33,9 @@
         msg: "Namespace 'openshift-kube-apiserver' already exists, no need to redeploy."
       when: not namespace_kube_apiserver.failed and namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
 
-    - pause:
 
 - name: Deploy VMs
-  hosts: openshift_clusters # openshift_upi_vms_master_nodes[0]:openshift_upi_vms_worker_nodes[1]
+  hosts: openshift_clusters
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -49,6 +48,11 @@
       ansible_becomes_password: "{{ client_password }}"
     tags: always
 
+  - name: Gather hostvars as dict
+    set_fact:
+      hostvars_dict: "{{ hostvars }}"
+    tags: always
+
   # - name: Ensure Ansible become password is set
   #   set_fact:
   #     ansible_become_password: "{{ deployment_password }}"
@@ -59,21 +63,19 @@
   #   debug:
   #     msg: "{{ vars.community_vmware_vmware__guest }}"
 
-
   - name: Deploy base infrastructure
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: deploy_infrastructure
     block:
 
-    - name: Deploy DNS records
-      vars:
-        target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
+    - name: Deploy DNS records for nodes
       ansible.builtin.import_tasks: tasks/deploy-windows-dns-records.yml
 
-    # - name: Deploy DHCP reservations
-    #   vars:
-    #     target_group_dns: "{{ ansible_play_hosts }}" #"{{ groups.rhel_vms }}"
-    #   ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
+    - name: Deploy DNS records for OpenShift cluster
+      ansible.builtin.import_tasks: tasks/deploy-windows-dns-records-openshift-cluster.yml
+      
+    - name: Deploy DHCP reservations
+      ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
 
     - name: Deploy NSX segments
       ansible.builtin.include_tasks:
@@ -82,8 +84,6 @@
           tags: vm
       tags: vm
       when: nsx_integration
-
-    - pause:
 
     - name: Deploy VMs
       ansible.builtin.include_tasks:
@@ -94,18 +94,20 @@
 
 
 - name: Prepare the web server
-  hosts: localhost
+  hosts: openshift_bootstrap_nodes
   gather_facts: false
   become: true
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   - group_vars/vcenter_vms.yml
+  serial: 1
   tasks:
 
   - name: Prepare bootstrap environment
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: prep_bootstrap
+    delegate_to: localhost
     block:
 
     - name: Install podman
@@ -113,13 +115,19 @@
         name: podman
         state: latest
       tags: web
+      run_once: true
 
-    - name: Allow traffic to httpd on port 8080
+    - name: Collect firewalld status
+      service_facts:
+      register: services_state
+
+    - name: Allow traffic to httpd on bastion port
       ansible.posix.firewalld:
         zone: public
-        port: 8080/tcp
+        port: "{{ vars.bastion_port }}/tcp"
         permanent: yes
         state: enabled
+      when: services_state.ansible_facts.services['firewalld.service'].status == 'enabled'
       tags: web
       vars:
         ansible_python_interpreter: /usr/bin/python3.6
@@ -136,8 +144,8 @@
 
 
   - name: Prepare bootstrap environment
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
-    tags: prep_bootstrap:
+    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    tags: prep_bootstrap
     delegate_to: localhost
     block:
 
@@ -377,7 +385,7 @@
 
 
   - name: Prepare nodes
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: prep_nodes
     block:
 
@@ -405,7 +413,7 @@
         - "master"
 
 - name: Deploy ignition configs on workers
-  hosts: openshift_worker_nodes, openshift_upi_vms_infra_nodes
+  hosts: openshift_worker_nodes, openshift_infra_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -413,7 +421,7 @@
   tasks:
 
   - name: Prepare nodes
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: prep_nodes
     block:
 
@@ -447,7 +455,7 @@
   tasks:
 
   - name: Prepare nodes
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: prep_nodes
     block:
 
@@ -478,7 +486,6 @@
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/citrix_load_balancer.yml
   tags: prep_citrix
   tasks:
@@ -509,8 +516,9 @@
   #     headers:
   #       Cookie: "{{ login.cookies_string }}"
 
-  - name: Create Citrix Load-Balancers
+  - name: Prep Citrix SDK
     delegate_to: localhost
+    run_once: true
     block:
       
     - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
@@ -576,9 +584,19 @@
 
     - name: Ensure Citrix SDK is installed
       become: true
+      run_once: true
       ansible.builtin.shell:
         cmd: "python3.8 setup.py install"
         chdir: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
+
+
+  - name: Create Citrix Load-Balancers
+    delegate_to: localhost
+    block:
+
+    - name: Reset API service group
+      set_fact:
+        temp_servicegroup_members_api: []
 
     - name: Build load balancer topology - API service group
       set_fact:
@@ -587,11 +605,14 @@
           "port": openshift_api_port,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_api: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_master_nodes }}"
-      - "{{ groups.openshift_upi_vms_bootstrap_node }}"
+      - "{{ groups.openshift_master_nodes }}"
+      - "{{ groups.openshift_bootstrap_nodes }}"
+
+    - name: Reset API ignition service group
+      set_fact:
+        temp_servicegroup_members_api_ignition: []
 
     - name: Build load balancer topology - API ignition service group
       set_fact:
@@ -600,11 +621,15 @@
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_api_ignition: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_master_nodes }}"
-      - "{{ groups.openshift_upi_vms_bootstrap_node }}"
+      - "{{ groups.openshift_master_nodes }}"
+      - "{{ groups.openshift_bootstrap_nodes }}"
+
+
+    - name: Reset Apps service group
+      set_fact:
+        temp_servicegroup_members_apps: []
 
     - name: Build load balancer topology - Apps service group
       set_fact:
@@ -613,43 +638,41 @@
           "port": 65535,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_apps: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_worker_nodes }}"
-
+      - "{{ groups.openshift_worker_nodes }}"
 
     - name: Build load balancer topology - API load balancer
       set_fact:
         citrix_vservers_api:
-        - name: "lb_openshift_{{ openshift_cluster_name }}_api"
+        - name: "lb_openshift_{{ vars.openshift_cluster_name }}_api"
           servicetype: SSL_BRIDGE
           ipaddress: "{{ openshift_api_ip }}"
           port: "{{ openshift_api_port | int }}"
           servicegroup:
-            name: "lb_svg_openshift_{{ openshift_cluster_name }}_api"
+            name: "lb_svg_openshift_{{ vars.openshift_cluster_name }}_api"
             servicetype: SSL_BRIDGE
             mode: exact
             members: "{{ temp_servicegroup_members_api }}"
 
         citrix_vservers_api_ignition:
-        - name: "lb_openshift_{{ openshift_cluster_name }}_api_ignition"
+        - name: "lb_openshift_{{ vars.openshift_cluster_name }}_api_ignition"
           servicetype: SSL_BRIDGE
           ipaddress: "{{ openshift_api_ip }}"
           port: "{{ openshift_api_ignition_port | int }}"
           servicegroup:
-            name: "lb_svg_openshift_{{ openshift_cluster_name }}_api_ignition"
+            name: "lb_svg_openshift_{{ vars.openshift_cluster_name }}_api_ignition"
             servicetype: SSL_BRIDGE
             mode: exact
             members: "{{ temp_servicegroup_members_api_ignition }}"
 
         citrix_vservers_apps:
-        - name: "lb_openshift_{{ openshift_cluster_name }}_apps_any"
+        - name: "lb_openshift_{{ vars.openshift_cluster_name }}_apps_any"
           servicetype: ANY
-          ipaddress: "{{ openshift_ingress_ip }}"
+          ipaddress: "{{ vars.openshift_ingress_ip }}"
           port: 65535
           servicegroup:
-            name: "lb_svg_openshift_{{ openshift_cluster_name }}_apps"
+            name: "lb_svg_openshift_{{ vars.openshift_cluster_name }}_apps"
             servicetype: ANY
             mode: exact
             members: "{{ temp_servicegroup_members_apps }}"
@@ -678,7 +701,7 @@
   tasks:
 
   - name: Start the bootstrap node
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: deploy_cluster
     block:
 
@@ -694,10 +717,10 @@
         state: poweredon
       delegate_to: localhost
 
-    - name: Query ignition files served by the bootstrap node, waiting up to 5 minutes
+    - name: Query ignition files served by the bootstrap node, waiting up to 5-7,5 minutes
       shell: "curl -k https://{{ openshift_api_url }}:22623/config/master"
       retries: 5
-      delay: 1 # default curl timeout is 60s
+      delay: 30 # default curl timeout is 60s, but is not always triggered
       until: ignition_curl.stdout[:20] == "{\"ignition\":{\"versio"
       register: ignition_curl
       delegate_to: localhost
@@ -707,7 +730,7 @@
         msg: "Output: {{ ignition_curl.stdout[:20] }}"
 
 
-- name: Power on master nodes if bootstrap is needed
+- name: Power on master nodes
   hosts: openshift_master_nodes
   gather_facts: false
   vars_files:
@@ -716,7 +739,7 @@
   tasks:
 
   - name: Start the master nodes if bootstrap is needed
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: deploy_cluster
     block:
 
@@ -733,7 +756,7 @@
       delegate_to: localhost
 
 
-- name: Power on worker nodes if bootstrap is needed
+- name: Power on worker nodes
   hosts: openshift_worker_nodes
   gather_facts: false
   vars_files:
@@ -742,7 +765,7 @@
   tasks:
 
   - name: Start the worker nodes if bootstrap is needed
-    when: hostvars.localhost.namespace_kube_apiserver.failed or hostvars.localhost.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: deploy_cluster
     block:
 
@@ -792,10 +815,30 @@
       fail:
         msg: ["Error with command, you can gather bootstrap information with the following command:",
               "{{ vars.openshift_download_dir }}/openshift-install --dir {{ vars.openshift_config_dir }} gather bootstrap
-                --bootstrap {{ hostvars[groups.openshift_upi_vms_bootstrap_node[0]].ip }}
-                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[0]].ip }}
-                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[1]].ip }}
-                --master {{ hostvars[groups.openshift_upi_vms_master_nodes[2]].ip }}
+                --bootstrap {{ (hostvars_dict.values()
+                  | selectattr('openshift_cluster_name', 'defined')
+                  | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+                  | selectattr('type', 'eq', 'bootstrap')
+                  | map(attribute='ip')
+                  | list)[0] }}
+                --master {{ (hostvars_dict.values()
+                  | selectattr('openshift_cluster_name', 'defined')
+                  | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+                  | selectattr('type', 'eq', 'master')
+                  | map(attribute='ip')
+                  | list)[0] }}
+                --master {{ (hostvars_dict.values()
+                  | selectattr('openshift_cluster_name', 'defined')
+                  | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+                  | selectattr('type', 'eq', 'master')
+                  | map(attribute='ip')
+                  | list)[1] }}
+                --master {{ (hostvars_dict.values()
+                  | selectattr('openshift_cluster_name', 'defined')
+                  | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+                  | selectattr('type', 'eq', 'master')
+                  | map(attribute='ip')
+                  | list)[2] }}
               "]
       when: 'not "level=info msg=It is now safe to remove the bootstrap resources" in deploy_bootstrap_results.stderr_lines'
 
@@ -815,7 +858,7 @@
   tasks:
 
   - name: Power off the bootstrap node
-    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
     block:
 
@@ -843,10 +886,14 @@
   tasks:
 
   - name: Remove bootstrap from load balancers
-    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
     delegate_to: localhost
     block:
+
+    - name: Reset API service group
+      set_fact:
+        temp_servicegroup_members_api: []
 
     - name: Build load balancer topology - API service group
       set_fact:
@@ -855,10 +902,13 @@
           "port": openshift_api_port,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_api: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_master_nodes }}"
+      - "{{ groups.openshift_master_nodes }}"
+
+    - name: Reset API ignition service group
+      set_fact:
+        temp_servicegroup_members_api_ignition: []
 
     - name: Build load balancer topology - API ignition service group
       set_fact:
@@ -867,10 +917,9 @@
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_api_ignition: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_master_nodes }}"
+      - "{{ groups.openshift_master_nodes }}"
 
     - name: Build load balancer topology - API load balancer
       set_fact:
@@ -916,7 +965,7 @@
   tasks:
 
   - name: Deploy cluster if the namespace 'openshift-kube-apiserver' doesn't exist
-    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
     delegate_to: localhost
     block:
@@ -940,7 +989,19 @@
 
     - name: 'Set # of nodes to wait for'
       set_fact:
-        number_of_ready_nodes: "{{ 0 + groups.openshift_upi_vms_master_nodes | length | int + groups.openshift_upi_vms_worker_nodes | length | int }}"
+        number_of_ready_nodes: "{{ 0 +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'master')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'worker')
+            | map(attribute='ip')
+            | list | length | int }}"
 
     - name: Accept worker node bootstrap & node serving CSRs
       ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr_till_all_nodes_ready.yml
@@ -1095,10 +1156,14 @@
   tasks:
 
   - name: Add infra nodes to load balancers
-    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
     # tags: deploy_cluster
     delegate_to: localhost
     block:
+
+    - name: Reset Apps service group
+      set_fact:
+        temp_servicegroup_members_apps: []
 
     - name: Build load balancer topology - Apps service group
       set_fact:
@@ -1107,11 +1172,10 @@
           "port": 65535,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_apps: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_worker_nodes }}"
-      - "{{ groups.openshift_upi_vms_infra_nodes }}"
+      - "{{ groups.openshift_worker_nodes }}"
+      - "{{ groups.openshift_infra_nodes }}"
 
     - name: Build load balancer topology - API load balancer
       set_fact:
@@ -1140,7 +1204,6 @@
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/vcenter_vms.yml
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
@@ -1153,7 +1216,25 @@
 
     - name: 'Set # of nodes to wait for'
       set_fact:
-        number_of_ready_nodes: "{{ 0 + groups.openshift_upi_vms_master_nodes | length | int + groups.openshift_upi_vms_worker_nodes | length | int + groups.openshift_upi_vms_infra_nodes | length | int}}"
+        number_of_ready_nodes: "{{ 0 +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'master')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'worker')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'infra')
+            | map(attribute='ip')
+            | list | length | int }}"
 
     - name: Accept infra node bootstrap & node serving CSRs
       ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr_till_all_nodes_ready.yml
@@ -1172,7 +1253,8 @@
             taints:
             - effect: NoSchedule
               key: node-role.kubernetes.io/infra
-      with_items: "{{ groups.openshift_upi_vms_infra_nodes }}"
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
+      with_items: "{{ groups.openshift_infra_nodes }}"
 
 
     - name: Deploy a new default router definition allowing scheduling on infra nodes only, as json to prevent issues on number of replicas not being an int
@@ -1233,22 +1315,25 @@
         msg: "{{ ['ClusterOperators:'] + cli_co_results.stdout_lines }}"
 
 
-- name: Add worker nodes from load balancers
+- name: Remove worker nodes from load balancers
   hosts: openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/openshift_upi_vms.yml
   - group_vars/citrix_load_balancer.yml
   tags: prep_citrix
   tasks:
 
   - name: Remove worker nodes from load balancers
-    when: '"level=info msg=It is now safe to remove the bootstrap resources" in hostvars.localhost.deploy_bootstrap_results.stderr_lines'
-    # tags: deploy_cluster
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
+    tags: deploy_cluster
     delegate_to: localhost
     block:
+
+    - name: Reset Apps service group
+      set_fact:
+        temp_servicegroup_members_apps: []
 
     - name: Build load balancer topology - Apps service group
       set_fact:
@@ -1257,10 +1342,13 @@
           "port": 65535,
           "weight": 1
         }] }}'
-      vars:
-        temp_servicegroup_members_apps: []
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items:
-      - "{{ groups.openshift_upi_vms_infra_nodes }}"
+      - "{{ groups.openshift_infra_nodes }}"
+
+    - name: Reset load balancer
+      set_fact:
+        citrix_vservers_apps: []
 
     - name: Build load balancer topology - API load balancer
       set_fact:

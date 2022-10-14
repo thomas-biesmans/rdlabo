@@ -110,59 +110,121 @@
 - name: Deploy the VM including retry and rescue
   block:
 
-  - name: Deploy the VM from a regular template
-    throttle: "{{ parallel_deployments }}"
+  - name: Get VM facts pre-deploy
     retries: 3
     delay: 10
+    ignore_errors: true
     community.vmware.vmware_guest:
       validate_certs: "{{ validate_certs | default(false) }}"
       hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
       username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
       datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-      cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
-      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
       name: "{{ inventory_hostname_short }}"
-      state: "{{ vars.community_vmware_vmware__guest.state | default('poweredon') }}"
-      template: "{{ vars.community_vmware_vmware__guest.template | default('v') }}"
-      disk: "{{ vars.community_vmware_vmware__guest.disk }}"
-      # - size_gb: 30
-      #   type: eagerzeroedthick # thin, thick, eagerzeroedthick
-      #   datastore: RDL3PAR01_ESXCORE_VMFS_L101
-      # # Add another disk from an existing VMDK
-      # #- filename: "[datastore1] testvms/testvm_2_1/testvm_2_1.vmdk"
-      hardware:
-        memory_mb: "{{ vars.community_vmware_vmware__guest.hardware.memory_mb | default('4096') }}"
-        num_cpus: "{{ vars.community_vmware_vmware__guest.hardware.num_cpus | default('1') }}"
-        num_cpu_cores_per_socket: "{{ vars.community_vmware_vmware__guest.hardware.num_cpu_cores_per_socket | default('1') }}"
-        scsi: "{{ vars.community_vmware_vmware__guest.hardware.scsi | default('paravirtual') }}"
-        # memory_reservation_lock: true
-        # mem_limit: 8096
-        # mem_reservation: 4096
-        # cpu_limit: 8096
-        # cpu_reservation: 4096
-        max_connections: "{{ vars.community_vmware_vmware__guest.hardware.max_connections | default('5') }}"
-        # hotadd_cpu: True
-        # hotremove_cpu: True
-        # hotadd_memory: False
-        version: "{{ vars.community_vmware_vmware__guest.hardware.version | default('14') }}" # Hardware version of virtual machine
-        boot_firmware: "{{ vars.community_vmware_vmware__guest.hardware.boot_firmware | default('efi') }}"
-      # cdrom:
-      #     - controller_number: 0
-      #       unit_number: 0
-      #       state: present
-      #       type: iso
-      #       iso_path: "[datastore1] livecd.iso"
-      networks: "{{ new_networks }}" #| default( default_vmware_portgroup ) }}"
-      customization: "{{ vars.community_vmware_vmware__guest.customization | default (omit) }}"
-      # advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
-
-      wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default(false) }}"
-
     delegate_to: localhost
-    register: deploy
-    failed_when: vars.os_customization_for_ip and not (vars.ip in (deploy.instance.hw_eth0.ipaddresses ))
+    register: facts_pre_deploy
+
+  # - debug:
+  #     msg: " biep"
+  #   when: facts_pre_deploy.instance.hw_power_status != "poweredOn"
+
+  - name: Deploy VM if it does not exist
+    when: facts_pre_deploy.failed
+    block:
+
+    - name: Deploy the VM from a regular template
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+        cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
+        folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+        name: "{{ inventory_hostname_short }}"
+        state: "present" #"{{ vars.community_vmware_vmware__guest.state | default('poweredon') }}"
+        template: "{{ vars.community_vmware_vmware__guest.template | default('v') }}"
+        disk: "{{ vars.community_vmware_vmware__guest.disk }}"
+        # - size_gb: 30
+        #   type: eagerzeroedthick # thin, thick, eagerzeroedthick
+        #   datastore: RDL3PAR01_ESXCORE_VMFS_L101
+        # # Add another disk from an existing VMDK
+        # #- filename: "[datastore1] testvms/testvm_2_1/testvm_2_1.vmdk"
+        hardware:
+          memory_mb: "{{ vars.community_vmware_vmware__guest.hardware.memory_mb | default('4096') }}"
+          num_cpus: "{{ vars.community_vmware_vmware__guest.hardware.num_cpus | default('1') }}"
+          num_cpu_cores_per_socket: "{{ vars.community_vmware_vmware__guest.hardware.num_cpu_cores_per_socket | default('1') }}"
+          scsi: "{{ vars.community_vmware_vmware__guest.hardware.scsi | default('paravirtual') }}"
+          # memory_reservation_lock: true
+          # mem_limit: 8096
+          # mem_reservation: 4096
+          # cpu_limit: 8096
+          # cpu_reservation: 4096
+          max_connections: "{{ vars.community_vmware_vmware__guest.hardware.max_connections | default('5') }}"
+          # hotadd_cpu: True
+          # hotremove_cpu: True
+          # hotadd_memory: False
+          version: "{{ vars.community_vmware_vmware__guest.hardware.version | default('14') }}" # Hardware version of virtual machine
+          boot_firmware: "{{ vars.community_vmware_vmware__guest.hardware.boot_firmware | default('efi') }}"
+        # cdrom:
+        #     - controller_number: 0
+        #       unit_number: 0
+        #       state: present
+        #       type: iso
+        #       iso_path: "[datastore1] livecd.iso"
+        networks: "{{ new_networks }}" #| default( default_vmware_portgroup ) }}"
+        customization: "{{ vars.community_vmware_vmware__guest.customization | default (omit) }}"
+        # advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
+
+        wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default(false) }}"
+
+      delegate_to: localhost
+      register: deploy
+      failed_when: vars.os_customization_for_ip and not (vars.ip in (deploy.instance.hw_eth0.ipaddresses ))
   
+
+    - name: Update VMs' Advanced Settings
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: present
+        advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default (omit) }}"
+
+      delegate_to: localhost
+      when: vars.community_vmware_vmware__guest.advanced_settings is defined and not deploy.changed
+
+    - name: Update VMNics with fixed macs
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest_network:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: present
+        network_name: "{{ item.name }}"
+        device_type: "{{ item.device_type | default('vmxnet3') }}"
+        connected: "{{ item.connected | default('true') }}"
+        start_connected: "{{ item.start_connected | default('true') }}"
+        mac_address: "{{ vars.mac | default (omit)}}"
+        label: "{{ item.label | default (omit)}}"
+
+      delegate_to: localhost
+      register: deploy_macchange
+      loop: "{{ vars.new_networks }}"
+      when: vars.mac is defined and not deploy.changed
+
   rescue:
   - name: Remove the VM prior to retry
     community.vmware.vmware_guest:
@@ -178,47 +240,6 @@
       force: yes
     delegate_to: localhost
     when: vars.delete_during_retry
-
-
-- name: Update VMs' Advanced Settings
-  throttle: "{{ parallel_deployments }}"
-  retries: 3
-  delay: 10
-  community.vmware.vmware_guest:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    name: "{{ inventory_hostname_short }}"
-    state: present
-    advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default (omit) }}"
-
-  delegate_to: localhost
-  when: vars.community_vmware_vmware__guest.advanced_settings is defined
-
-- name: Update VMNics with fixed macs
-  throttle: "{{ parallel_deployments }}"
-  retries: 3
-  delay: 10
-  community.vmware.vmware_guest_network:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    name: "{{ inventory_hostname_short }}"
-    state: present
-    network_name: "{{ item.name }}"
-    device_type: "{{ item.device_type | default('vmxnet3') }}"
-    connected: "{{ item.connected | default('true') }}"
-    start_connected: "{{ item.start_connected | default('true') }}"
-    mac_address: "{{ vars.mac | default (omit)}}"
-    label: "{{ item.label | default (omit)}}"
-
-  delegate_to: localhost
-  register: deploy_macchange
-  loop: "{{ vars.new_networks }}"
-  when: vars.mac is defined
-
 
 - name: Get VM facts
   retries: 3

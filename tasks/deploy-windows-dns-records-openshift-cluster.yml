@@ -1,0 +1,90 @@
+---
+- name: Create DNS records for api and api-int
+  when: vars.type == 'bootstrap'
+  block:
+
+  - name: Find matching reverse lookup zone
+    set_fact:
+      found_revlookupzonename: "{{ item.revlookupzonename }}"
+      found_fwdlookupzonename: "{{ item.fwdlookupzonename }}"
+    loop: "{{ vars.vlans }}"
+    when: item.name == vars.openshift_api_vlan
+
+  - name: Create Windows DNS A record for 'api'
+    community.windows.win_dns_record:
+      name: "{{ openshift_api_url | replace('.' + vars.found_fwdlookupzonename , '') }}"
+      type: A
+      value: "{{ vars.openshift_api_ip }}"
+      zone: "{{ vars.found_fwdlookupzonename }}"
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+  - name: Create Windows DNS A record for 'api-int'
+    community.windows.win_dns_record:
+      name: "{{ openshift_api_int_url | replace('.' + vars.found_fwdlookupzonename , '') }}"
+      type: A
+      value: "{{ vars.openshift_api_ip }}"
+      zone: "{{ vars.found_fwdlookupzonename }}"
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+  - name: Create Windows DNS Reverse Lookup zone
+    community.windows.win_dns_zone:
+      name: "{{ vars.found_revlookupzonename }}"
+      replication: domain
+      type: primary
+      state: present
+    throttle: 1
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+  - name: Create Windows DNS PTR record for 'api' & 'api-int'
+    community.windows.win_dns_record:
+      name: "{{ vars.openshift_api_ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
+      type: PTR
+      value:
+      - "{{ openshift_api_url }}"
+      - "{{ openshift_api_int_url }}"
+      zone: "{{ vars.found_revlookupzonename }}"
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+
+- name: Create DNS records for apps
+  when: vars.type == 'bootstrap'
+  block:
+
+  - name: Find matching reverse lookup zone
+    set_fact:
+      found_revlookupzonename: "{{ item.revlookupzonename }}"
+      found_fwdlookupzonename: "{{ item.fwdlookupzonename }}"
+    loop: "{{ vars.vlans }}"
+    when: item.name == vars.openshift_ingress_vlan
+
+  - name: Create Windows DNS A record for 'apps'
+    community.windows.win_dns_record:
+      name: "{{ openshift_ingress_url | replace('.' + vars.found_fwdlookupzonename , '') }}"
+      type: A
+      value: "{{ vars.openshift_ingress_ip }}"
+      zone: "{{ vars.found_fwdlookupzonename }}"
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+  - name: Create Windows DNS Reverse Lookup zone
+    community.windows.win_dns_zone:
+      name: "{{ vars.found_revlookupzonename }}"
+      replication: domain
+      type: primary
+      state: present
+    throttle: 1
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+
+  - name: Create Windows DNS PTR record for 'apps'
+    community.windows.win_dns_record:
+      name: "{{ vars.openshift_ingress_ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
+      type: PTR
+      value: "{{ openshift_ingress_url }}"
+      zone: "{{ vars.found_revlookupzonename }}"
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"

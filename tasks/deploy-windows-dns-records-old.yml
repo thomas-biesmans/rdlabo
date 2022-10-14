@@ -1,9 +1,4 @@
 ---
-# - name: check var
-#   debug:
-#     msg: "{{ vars.target_group_dns }}"
-# # - name: halt
-# #   fail: {}
 # - name: Debug check names
 #   debug:
 #     msg: "Name '{{ inventory_hostname }}', domain '{{ inventory_hostname[inventory_hostname.index('.')+1:] }}', IP '{{ vars.ip }}', vlans '{{ vars.vlans }}'"

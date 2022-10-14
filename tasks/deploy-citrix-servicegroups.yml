@@ -20,3 +20,4 @@
     nitro_user: "{{ citrix_username_unecnrypted }}"
     nitro_pass: "{{ citrix_password_unecnrypted }}"
     validate_certs: false
+  run_once: true

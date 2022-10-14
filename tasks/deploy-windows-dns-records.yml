@@ -1,13 +1,4 @@
 ---
-# - name: check var
-#   debug:
-#     msg: "{{ vars.target_group_dns }}"
-# # - name: halt
-# #   fail: {}
-# - name: Debug check names
-#   debug:
-#     msg: "Name '{{ inventory_hostname }}', domain '{{ inventory_hostname[inventory_hostname.index('.')+1:] }}', IP '{{ vars.ip }}', vlans '{{ vars.vlans }}'"
-
 # - name: Ensure primary zone is present
 #   community.windows.win_dns_zone:
 #     name: 
@@ -38,6 +29,16 @@
 - name: "DNS Reverse records: name - value - zone"
   debug:
     msg: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}, {{ inventory_hostname_short }}, {{ vars.found_revlookupzonename }}"
+
+- name: Create Windows DNS Reverse Lookup zone
+  community.windows.win_dns_zone:
+    name: "{{ vars.found_revlookupzonename }}"
+    replication: domain
+    type: primary
+    state: present
+  throttle: 1
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups.windows_dns }}"
 
 - name: Create Windows DNS PTR record
   community.windows.win_dns_record:

@@ -87,13 +87,13 @@ openshift_upi_vms:
 # OpenShift 4 UPI NSX nodes
 openshift_upi_nsx_vms_master_nodes:
   hosts:
-    upi-master-0.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.10
       mac: 00:05:69:aa:aa:10
-    upi-master-1.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.11
       mac: 00:05:69:aa:aa:11
-    upi-master-2.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.12
       mac: 00:05:69:aa:aa:12
   vars:
@@ -101,10 +101,10 @@ openshift_upi_nsx_vms_master_nodes:
 
 openshift_upi_nsx_vms_infra_nodes:
   hosts:
-    upi-infra-0.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.13
       mac: 00:05:69:aa:aa:13
-    upi-infra-1.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.14
       mac: 00:05:69:aa:aa:14
   vars:
@@ -112,10 +112,10 @@ openshift_upi_nsx_vms_infra_nodes:
 
 openshift_upi_nsx_vms_worker_nodes:
   hosts:
-    upi-worker-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.15
+    upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
+      ip: 10.10.0.18
       mac: 00:05:69:aa:aa:15
-    upi-worker-1.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.16
       mac: 00:05:69:aa:aa:16
   vars:
@@ -123,7 +123,7 @@ openshift_upi_nsx_vms_worker_nodes:
 
 openshift_upi_nsx_vms_bootstrap_node:
   hosts:
-    upi-bootstrap.openshift-upi-nsx.rdlabo.local:
+    upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
       ip: 10.10.0.17
       mac: 00:05:69:aa:aa:17
   vars:
@@ -153,23 +153,23 @@ openshift_bootstrap_nodes:
 
 openshift_master_nodes:
   children:
-    openshift_upi_vms_master_node:
-    openshift_upi_nsx_vms_master_node:
+    openshift_upi_vms_master_nodes:
+    openshift_upi_nsx_vms_master_nodes:
 
 openshift_worker_nodes:
   children:
-    openshift_upi_vms_worker_node:
-    openshift_upi_nsx_vms_worker_node:
+    openshift_upi_vms_worker_nodes:
+    openshift_upi_nsx_vms_worker_nodes:
 
 openshift_infra_nodes:
   children:
-    openshift_upi_vms_infra_node:
-    openshift_upi_nsx_vms_infra_node:
+    openshift_upi_vms_infra_nodes:
+    openshift_upi_nsx_vms_infra_nodes:
 
 openshift_storage_nodes:
   children:
-    openshift_upi_vms_storage_node:
-    openshift_upi_nsx_vms_storage_node:
+    openshift_upi_vms_storage_nodes:
+    openshift_upi_nsx_vms_storage_nodes:
 
 all:
   vars:

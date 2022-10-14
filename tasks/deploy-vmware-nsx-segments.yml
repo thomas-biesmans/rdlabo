@@ -1,7 +1,6 @@
 ---
-
-- name: create Segment
-  nsxt_policy_segment:
+- name: Create NSX Segment
+  vmware.ansible_for_nsxt.nsxt_policy_segment:
     hostname: "{{ nsx_hostname }}"
     username: "{{ vmware_nsx_username }}"
     password: "{{ vmware_nsx_password }}"
@@ -14,5 +13,5 @@
     admin_state: UP
 
   delegate_to: localhost
-
-- pause:
+  when: nsx_integration
+  throttle: 1
