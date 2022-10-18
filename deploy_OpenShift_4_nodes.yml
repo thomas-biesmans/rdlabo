@@ -84,7 +84,7 @@
           tags: vm
       tags: vm
       when: nsx_integration
-    - pause:
+      
     - name: Deploy VMs
       ansible.builtin.include_tasks:
         file: tasks/deploy-vmware-vms-from-template.yml
