@@ -98,3 +98,8 @@ default_community_vmware_vmware__guest:
       value: base64
     - key: guestinfo.ignition.config.data
       value: 'TBD'
+ncp_config:
+  ncp_plugin_source: https://github.com/vmware/nsx-container-plugin-operator/releases/download/v4.0.0/openshift4.tar.gz
+  baseline_policy_type: allow_namespace
+  enable_multus: false
+  ncp_image: vmware/nsx-container-plugin-operator:v4.0.0

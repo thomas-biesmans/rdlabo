@@ -88,13 +88,13 @@ openshift_upi_vms:
 openshift_upi_nsx_vms_master_nodes:
   hosts:
     upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.10
+      ip: 10.200.0.10
       mac: 00:05:69:aa:aa:10
     upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.11
+      ip: 10.200.0.11
       mac: 00:05:69:aa:aa:11
     upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.12
+      ip: 10.200.0.12
       mac: 00:05:69:aa:aa:12
   vars:
     type: master
@@ -102,10 +102,10 @@ openshift_upi_nsx_vms_master_nodes:
 openshift_upi_nsx_vms_infra_nodes:
   hosts:
     upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.13
+      ip: 10.200.0.13
       mac: 00:05:69:aa:aa:13
     upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.14
+      ip: 10.200.0.14
       mac: 00:05:69:aa:aa:14
   vars:
     type: infra
@@ -113,10 +113,10 @@ openshift_upi_nsx_vms_infra_nodes:
 openshift_upi_nsx_vms_worker_nodes:
   hosts:
     upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.18
+      ip: 10.200.0.18
       mac: 00:05:69:aa:aa:15
     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.16
+      ip: 10.200.0.16
       mac: 00:05:69:aa:aa:16
   vars:
     type: worker
@@ -124,7 +124,7 @@ openshift_upi_nsx_vms_worker_nodes:
 openshift_upi_nsx_vms_bootstrap_node:
   hosts:
     upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
-      ip: 10.10.0.17
+      ip: 10.200.0.17
       mac: 00:05:69:aa:aa:17
   vars:
     type: bootstrap

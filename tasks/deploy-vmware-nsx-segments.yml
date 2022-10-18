@@ -5,13 +5,14 @@
     username: "{{ vmware_nsx_username }}"
     password: "{{ vmware_nsx_password }}"
     validate_certs: False
-    display_name: "{{ custom_community_vmware_vmware__guest.networks[0].name }}"
+    display_name: "{{ item.name }}"
     state: present
-    transport_zone_display_name: "{{ nsx_segment_config.transport_zone_display_name }}"
-    subnets: "{{ nsx_segment_config.subnets }}"
-    connectivity_path: "{{ nsx_segment_config.connectivity_path }}"
+    transport_zone_display_name: "{{ item.transport_zone_display_name }}"
+    subnets: "{{ item.subnets }}"
+    connectivity_path: "{{ item.connectivity_path }}"
     admin_state: UP
 
+  with_items: "{{ nsx_segment_config }}"
   delegate_to: localhost
   when: nsx_integration
   throttle: 1

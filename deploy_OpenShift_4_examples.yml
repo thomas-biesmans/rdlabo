@@ -17,10 +17,22 @@
     with_items:
     - "{{ vars.openshift_example_dir }}"
     delegate_to: localhost
+    tags: always
+  
+  - name: Ensure https://github.com/ansible/ansible/pull/75287/commits/bd9c1f7e915abfa1340fac3bd8c5db0603f6c2e1 is implemented
+    lineinfile:
+      path: /usr/lib/python3.8/site-packages/ansible/playbook/block.py
+      line: "        all_vars.update(self.vars.copy())"
+    check_mode: yes
+    register: commit_present
+    failed_when: commit_present is changed
+    delegate_to: localhost
+    tags: always
 
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_http
     delegate_to: localhost
+    ignore_errors: true
     block:
 
     # Quick Nginx Hello World HTTP CLI
@@ -39,7 +51,7 @@
       - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
 
-    - fail:
+
     # Quick Nginx Hello World HTTP Ansible
     - name: Nginx Hello World HTTP app from source through Ansible  
       vars:
@@ -52,7 +64,7 @@
         app_service_port: 8080
         app_service_protocol: tcp
         app_container_port: 8080
-        app_generic_secret: UizJ9CQw5Oyd5uza9Hgy #"{{ lookup ('password', '/dev/null chars=ascii_letters length=24') }}"
+        app_generic_secret: UizJ9CQw5Oyd5uza9Hgy #"{{ lookup ('password', '/dev/null char{s=ascii_letters length=24') }}"
       block:
 
       - name: Add namespace for Nginx Hello World HTTP app from source through Ansible 
@@ -108,6 +120,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -125,9 +141,11 @@
         - url: "http://hello-world-nginx-test-nginx-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
           text_to_find: "Hello, world from nginx!"
 
-  - pause:
+
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_https
+    delegate_to: localhost
+    ignore_errors: true
     block:
 
     # Quick Nginx Hello World HTTPS CLI
@@ -225,6 +243,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -245,6 +267,8 @@
 
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_todo
+    delegate_to: localhost
+    ignore_errors: true
     block:
 
     # ToDo CLI
@@ -332,6 +356,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -353,6 +381,8 @@
 
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_wordpress
+    delegate_to: localhost
+    ignore_errors: true
     block:
 
     # WordPress on MySQL CLI
@@ -444,11 +474,15 @@
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
-          
+
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -505,6 +539,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -528,9 +566,10 @@
 
 
 
-
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_wordpress_netpol
+    delegate_to: localhost
+    ignore_errors: true
     block:
 
     # WordPress on MySQL CLI
@@ -706,6 +745,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -763,6 +806,10 @@
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        retries: 5
+        delay: 5
 
       - name: Add Service
         kubernetes.core.k8s:
@@ -788,6 +835,8 @@
 
   - name: Test URLS
     tags: deploy_example_all, test_urls
+    delegate_to: localhost
+    ignore_errors: true
     block:
 
     - name: Query Nginx HTTP CLI example

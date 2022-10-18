@@ -1,0 +1,75 @@
+---
+- name: Prepare NCP Plugin
+  delegate_to: localhost
+  when: nsx_integration
+  block:
+
+  - name: Download the plugin
+    get_url:
+      url: "{{ vars.ncp_config.ncp_plugin_source }}"
+      dest: "{{ vars.openshift_download_dir }}/ncp-plugin.tar.gz"
+    when: vars.ncp_config.ncp_plugin_source | length > 0
+
+  - name: Untar the plugin
+    unarchive:
+      src: "{{ vars.openshift_download_dir }}/ncp-plugin.tar.gz"
+      dest: "{{ vars.openshift_download_dir }}"
+      creates: "{{ vars.openshift_download_dir }}/openshift4"
+
+  - name: Create plugin dir
+    file:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin"
+      state: directory
+
+  - name: Copy the plugin files
+    copy:
+      src: "{{ vars.openshift_download_dir }}/openshift4"
+      dest: "{{ vars.openshift_config_dir }}/ncp-plugin"
+
+  - name: Set values in ConfigMap
+    replace:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin/configmap.yaml"
+      regexp: item.src
+      replace: item.dest
+    with_items:
+    - src: "cluster = openshift"
+      dest: "cluster = {{ vars.openshift_cluster_name }}"
+    - src: "#nsx_api_managers = []"
+      dest: "nsx_api_managers = [{{ vars.nsx_hostname }}]\n
+      nsx_api_user = {{ vars.vmware_nsx_username }}\n
+      nsx_api_password = {{ vars.vmware_nsx_password }}\n
+      insecure=True"
+    # - src: "nsx_api_user = "
+    #   dest: "nsx_api_user = {{ vars.vmware_nsx_username }}"
+    # - src: "nsx_api_password = "
+    #   dest: "nsx_api_password = {{ vars.vmware_nsx_password }}"
+    - src: "#apiserver_host_ip = <None>"
+      dest: "apiserver_host_ip = {{ vars.openshift_api_int_url }}"
+    - src: "#apiserver_host_port = <None>"
+      dest: "apiserver_host_port = {{ vars.openshift_api_port }}"
+    - src: "#baseline_policy_type = <None>"
+      dest: "baseline_policy_type = {{ vars.ncp_config.baseline_policy_type }}"
+    - src: "#enable_multus = False"
+      dest: "baseline_policy_type = {{ vars.ncp_config.enable_multus }}"
+    - src: "#overlay_tz = <None>3"
+      desr: "overlay_tz = {{ nsx_segment_config.transport_zone_display_name }}"
+
+
+  - name: Set values in ConfigMap
+    replace:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin/configmap.yaml"
+      regexp: item.src
+      replace: item.dest
+    with_items:
+    - src: "cluster = openshift"
+      dest: "cluster = {{ vars.openshift_cluster_name }}"
+
+
+  - name: Set values in Operator
+    replace:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin/operator.yaml"
+      regexp: item.src
+      replace: item.dest
+    with_items:
+    - src: "cluster = openshift"
+      dest: "cluster = {{ vars.openshift_cluster_name }}"

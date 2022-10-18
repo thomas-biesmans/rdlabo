@@ -14,6 +14,13 @@ nsx_hostname: 10.255.254.127
 nsx_username: "{{ vmware_nsx_username }}"
 nsx_password: "{{ vmware_nsx_password }}"
 nsx_segment_config:
+- name: NSX-OpenShift-UPI-NSX
+  transport_zone_display_name: "NSX-Overlay"
+  subnets:
+  - gateway_address: 10.100.0.254/24
+  connectivity_path: /infra/tier-1s/T1-GW
+  dhcp_config_path: /infra/dhcp-relay-configs/RDLDC02
+- name: RoutingDoesNotWork
   transport_zone_display_name: "NSX-Overlay"
   subnets:
   - gateway_address: 10.10.0.254/24
