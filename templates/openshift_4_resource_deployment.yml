@@ -37,9 +37,9 @@ spec:
         resources: {{ app_resources | default (omit) }}
         volumeMounts: {{ app_volumeMounts | default (omit) }}
         env: {{ app_envarguments | default (omit) }}
+        livenessProbe: {{ app_livenessProbe | default (omit) }}
+        startupProbe: {{ app_startupProbe | default (omit) }}
+        readinessProbe: {{ app_readinessProbe | default (omit) }}
       volumes: {{ app_volumes | default (omit) }}
       serviceAccount: {{ app_sa_name | default (omit) }}
       serviceAccountName: {{ app_sa_name | default (omit) }}
-      livenessProbe: {{ app_livenessProbe | default (omit) }}
-      startupProbe: {{ app_startupProbe | default (omit) }}
-      readinessProbe: {{ app_readinessProbe | default (omit) }}
