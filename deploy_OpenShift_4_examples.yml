@@ -585,83 +585,83 @@
     block:
 
     # WordPress on MySQL CLI
-    # - name: Add WordPress on MySQL with Network Policies app through CLI
-    #   shell: |
-    #     oc new-project test-wordpress-mysql-netpol-cli
-    #     oc project test-wordpress-mysql-netpol-cli
+    - name: Add WordPress on MySQL with Network Policies app through CLI
+      shell: |
+        oc new-project test-wordpress-mysql-netpol-cli
+        oc project test-wordpress-mysql-netpol-cli
 
-    #     cat > {{ openshift_example_dir }}/networkpol_deny_all.yaml <<EOL
-    #     kind: NetworkPolicy
-    #     apiVersion: networking.k8s.io/v1
-    #     metadata:
-    #       name: deny-by-default
-    #     spec:
-    #       podSelector: {}
-    #       ingress: []
-    #     EOL
-    #     oc create -f {{ openshift_example_dir }}/networkpol_deny_all.yaml
-    #     cat > {{ openshift_example_dir }}/networkpol_allow_wordpress_mysql.yaml <<EOL
-    #     kind: NetworkPolicy
-    #     apiVersion: networking.k8s.io/v1
-    #     metadata:
-    #       name: allow-wordpress-mysql
-    #     spec:
-    #       podSelector:
-    #         matchLabels:
-    #           deployment: mysql
-    #       ingress:
-    #       - from:
-    #         - podSelector:
-    #             matchLabels:
-    #               deployment: wordpress
-    #         ports:
-    #         - port: 3306
-    #           protocol: TCP
-    #     EOL
-    #     oc create -f {{ openshift_example_dir }}/networkpol_allow_wordpress_mysql.yaml
-    #     cat > {{ openshift_example_dir }}/networkpol_allow_ingress.yaml <<EOL
-    #     apiVersion: networking.k8s.io/v1
-    #     kind: NetworkPolicy
-    #     metadata:
-    #       name: allow-ingress-to-wordpress
-    #     spec:
-    #       podSelector:
-    #         matchLabels:
-    #           deployment: wordpress
-    #       ingress:
-    #       - ports:
-    #         - protocol: TCP
-    #           port: 80
-    #         - protocol: TCP
-    #           port: 443
-    #     EOL
-    #     oc create -f {{ openshift_example_dir }}/networkpol_allow_ingress.yaml
+        cat > {{ openshift_example_dir }}/networkpol_deny_all.yaml <<EOL
+        kind: NetworkPolicy
+        apiVersion: networking.k8s.io/v1
+        metadata:
+          name: deny-by-default
+        spec:
+          podSelector: {}
+          ingress: []
+        EOL
+        oc create -f {{ openshift_example_dir }}/networkpol_deny_all.yaml
+        cat > {{ openshift_example_dir }}/networkpol_allow_wordpress_mysql.yaml <<EOL
+        kind: NetworkPolicy
+        apiVersion: networking.k8s.io/v1
+        metadata:
+          name: allow-wordpress-mysql
+        spec:
+          podSelector:
+            matchLabels:
+              deployment: mysql
+          ingress:
+          - from:
+            - podSelector:
+                matchLabels:
+                  deployment: wordpress
+            ports:
+            - port: 3306
+              protocol: TCP
+        EOL
+        oc create -f {{ openshift_example_dir }}/networkpol_allow_wordpress_mysql.yaml
+        cat > {{ openshift_example_dir }}/networkpol_allow_ingress.yaml <<EOL
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: allow-ingress-to-wordpress
+        spec:
+          podSelector:
+            matchLabels:
+              deployment: wordpress
+          ingress:
+          - ports:
+            - protocol: TCP
+              port: 80
+            - protocol: TCP
+              port: 443
+        EOL
+        oc create -f {{ openshift_example_dir }}/networkpol_allow_ingress.yaml
 
-    #     oc create secret generic mysql --from-literal password=r3dh4t123
+        oc create secret generic mysql --from-literal password=r3dh4t123
 
-    #     oc new-app --name mysql registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7
-    #     oc set env deployment/mysql --from secret/mysql --prefix MYSQL_ROOT_
-    #     oc set volumes deployment/mysql --add --type pvc --claim-mode rwo --claim-size 2Gi --mount-path /var/lib/mysql/data
-    #     oc set probe deployment/mysql --liveness -- /bin/sh -i -c "mysqladmin -uroot -p\$MYSQL_ROOT_PASSWORD -h 127.0.0.1 ping"
+        oc new-app --name mysql registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7
+        oc set env deployment/mysql --from secret/mysql --prefix MYSQL_ROOT_
+        oc set volumes deployment/mysql --add --type pvc --claim-mode rwo --claim-size 2Gi --mount-path /var/lib/mysql/data
+        oc set probe deployment/mysql --liveness -- /bin/sh -i -c "mysqladmin -uroot -p\$MYSQL_ROOT_PASSWORD -h 127.0.0.1 ping"
 
-    #     sleep 90s
+        sleep 90s
 
-    #     oc new-app --name wordpress --docker-image docker.io/library/wordpress:5.3.0 -e WORDPRESS_DB_HOST=mysql -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_DB_USER=root
-    #     oc set env deployment/wordpress --from secret/mysql --prefix WORDPRESS_DB_
-    #     oc create sa wordpress-sa
-    #     oc adm policy add-scc-to-user anyuid -z wordpress-sa
-    #     oc set serviceaccount deployment/wordpress wordpress-sa
-    #     oc set probe deployment/wordpress --liveness --get-url=http://:80
-    #     oc expose svc wordpress --hostname wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}
+        oc new-app --name wordpress --docker-image docker.io/library/wordpress:5.3.0 -e WORDPRESS_DB_HOST=mysql -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_DB_USER=root
+        oc set env deployment/wordpress --from secret/mysql --prefix WORDPRESS_DB_
+        oc create sa wordpress-sa
+        oc adm policy add-scc-to-user anyuid -z wordpress-sa
+        oc set serviceaccount deployment/wordpress wordpress-sa
+        oc set probe deployment/wordpress --liveness --get-url=http://:80
+        oc expose svc wordpress --hostname wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}
 
-    #     sleep 10s
-    #   ignore_errors: yes
+        sleep 10s
+      ignore_errors: yes
 
-    # - name: Query WordPress on MySQL with Network Policies CLI example
-    #   include_tasks: 'tasks/query_url.yml'
-    #   with_items:
-    #   - url: "http://wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-    #     text_to_find: "<title>"
+    - name: Query WordPress on MySQL with Network Policies CLI example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
+        text_to_find: "<title>"
 
 
     # WordPress on MySQL with Network Policies Ansible - Part 1
