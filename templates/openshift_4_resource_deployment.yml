@@ -28,7 +28,7 @@ spec:
         deployment: "{{ app_name }}"
     spec:
       containers:
-      - image: "{{ app_container_source }}" 
+      - image: "{{ app_container_source_set_fact }}" 
         imagePullPolicy: Always
         name: "{{ app_name }}"
         ports:

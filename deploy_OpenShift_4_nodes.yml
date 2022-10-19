@@ -1350,7 +1350,7 @@
       set_fact:
         citrix_vservers_apps: []
 
-    - name: Build load balancer topology - API load balancer
+    - name: Build load balancer topology - Apps load balancer
       set_fact:
         citrix_vservers_apps:
         - name: "lb_openshift_{{ openshift_cluster_name }}_apps_any"

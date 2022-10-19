@@ -112,16 +112,16 @@
         retries: 20
         delay: 30
 
-      - name: Set Image reference
+      - name: Set Image reference, allowing variabel precedence
         set_fact:
-          app_container_source: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
+          app_container_source_set_fact: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
 
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -235,16 +235,16 @@
         retries: 20
         delay: 30
 
-      - name: Set Image reference
+      - name: Set Image reference, allowing variabel precedence
         set_fact:
-          app_container_source: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
+          app_container_source_set_fact: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
           
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -351,13 +351,17 @@
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_namespace.yml'
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
           
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -475,12 +479,16 @@
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
 
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -535,12 +543,16 @@
           api_version: apps/v1
           template: 'templates/openshift_4_resource_scc_to_user.yml'
 
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -741,12 +753,16 @@
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
           
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -802,12 +818,16 @@
           api_version: apps/v1
           template: 'templates/openshift_4_resource_scc_to_user.yml'
 
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
       - name: Add Deployment
         kubernetes.core.k8s:
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
