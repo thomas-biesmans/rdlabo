@@ -14,7 +14,7 @@
   tasks:
 
   - name: Check whether OpenShift cluster exists already
-    tags: deploy_cluster
+    tags: always, deploy_cluster
     delegate_to: localhost
     block:
 
@@ -144,7 +144,7 @@
 
 
   - name: Prepare bootstrap environment
-    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
     tags: prep_bootstrap
     delegate_to: localhost
     block:
@@ -218,6 +218,12 @@
         slurp:
           src: "~/.ssh/{{ vars.deployment_ssh_filename }}.pub"
         register: sshKey
+
+
+      - name: Prepare NSX Container Plugin integration
+        include_tasks: tasks/prepare-vmware-ncp.yml
+        when: nsx_integration
+      - fail:
         
       - name: Check whether manifests were already created
         stat:

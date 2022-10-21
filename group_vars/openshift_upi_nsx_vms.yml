@@ -103,3 +103,6 @@ ncp_config:
   baseline_policy_type: allow_namespace
   enable_multus: false
   ncp_image: vmware/nsx-container-plugin-operator:v4.0.0
+  certificate_nsx_ca_name: nsx-admin-ca-cert
+  certificate_nsx_client_name: nsx-admin-cert
+  certificate_nsx_client_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=rdlabo.local"

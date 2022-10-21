@@ -23,26 +23,131 @@
 
   - name: Copy the plugin files
     copy:
-      src: "{{ vars.openshift_download_dir }}/openshift4"
+      src: "{{ vars.openshift_download_dir }}/openshift4/"
       dest: "{{ vars.openshift_config_dir }}/ncp-plugin"
+      force: no
+
+
+  - name: Check CA certificate key
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key"
+    register: local_ca_cert_key
+
+  - name: Check CA certificate 
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt"
+    register: local_ca_cert
+
+  - name: Create a new CA certificate if it does not exist
+    shell: "openssl req -nodes -x509 -newkey rsa:4096 -keyout
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key -out 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt -days 3650 
+            -subj '/CN=Ansible Root CA for NSX'"
+    when: not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
+
+
+  - name: Check client certificate request
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr"
+    register: local_client_cert_csr
+
+  - name: Create a new client certificate keypair if the CSR does not exist
+    shell: "openssl genrsa -aes256 -passout pass:{{ vmware_nsx_client_certificate_password }} -out
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pass.key 4096"
+    when: not local_client_cert_csr.stat.exists
+
+  - name: Create a new client certificate key if the CSR does not exist
+    shell: "openssl rsa -passin pass:{{ vmware_nsx_client_certificate_password }} -in
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pass.key -out
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    when: not local_client_cert_csr.stat.exists
+
+  - name: Create a new client certificate CSR if the CSR does not exist
+    shell: "openssl req -new -key 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key -out
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr -subj
+            {{ ncp_config.certificate_nsx_client_subject }}"
+    when: not local_client_cert_csr.stat.exists
+
+
+  - name: Check client self-signed certificate 
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    register: local_client_cert_crt
+
+  - name: Sign the  client certificate CSR if the certificate does not exist
+    shell: "openssl x509 -req -days 3650 -in 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr -CA
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt -CAkey
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key -set_serial 01 -out 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    when: not local_client_cert_crt.stat.exists
+
+
+  - name: Check client full .pem format self-signed certificate 
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
+    register: local_client_cert_crt_full_pem
+
+  - name: Concatenate the client certificate in .pem format
+    shell: "cat {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key 
+        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt 
+        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt >
+        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
+    when: not local_client_cert_crt_full_pem.stat.exists
+
+  # - name: Check certificates on NSX
+  #   vmware.ansible_for_nsxt.nsxt_certificates_facts:
+  #     hostname: "{{ nsx_hostname }}"
+  #     username: "{{ vmware_nsx_username }}"
+  #     password: "{{ vmware_nsx_password }}"
+  #     validate_certs: False
+  #   register: nsx_certificates
+
+  # - name: Upload the certificate to NSX (not idempotent...)
+  #   vmware.ansible_for_nsxt.nsxt_certificates:
+  #     hostname: "{{ nsx_hostname }}"
+  #     username: "{{ vmware_nsx_username }}"
+  #     password: "{{ vmware_nsx_password }}"
+  #     validate_certs: False
+  #     display_name: "Ansible NSX Admin"
+  #     pem_encoded_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_crt }}"
+  #     # passphrase: "paraphrase"
+  #     state: present
+  #   when: nsx_certificates.results | selectattr ('display_name', 'eq', 'Ansible NSX Admin') | list | length == 0
+
+  - name: Assign a role to uploaded certificate
+    vmware.ansible_for_nsxt.nsxt_principal_identities:
+      hostname: "{{ nsx_hostname }}"
+      username: "{{ vmware_nsx_username }}"
+      password: "{{ vmware_nsx_password }}"
+      validate_certs: False
+      display_name: "Ansible NSX Admin"
+      name: "Ansible-NSX-Admin" # No spaces
+      node_id: "node-1"
+      role: "enterprise_admin"
+      # certificate_name: "Ansible user"
+      state: present
+      certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
+
 
   - name: Set values in ConfigMap
     replace:
       path: "{{ vars.openshift_config_dir }}/ncp-plugin/configmap.yaml"
-      regexp: item.src
-      replace: item.dest
+      regexp: "{{ item.src }}"
+      replace: "{{ item.dest }}"
     with_items:
-    - src: "cluster = openshift"
+    - src: "^cluster = openshift$"
       dest: "cluster = {{ vars.openshift_cluster_name }}"
-    - src: "#nsx_api_managers = []"
-      dest: "nsx_api_managers = [{{ vars.nsx_hostname }}]\n
-      nsx_api_user = {{ vars.vmware_nsx_username }}\n
-      nsx_api_password = {{ vars.vmware_nsx_password }}\n
-      insecure=True"
-    # - src: "nsx_api_user = "
-    #   dest: "nsx_api_user = {{ vars.vmware_nsx_username }}"
-    # - src: "nsx_api_password = "
-    #   dest: "nsx_api_password = {{ vars.vmware_nsx_password }}"
+    - src: "#nsx_api_managers = \\[\\]"
+      dest: "nsx_api_managers = [{{ vars.nsx_hostname }}]"
+      # insecure=True"
+      # nsx_api_user = {{ vars.vmware_nsx_username }}\n
+      # nsx_api_password = {{ vars.vmware_nsx_password }}\n
+    - src: "#nsx_api_cert_file = <None>"
+      dest: "nsx_api_cert_file = {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    - src: "#nsx_api_private_key_file = <None>"
+      dest: "nsx_api_private_key_file = {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
     - src: "#apiserver_host_ip = <None>"
       dest: "apiserver_host_ip = {{ vars.openshift_api_int_url }}"
     - src: "#apiserver_host_port = <None>"
@@ -51,25 +156,26 @@
       dest: "baseline_policy_type = {{ vars.ncp_config.baseline_policy_type }}"
     - src: "#enable_multus = False"
       dest: "baseline_policy_type = {{ vars.ncp_config.enable_multus }}"
-    - src: "#overlay_tz = <None>3"
-      desr: "overlay_tz = {{ nsx_segment_config.transport_zone_display_name }}"
-
-
-  - name: Set values in ConfigMap
-    replace:
-      path: "{{ vars.openshift_config_dir }}/ncp-plugin/configmap.yaml"
-      regexp: item.src
-      replace: item.dest
-    with_items:
-    - src: "cluster = openshift"
-      dest: "cluster = {{ vars.openshift_cluster_name }}"
-
+    - src: "#overlay_tz = <None>"
+      dest: "overlay_tz = {{ nsx_segment_config[0].transport_zone_display_name }}"
 
   - name: Set values in Operator
     replace:
       path: "{{ vars.openshift_config_dir }}/ncp-plugin/operator.yaml"
-      regexp: item.src
-      replace: item.dest
+      regexp: "{{ item.src }}"
+      replace: "{{ item.dest }}"
     with_items:
-    - src: "cluster = openshift"
-      dest: "cluster = {{ vars.openshift_cluster_name }}"
+    - src: "nsx-ncp:latest"
+      dest: "vmware/nsx-container-plugin-operator:v4.0.0"
+
+  - name: Set values in Secret
+    replace:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+      regexp: "{{ item.src }}"
+      replace: "{{ item.dest }}"
+    with_items:
+    - src: "tls.crt: \"\""
+      dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt') | b64encode }}\""
+    - src: "tls.key: \"\""
+      dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key') | b64encode }}\""
+
