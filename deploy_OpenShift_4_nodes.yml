@@ -64,7 +64,7 @@
   #     msg: "{{ vars.community_vmware_vmware__guest }}"
 
   - name: Deploy base infrastructure
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: deploy_infrastructure
     block:
 
@@ -105,10 +105,13 @@
   tasks:
 
   - name: Prepare bootstrap environment
-    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: prep_bootstrap
     delegate_to: localhost
     block:
+    - debug:
+        msg: "{{ vars.namespace_kube_apiserver.resources }}"
+    - pause:
 
     - name: Install podman
       ansible.builtin.yum:
@@ -144,7 +147,7 @@
 
 
   - name: Prepare bootstrap environment
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: prep_bootstrap
     delegate_to: localhost
     block:
@@ -223,7 +226,6 @@
       - name: Prepare NSX Container Plugin integration
         include_tasks: tasks/prepare-vmware-ncp.yml
         when: nsx_integration
-      - fail:
         
       - name: Check whether manifests were already created
         stat:
@@ -268,6 +270,12 @@
             regexp: 'mastersSchedulable: true'
             replace: 'mastersSchedulable: false'
 
+
+        - name: Copy NCP operator deploy files
+          ansible.builtin.copy:
+            src: "{{ vars.openshift_config_dir }}/ncp-plugin/"
+            dest: "{{ vars.openshift_config_dir }}/manifests/"
+          when: nsx_integration
 
       - name: Create ignition files
         shell: "{{ vars.openshift_download_dir }}/openshift-install create ignition-configs --dir {{ vars.openshift_config_dir }}"
@@ -391,7 +399,7 @@
 
 
   - name: Prepare nodes
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: prep_nodes
     block:
 
@@ -427,7 +435,7 @@
   tasks:
 
   - name: Prepare nodes
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: prep_nodes
     block:
 
@@ -461,7 +469,7 @@
   tasks:
 
   - name: Prepare nodes
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: prep_nodes
     block:
 
@@ -707,7 +715,7 @@
   tasks:
 
   - name: Start the bootstrap node
-    when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: deploy_cluster
     block:
 
@@ -745,7 +753,7 @@
   tasks:
 
   - name: Start the master nodes if bootstrap is needed
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: deploy_cluster
     block:
 
@@ -771,7 +779,7 @@
   tasks:
 
   - name: Start the worker nodes if bootstrap is needed
-    # when: vars.namespace_kube_apiserver.failed or vars.namespace_kube_apiserver.resources[0].status.phase != "Active"
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
     tags: deploy_cluster
     block:
 

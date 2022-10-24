@@ -28,73 +28,40 @@
       force: no
 
 
-  - name: Check CA certificate key
-    stat:
-      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key"
-    register: local_ca_cert_key
-
-  - name: Check CA certificate 
-    stat:
-      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt"
-    register: local_ca_cert
-
-  - name: Create a new CA certificate if it does not exist
-    shell: "openssl req -nodes -x509 -newkey rsa:4096 -keyout
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key -out 
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt -days 3650 
-            -subj '/CN=Ansible Root CA for NSX'"
-    when: not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
-
-
   - name: Check client certificate request
     stat:
-      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr"
-    register: local_client_cert_csr
-
-  - name: Create a new client certificate keypair if the CSR does not exist
-    shell: "openssl genrsa -aes256 -passout pass:{{ vmware_nsx_client_certificate_password }} -out
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pass.key 4096"
-    when: not local_client_cert_csr.stat.exists
-
-  - name: Create a new client certificate key if the CSR does not exist
-    shell: "openssl rsa -passin pass:{{ vmware_nsx_client_certificate_password }} -in
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pass.key -out
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-    when: not local_client_cert_csr.stat.exists
-
-  - name: Create a new client certificate CSR if the CSR does not exist
-    shell: "openssl req -new -key 
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key -out
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr -subj
-            {{ ncp_config.certificate_nsx_client_subject }}"
-    when: not local_client_cert_csr.stat.exists
-
-
-  - name: Check client self-signed certificate 
-    stat:
       path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-    register: local_client_cert_crt
+    register: local_client_cert
 
-  - name: Sign the  client certificate CSR if the certificate does not exist
-    shell: "openssl x509 -req -days 3650 -in 
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.csr -CA
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt -CAkey
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.key -set_serial 01 -out 
-            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-    when: not local_client_cert_crt.stat.exists
+  - name: Create a new client certificate if it does not exist
+    shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 90 -extensions usr_cert -nodes -keyout
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key -out
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt  -subj
+            '/CN=NSX Admin for Ansible'"
+    when: not local_client_cert.stat.exists
 
-
-  - name: Check client full .pem format self-signed certificate 
+  - name: Check client .pfx format certificate 
     stat:
-      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
-    register: local_client_cert_crt_full_pem
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pfx"
+    register: local_client_cert_pfx
 
-  - name: Concatenate the client certificate in .pem format
-    shell: "cat {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key 
-        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt 
-        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt >
-        {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
-    when: not local_client_cert_crt_full_pem.stat.exists
+  - name: Create .pfx format certificate if it does not exist
+    shell: "openssl pkcs12 -export -password pass:{{ vmware_nsx_client_certificate_password }} -in 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -inkey
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key -out 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pfx"
+    when: not local_client_cert_pfx.stat.exists
+
+  - name: Check client .pem format certificate 
+    stat:
+      path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pem"
+    register: local_client_cert_pem
+
+  - name: Create .pem format certificate if it does not exist
+    shell: "openssl pkcs12 -nodes -password pass:{{ vmware_nsx_client_certificate_password }} -in 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pfx -out 
+            {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pem"
+    when: not local_client_cert_pem.stat.exists
 
   # - name: Check certificates on NSX
   #   vmware.ansible_for_nsxt.nsxt_certificates_facts:
@@ -110,11 +77,24 @@
   #     username: "{{ vmware_nsx_username }}"
   #     password: "{{ vmware_nsx_password }}"
   #     validate_certs: False
-  #     display_name: "Ansible NSX Admin"
-  #     pem_encoded_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_crt }}"
-  #     # passphrase: "paraphrase"
+  #     display_name: "Root CA for Ansible NSX Admin"
+  #     pem_encoded_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt"
   #     state: present
-  #   when: nsx_certificates.results | selectattr ('display_name', 'eq', 'Ansible NSX Admin') | list | length == 0
+  #   when: nsx_certificates.results | selectattr ('display_name', 'eq', 'Root CA for Ansible NSX Admin') | list | length == 0
+
+
+  - name: Remove the current role to uploaded certificate because of bad idempotency
+    vmware.ansible_for_nsxt.nsxt_principal_identities:
+      hostname: "{{ nsx_hostname }}"
+      username: "{{ vmware_nsx_username }}"
+      password: "{{ vmware_nsx_password }}"
+      validate_certs: False
+      display_name: "NSX Admin for Ansible"
+      name: "NSX-Admin-Ansible" # No spaces
+      node_id: "node-1"
+      role: "enterprise_admin"
+      certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pem"
+      state: absent
 
   - name: Assign a role to uploaded certificate
     vmware.ansible_for_nsxt.nsxt_principal_identities:
@@ -122,13 +102,12 @@
       username: "{{ vmware_nsx_username }}"
       password: "{{ vmware_nsx_password }}"
       validate_certs: False
-      display_name: "Ansible NSX Admin"
-      name: "Ansible-NSX-Admin" # No spaces
+      display_name: "NSX Admin for Ansible"
+      name: "NSX-Admin-Ansible" # No spaces
       node_id: "node-1"
       role: "enterprise_admin"
-      # certificate_name: "Ansible user"
       state: present
-      certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.full.pem"
+      certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pem"
 
 
   - name: Set values in ConfigMap
@@ -139,24 +118,23 @@
     with_items:
     - src: "^cluster = openshift$"
       dest: "cluster = {{ vars.openshift_cluster_name }}"
-    - src: "#nsx_api_managers = \\[\\]"
+    - src: "^#nsx_api_managers = \\[\\]"
       dest: "nsx_api_managers = [{{ vars.nsx_hostname }}]"
-      # insecure=True"
-      # nsx_api_user = {{ vars.vmware_nsx_username }}\n
-      # nsx_api_password = {{ vars.vmware_nsx_password }}\n
-    - src: "#nsx_api_cert_file = <None>"
+    - src: "^#ca_file = \\[\\]"
+      dest: "insecure=True #ca_file = []"
+    - src: "^#nsx_api_cert_file = <None>"
       dest: "nsx_api_cert_file = {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-    - src: "#nsx_api_private_key_file = <None>"
+    - src: "^#nsx_api_private_key_file = <None>"
       dest: "nsx_api_private_key_file = {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-    - src: "#apiserver_host_ip = <None>"
+    - src: "^#apiserver_host_ip = <None>"
       dest: "apiserver_host_ip = {{ vars.openshift_api_int_url }}"
-    - src: "#apiserver_host_port = <None>"
+    - src: "^#apiserver_host_port = <None>"
       dest: "apiserver_host_port = {{ vars.openshift_api_port }}"
-    - src: "#baseline_policy_type = <None>"
+    - src: "^#baseline_policy_type = <None>"
       dest: "baseline_policy_type = {{ vars.ncp_config.baseline_policy_type }}"
-    - src: "#enable_multus = False"
-      dest: "baseline_policy_type = {{ vars.ncp_config.enable_multus }}"
-    - src: "#overlay_tz = <None>"
+    - src: "^#enable_multus = False"
+      dest: "enable_multus = {{ vars.ncp_config.enable_multus }}"
+    - src: "^#overlay_tz = <None>"
       dest: "overlay_tz = {{ nsx_segment_config[0].transport_zone_display_name }}"
 
   - name: Set values in Operator
@@ -179,3 +157,18 @@
     - src: "tls.key: \"\""
       dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key') | b64encode }}\""
 
+  - name: Test certificate
+    vmware.ansible_for_nsxt.nsxt_policy_segment:
+      hostname: "{{ nsx_hostname }}"
+      # username: "{{ vmware_nsx_username }}"
+      # password: "{{ vmware_nsx_password }}"
+      nsx_cert_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.pem"
+      nsx_key_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+      # ca_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_ca_name }}.crt"
+      validate_certs: False
+      display_name: TestSegmentShouldNotExistButYouKnowInfiniteMonkeys
+      state: absent
+    register: temp
+  - debug:
+      msg: "{{ temp }}"
+  - pause:

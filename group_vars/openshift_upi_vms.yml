@@ -18,6 +18,7 @@ openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 openshift_cluster_name: openshift-upi
 openshift_cluster_domain: rdlabo.local
+openshift_networkType: OpenShiftSDN
 openshift_clusterNetwork_cidr: 10.128.0.0/14 # Default: 10.128.0.0/14
 openshift_clusterNetwork_hostPrefix: 23 # Default: 23
 openshift_machineNetwork_cidr:

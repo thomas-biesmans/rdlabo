@@ -21,7 +21,7 @@ networking:
     hostPrefix: {{ vars.openshift_clusterNetwork_hostPrefix }}
   machineNetwork: {{ vars.openshift_machineNetwork_cidr }}
   # - cidr: {{ vars.openshift_machineNetwork_cidr }}
-  networkType: OpenShiftSDN
+  networkType: {{ vars.openshift_networkType }}
   serviceNetwork: {{ vars.openshift_serviceNetwork }}
 platform:
   vsphere:
