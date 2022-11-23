@@ -70,19 +70,22 @@
 
     - name: Deploy DNS records for nodes
       ansible.builtin.import_tasks: tasks/deploy-windows-dns-records.yml
+      tags: deploy_infrastructure_dns
 
     - name: Deploy DNS records for OpenShift cluster
       ansible.builtin.import_tasks: tasks/deploy-windows-dns-records-openshift-cluster.yml
+      tags: deploy_infrastructure_dns
       
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
+      tags: deploy_infrastructure_dhcp
 
     - name: Deploy NSX segments
       ansible.builtin.include_tasks:
         file: tasks/deploy-vmware-nsx-segments.yml
         apply:
           tags: vm
-      tags: vm
+      tags: vm, deploy_nsx_segments
       when: nsx_integration
       
     - name: Deploy VMs
@@ -109,9 +112,6 @@
     tags: prep_bootstrap
     delegate_to: localhost
     block:
-    - debug:
-        msg: "{{ vars.namespace_kube_apiserver.resources }}"
-    - pause:
 
     - name: Install podman
       ansible.builtin.yum:
@@ -145,10 +145,9 @@
   - group_vars/vcenter_vms.yml
   tasks:
 
-
   - name: Prepare bootstrap environment
-    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
-    tags: prep_bootstrap
+    when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
+    tags: prep_bootstrap, prep_ncp
     delegate_to: localhost
     block:
 
@@ -172,12 +171,16 @@
           url: "{{ vars.openshift_custom_version_source }}"
           dest: "{{ vars.openshift_download_dir }}/openshift-install-linux.tar.gz"
         when: vars.openshift_custom_version_source | length > 0
+        retries: 6
+        delay: 5
 
       - name: Download default stable sources if no specific version is set
         get_url:
           url: "{{ vars.openshift_default_source }}"
           dest: "{{ vars.openshift_download_dir }}/openshift-install-linux.tar.gz"
         when: vars.openshift_custom_version_source | length <= 0
+        retries: 6
+        delay: 5
       
       - name: Untar the installation file
         unarchive:
@@ -190,6 +193,8 @@
         get_url:
           url: "{{ vars.openshift_default_client_source }}"
           dest: "{{ vars.openshift_download_dir }}/openshift-client-linux.tar.gz"
+        retries: 6
+        delay: 5
       
       - name: Untar the client file
         unarchive:
@@ -238,21 +243,26 @@
         register: ignition_file
 
       - name: Create manifests
-        when: not manifests_dir.stat.exists and not ignition_file.stat.exists
+        when: not ignition_file.stat.exists
         block:
+
+        - name: Set image registry & load balancer certificates as trust bundles for NSX
+          set_fact:
+            trustBundle: "{{ lookup('file', '{{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem') }}\n\n{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') }}"
+          when: nsx_integration
 
         - name: Template out the inventory file to the config dir
           template:
             src: templates/openshift_4_upi_install_config_vmware_template.yml
             dest: "{{ vars.openshift_config_dir }}/install-config.yaml"
             force: no
-
+            
         - name: Take a copy of the install-config as a backup
           copy:
             src: "{{ vars.openshift_config_dir }}/install-config.yaml"
             dest: "{{ vars.openshift_config_dir }}/install-config.yaml.bak"
             force: no
-
+        
         - name: Create manifest files
           shell: "{{ vars.openshift_download_dir }}/openshift-install create manifests --dir {{ vars.openshift_config_dir }}"
     
@@ -269,7 +279,6 @@
             path: "{{ vars.openshift_config_dir }}/manifests/cluster-scheduler-02-config.yml"
             regexp: 'mastersSchedulable: true'
             replace: 'mastersSchedulable: false'
-
 
         - name: Copy NCP operator deploy files
           ansible.builtin.copy:
@@ -533,6 +542,7 @@
   - name: Prep Citrix SDK
     delegate_to: localhost
     run_once: true
+    when: citrix_lb_integration
     block:
       
     - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
@@ -606,6 +616,7 @@
 
   - name: Create Citrix Load-Balancers
     delegate_to: localhost
+    when: citrix_lb_integration
     block:
 
     - name: Reset API service group
@@ -731,9 +742,9 @@
         state: poweredon
       delegate_to: localhost
 
-    - name: Query ignition files served by the bootstrap node, waiting up to 5-7,5 minutes
+    - name: Query ignition files served by the bootstrap node, waiting up to 15-45 minutes
       shell: "curl -k https://{{ openshift_api_url }}:22623/config/master"
-      retries: 5
+      retries: 30
       delay: 30 # default curl timeout is 60s, but is not always triggered
       until: ignition_curl.stdout[:20] == "{\"ignition\":{\"versio"
       register: ignition_curl
@@ -900,7 +911,9 @@
   tasks:
 
   - name: Remove bootstrap from load balancers
-    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and
+      '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines' and
+      citrix_lb_integration
     tags: deploy_cluster
     delegate_to: localhost
     block:
@@ -1126,7 +1139,7 @@
     - debug:
         msg: "{{ ['ClusterVersion:'] + cli_cv_results.stdout_lines }}"
 
-
+    - pause:
 
 - name: Power on infra nodes
   hosts: openshift_infra_nodes
@@ -1170,7 +1183,9 @@
   tasks:
 
   - name: Add infra nodes to load balancers
-    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and
+      '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines' and
+      citrix_lb_integration
     # tags: deploy_cluster
     delegate_to: localhost
     block:
@@ -1340,7 +1355,9 @@
   tasks:
 
   - name: Remove worker nodes from load balancers
-    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
+    when: vars.deploy_bootstrap_results.stderr_lines is defined and
+      '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines' and
+      citrix_lb_integration
     tags: deploy_cluster
     delegate_to: localhost
     block:
