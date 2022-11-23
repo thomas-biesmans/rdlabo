@@ -48,7 +48,7 @@
       zone: "{{ vars.found_revlookupzonename }}"
     delegate_to: "{{ item }}"
     with_items: "{{ groups.windows_dns }}"
-
+    
 
 - name: Create DNS records for apps
   when: vars.type == 'bootstrap'

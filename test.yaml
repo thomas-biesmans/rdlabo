@@ -1,0 +1,79 @@
+---
+- hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  tasks:
+  - delegate_to: localhost
+    block:
+
+    - name: remove first
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8"
+
+    - name: Check client certificate request
+      stat:
+        path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+      register: local_client_cert
+
+    - name: Copy the current OpenSSL config file
+      copy:
+        src: /etc/pki/tls/openssl.cnf
+        dest: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
+      register: openssl_config_file_copy
+
+    - name: Add extra config to the OpenSSL config file
+      blockinfile:
+        path: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
+        block: |
+          [ client_server_ssl ]
+          extendedKeyUsage = clientAuth
+      when: openssl_config_file_copy.changed
+
+    - name: Create a new client certificate if it does not exist
+      shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout 
+          {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -new -out 
+          {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj 
+          /CN=nsx-admin-ansible -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
+      when: not local_client_cert.stat.exists
+      ignore_errors: yes
+
+    - name: Transform client certificate's key to RSA if the certificate does not exist
+      shell: "openssl rsa -in
+              {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -out
+              {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+      when: not local_client_cert.stat.exists
+
+    # - name: Remove the current certificate because of bad idempotency
+    #   vmware.ansible_for_nsxt.nsxt_certificates:
+    #     hostname: "{{ nsx_hostname }}"
+    #     username: "{{ vmware_nsx_username }}"
+    #     password: "{{ vmware_nsx_password }}"
+    #     validate_certs: False
+    #     display_name: "nsx-admin-ansible@nsx-admin-ansible"
+    #     pem_encoded_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    #     state: absent
+    #   ignore_errors: yes
+
+    - name: Assign a role to uploaded certificate
+      vmware.ansible_for_nsxt.nsxt_principal_identities:
+        hostname: "{{ nsx_hostname }}"
+        username: "{{ vmware_nsx_username }}"
+        password: "{{ vmware_nsx_password }}"
+        validate_certs: False
+        display_name: "nsx-admin-ansible"
+        name: "nsx-admin-ansible" # No spaces
+        node_id: "nsx-admin-ansible"
+        role: "enterprise_admin"
+        state: present
+        # certificate_name: "nsx-admin-ansible@nsx-admin-ansible"
+        certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+      ignore_errors: yes
+

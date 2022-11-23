@@ -16,9 +16,7 @@ metadata:
   creationTimestamp: null
   name: {{ vars.openshift_cluster_name }}
 networking:
-  clusterNetwork: 
-  - cidr: {{ vars.openshift_clusterNetwork_cidr }}
-    hostPrefix: {{ vars.openshift_clusterNetwork_hostPrefix }}
+  clusterNetwork: {{ vars.openshift_clusterNetworks }}
   machineNetwork: {{ vars.openshift_machineNetwork_cidr }}
   # - cidr: {{ vars.openshift_machineNetwork_cidr }}
   networkType: {{ vars.openshift_networkType }}
@@ -38,3 +36,5 @@ publish: External
 pullSecret: '{{ vars.openshift_auth_code }}'
 sshKey: |
   {{ sshKey['content'] | b64decode  }}
+additionalTrustBundle: |
+  {{ trustBundle | indent(width=2) | default( omit ) }}

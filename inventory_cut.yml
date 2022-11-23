@@ -1,0 +1,192 @@
+---
+
+# OKD 3.11 nodes
+rhel_vms_master_nodes:
+  hosts:
+    rdlokd3mstr01.rdlabo.local:
+      ip: 10.255.254.93
+    rdlokd3mstr02.rdlabo.local:
+      ip: 10.255.254.94
+    rdlokd3mstr03.rdlabo.local:
+      ip: 10.255.254.95
+rhel_vms_regular_nodes:
+  hosts:
+    rdlokd3infr01.rdlabo.local:
+      ip: 10.255.254.96
+    rdlokd3infr02.rdlabo.local: 
+      ip: 10.255.254.97
+    rdlokd3wrkr01.rdlabo.local:
+      ip: 10.255.254.98
+    rdlokd3wrkr02.rdlabo.local:
+      ip: 10.255.254.99
+
+rhel_vms:
+  children:
+    rhel_vms_master_nodes:
+    rhel_vms_regular_nodes:
+  vars:
+    vmware_networkportgroup: VLAN665-RD Labo
+
+# OpenShift 4 UPI nodes
+openshift_upi_vms_master_nodes:
+  hosts:
+    upi-master-0.openshift-upi.rdlabo.local:
+      ip: 10.255.254.240
+      mac: 00:05:69:aa:aa:00
+    upi-master-1.openshift-upi.rdlabo.local:
+      ip: 10.255.254.241
+      mac: 00:05:69:aa:aa:01
+    upi-master-2.openshift-upi.rdlabo.local:
+      ip: 10.255.254.242
+      mac: 00:05:69:aa:aa:02
+  vars:
+    type: master
+
+openshift_upi_vms_infra_nodes:
+  hosts:
+    upi-infra-0.openshift-upi.rdlabo.local:
+      ip: 10.255.254.243
+      mac: 00:05:69:aa:aa:03
+    upi-infra-1.openshift-upi.rdlabo.local:
+      ip: 10.255.254.244
+      mac: 00:05:69:aa:aa:04
+  vars:
+    type: infra
+
+openshift_upi_vms_worker_nodes:
+  hosts:
+    upi-worker-0.openshift-upi.rdlabo.local:
+      ip: 10.255.254.245
+      mac: 00:05:69:aa:aa:05
+    upi-worker-1.openshift-upi.rdlabo.local:
+      ip: 10.255.254.246
+      mac: 00:05:69:aa:aa:06
+  vars:
+    type: worker
+
+openshift_upi_vms_bootstrap_node:
+  hosts:
+    upi-bootstrap.openshift-upi.rdlabo.local:
+      ip: 10.255.254.247
+      mac: 00:05:69:aa:aa:07
+  vars:
+    type: bootstrap
+
+openshift_upi_vms:
+  children:
+    openshift_upi_vms_bootstrap_node:
+    openshift_upi_vms_master_nodes:
+    openshift_upi_vms_infra_nodes:
+    openshift_upi_vms_worker_nodes:
+    openshift_upi_vms_storage_nodes:
+  vars:
+    vmware_networkportgroup: VLAN665-RD Labo
+    ansible_group_priority: 10
+
+
+# OpenShift 4 UPI NSX nodes
+openshift_upi_nsx_vms_master_nodes:
+  hosts:
+    upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.10
+      mac: 00:05:69:aa:aa:10
+    upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.11
+      mac: 00:05:69:aa:aa:11
+    upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.12
+      mac: 00:05:69:aa:aa:12
+  vars:
+    type: master
+
+openshift_upi_nsx_vms_infra_nodes:
+  hosts:
+    upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.13
+      mac: 00:05:69:aa:aa:13
+    upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.14
+      mac: 00:05:69:aa:aa:14
+  vars:
+    type: infra
+
+openshift_upi_nsx_vms_worker_nodes:
+  hosts:
+    upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.18
+      mac: 00:05:69:aa:aa:15
+    upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.16
+      mac: 00:05:69:aa:aa:16
+  vars:
+    type: worker
+
+openshift_upi_nsx_vms_bootstrap_node:
+  hosts:
+    upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
+      ip: 10.200.0.17
+      mac: 00:05:69:aa:aa:17
+  vars:
+    type: bootstrap
+
+openshift_upi_nsx_vms:
+  children:
+    openshift_upi_nsx_vms_bootstrap_node:
+    openshift_upi_nsx_vms_master_nodes:
+    openshift_upi_nsx_vms_infra_nodes:
+    openshift_upi_nsx_vms_worker_nodes:
+    openshift_upi_nsx_vms_storage_nodes:
+  vars:
+    vmware_networkportgroup: NSX-OpenShift-UPI-NSX
+    ansible_group_priority: 10
+
+openshift_clusters:
+  children:
+    openshift_upi_vms:
+    openshift_upi_nsx_vms:
+
+# Using same-level groups & phigher precendence on clusters instead of nested groups to prevent parent variable merge
+openshift_bootstrap_nodes:
+  children:
+    openshift_upi_nsx_vms_bootstrap_node:
+
+openshift_master_nodes:
+  children:
+    openshift_upi_nsx_vms_master_nodes:
+
+openshift_worker_nodes:
+  children:
+    openshift_upi_nsx_vms_worker_nodes:
+
+openshift_infra_nodes:
+  children:
+    openshift_upi_nsx_vms_infra_nodes:
+
+openshift_storage_nodes:
+  children:
+    openshift_upi_nsx_vms_storage_nodes:
+
+all:
+  vars:
+    list_of_openshift_clusters:
+    - openshift_upi_vms
+    - openshift_upi_nsx_vms
+
+
+vcenter_vms:
+  children:
+    rhel_vms:
+    openshift_upi_vms:
+    openshift_upi_nsx_vms:
+
+windows_dns:
+  hosts:
+    rdldc02.rdlabo.local:
+
+windows_clients:
+  children:
+    windows_dns:
+
+citrix_load_balancer:
+  hosts:
+    rdlns02.rdlabo.local:
