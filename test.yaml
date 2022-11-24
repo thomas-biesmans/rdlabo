@@ -9,47 +9,47 @@
   - delegate_to: localhost
     block:
 
-    - name: remove first
-      file:
-        path: "{{ item }}"
-        state: absent
-      with_items:
-      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-      - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8"
+    # - name: remove first
+    #   file:
+    #     path: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #   - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    #   - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    #   - "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8"
 
-    - name: Check client certificate request
-      stat:
-        path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-      register: local_client_cert
+    # - name: Check client certificate request
+    #   stat:
+    #     path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    #   register: local_client_cert
 
-    - name: Copy the current OpenSSL config file
-      copy:
-        src: /etc/pki/tls/openssl.cnf
-        dest: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
-      register: openssl_config_file_copy
+    # - name: Copy the current OpenSSL config file
+    #   copy:
+    #     src: /etc/pki/tls/openssl.cnf
+    #     dest: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
+    #   register: openssl_config_file_copy
 
-    - name: Add extra config to the OpenSSL config file
-      blockinfile:
-        path: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
-        block: |
-          [ client_server_ssl ]
-          extendedKeyUsage = clientAuth
-      when: openssl_config_file_copy.changed
+    # - name: Add extra config to the OpenSSL config file
+    #   blockinfile:
+    #     path: "{{ openshift_config_dir }}/openssl_client_nsx.cnf"
+    #     block: |
+    #       [ client_server_ssl ]
+    #       extendedKeyUsage = clientAuth
+    #   when: openssl_config_file_copy.changed
 
-    - name: Create a new client certificate if it does not exist
-      shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout 
-          {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -new -out 
-          {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj 
-          /CN=nsx-admin-ansible -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
-      when: not local_client_cert.stat.exists
-      ignore_errors: yes
+    # - name: Create a new client certificate if it does not exist
+    #   shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout 
+    #       {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -new -out 
+    #       {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj 
+    #       /CN=nsx-admin-ansible -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
+    #   when: not local_client_cert.stat.exists
+    #   ignore_errors: yes
 
-    - name: Transform client certificate's key to RSA if the certificate does not exist
-      shell: "openssl rsa -in
-              {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -out
-              {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-      when: not local_client_cert.stat.exists
+    # - name: Transform client certificate's key to RSA if the certificate does not exist
+    #   shell: "openssl rsa -in
+    #           {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -out
+    #           {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    #   when: not local_client_cert.stat.exists
 
     # - name: Remove the current certificate because of bad idempotency
     #   vmware.ansible_for_nsxt.nsxt_certificates:
@@ -62,18 +62,44 @@
     #     state: absent
     #   ignore_errors: yes
 
-    - name: Assign a role to uploaded certificate
-      vmware.ansible_for_nsxt.nsxt_principal_identities:
-        hostname: "{{ nsx_hostname }}"
-        username: "{{ vmware_nsx_username }}"
-        password: "{{ vmware_nsx_password }}"
-        validate_certs: False
-        display_name: "nsx-admin-ansible"
-        name: "nsx-admin-ansible" # No spaces
-        node_id: "nsx-admin-ansible"
-        role: "enterprise_admin"
-        state: present
-        # certificate_name: "nsx-admin-ansible@nsx-admin-ansible"
-        certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-      ignore_errors: yes
+    # - name: Assign a role to uploaded certificate
+    #   vmware.ansible_for_nsxt.nsxt_principal_identities:
+    #     hostname: "{{ nsx_hostname }}"
+    #     username: "{{ vmware_nsx_username }}"
+    #     password: "{{ vmware_nsx_password }}"
+    #     validate_certs: False
+    #     display_name: "nsx-admin-ansible"
+    #     name: "nsx-admin-ansible" # No spaces
+    #     node_id: "nsx-admin-ansible"
+    #     role: "enterprise_admin"
+    #     state: present
+    #     # certificate_name: "nsx-admin-ansible@nsx-admin-ansible"
+    #     certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    #   ignore_errors: yes
 
+    - name: reset file
+      copy:
+        src: /home/user1/openshift-install-4.9-upi-installer/openshift4/nsx-secret.yaml
+        dest: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+
+    - name: Read client cert
+      slurp:
+        src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+      register: client_cert_base64
+
+    - name: Read client cert key
+      slurp:
+        src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+      register: client_cert_key_base64
+
+    - name: Set values in NSX Secret for authentication
+      replace:
+        path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+        regexp: "{{ item.src }}"
+        replace: "{{ item.dest }}"
+      with_items:
+      - src: "tls.crt: \"\""
+        dest: "tls.crt: \"{{ client_cert_base64.content }}\""
+      - src: "tls.key: \"\""
+        dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
+    

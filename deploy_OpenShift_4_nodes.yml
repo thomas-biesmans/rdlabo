@@ -877,7 +877,7 @@
 - name: Power off bootstrap node if bootstrap is finished
   hosts: openshift_bootstrap_nodes
   gather_facts: false
-  vars_files:
+  vars_files:.
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   tasks:

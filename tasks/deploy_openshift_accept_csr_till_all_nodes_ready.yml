@@ -55,8 +55,8 @@
   rescue:
 
   - fail:
-      msg: Ended after 30 retries
-    when: retry_counter | int >= 30
+      msg: Ended after 45 retries
+    when: retry_counter | int >= 45
 
   - name: Waiting 15 seconds
     pause:

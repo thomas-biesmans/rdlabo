@@ -181,6 +181,15 @@
     - src: "#lb_priv_key_path = <None>"
       dest: "lb_priv_key_path = /etc/nsx-ujo/lb-cert/tls.key"
 
+  - name: Read client cert
+    slurp:
+      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    register: client_cert_base64
+
+  - name: Read client cert key
+    slurp:
+      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    register: client_cert_key_base64
 
   - name: Set values in NSX Secret for authentication
     replace:
@@ -189,10 +198,10 @@
       replace: "{{ item.dest }}"
     with_items:
     - src: "tls.crt: \"\""
-      dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt') | b64encode }}\""
+      dest: "tls.crt: \"{{ client_cert_base64.content }}\""
     - src: "tls.key: \"\""
-      dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key') | b64encode }}\""
-  
+      dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
+      
   - name: Test certificate
     vmware.ansible_for_nsxt.nsxt_policy_segment:
       hostname: "{{ nsx_hostname }}"
