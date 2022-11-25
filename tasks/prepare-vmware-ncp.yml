@@ -48,20 +48,19 @@
         extendedKeyUsage = clientAuth
     when: openssl_config_file_copy.changed
 
-  - name: Create a new client certificate if it does not exist
+  - name: Create a new client certificate for NSX authentication if it does not exist
     shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout 
         {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -new -out 
         {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj 
-        /CN=nsx-admin-ansible -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
+        {{ ncp_config.certificate_nsx_client_subject }} -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
     when: not local_client_cert.stat.exists
     ignore_errors: yes
 
-  - name: Transform client certificate's key to RSA if the certificate does not exist
+  - name: Transform client authentication certificate's key to RSA if the certificate does not exist
     shell: "openssl rsa -in
             {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -out
             {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
     when: not local_client_cert.stat.exists
-    
 
   - name: Remove the current role to uploaded certificate because of bad idempotency
     vmware.ansible_for_nsxt.nsxt_principal_identities:
@@ -96,6 +95,27 @@
     pause:
       seconds: 5
 
+  - name: Read client cert
+    slurp:
+      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    register: client_cert_base64
+
+  - name: Read client cert key
+    slurp:
+      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    register: client_cert_key_base64
+
+  - name: Set values in NSX Secret for authentication
+    replace:
+      path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+      regexp: "{{ item.src }}"
+      replace: "{{ item.dest }}"
+    with_items:
+    - src: "tls.crt: \"\""
+      dest: "tls.crt: \"{{ client_cert_base64.content }}\""
+    - src: "tls.key: \"\""
+      dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
+
   - name: Assign a role to uploaded certificate
     vmware.ansible_for_nsxt.nsxt_principal_identities:
       hostname: "{{ nsx_hostname }}"
@@ -110,6 +130,18 @@
       # certificate_name: "nsx-admin-ansible@nsx-admin-ansible"
       certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
     ignore_errors: yes
+
+  - name: Test certificate
+    vmware.ansible_for_nsxt.nsxt_policy_segment:
+      hostname: "{{ nsx_hostname }}"
+      nsx_cert_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+      nsx_key_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+      validate_certs: False
+      display_name: TestSegmentShouldNotExistButYouKnowInfiniteMonkeys
+      state: absent
+    register: temp
+    ignore_errors: yes
+
 
   - name: Set values in ConfigMap
     replace:
@@ -164,7 +196,7 @@
     - src: "#log_firewall_traffic = <None>"
       dest: "log_firewall_traffic = DENY"
 
-  # - name: Make NCP HA
+  # - name: Make NCP HA - does not work, halts deployment, to be done after deployment
   #   replace:
   #     path: "{{ vars.openshift_config_dir }}/ncp-plugin/operator.nsx.vmware.com_ncpinstalls_crd.yaml"
   #     regexp: "{{ item.src }}"
@@ -173,37 +205,10 @@
   #   - src: "minimum: 1"
   #     dest: "minimum: 3"
 
-  - name: Read client cert
-    slurp:
-      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-    register: client_cert_base64
 
-  - name: Read client cert key
-    slurp:
-      src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-    register: client_cert_key_base64
 
-  - name: Set values in NSX Secret for authentication
-    replace:
-      path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
-      regexp: "{{ item.src }}"
-      replace: "{{ item.dest }}"
-    with_items:
-    - src: "tls.crt: \"\""
-      dest: "tls.crt: \"{{ client_cert_base64.content }}\""
-    - src: "tls.key: \"\""
-      dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
-      
-  - name: Test certificate
-    vmware.ansible_for_nsxt.nsxt_policy_segment:
-      hostname: "{{ nsx_hostname }}"
-      nsx_cert_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-      nsx_key_path: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-      validate_certs: False
-      display_name: TestSegmentShouldNotExistButYouKnowInfiniteMonkeys
-      state: absent
-    register: temp
-    ignore_errors: yes
+
+
 
   - name: Check wether NCP image is already downloaded
     stat:
@@ -409,7 +414,7 @@
     when: not local_openshift_tls_crt.stat.exists
     register: openshift_tls_crt
 
-  - name: Export the new OpenShift TLS certificate if it does not exist
+  - name: Export the new OpenShift TLS certificate key to RSA if it did not exist
     shell: "openssl rsa -in 
             {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out 
             {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key"

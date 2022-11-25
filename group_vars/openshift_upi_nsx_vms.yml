@@ -107,7 +107,7 @@ ncp_config:
   enable_multus: false
   ncp_image: vmware/nsx-container-plugin-operator:v4.0.0
   certificate_nsx_client_name: nsx-admin-cert
-  certificate_nsx_client_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=rdlabo.local"
+  certificate_nsx_client_subject: "/CN=nsx-admin-ansible"
   single_tier_topology: True # Single-tier = no T1, False not supported on OpenShift
   top_tier_gateway: T1-GW #2e6ed5ea-068b-4066-9b58-01187f522a73 #TO-GW's SR through get logical-router
   overlay_tz: dbe81977-95d6-499d-9bf4-a1c7d5d5c8b3 # NSX-Overlay
