@@ -77,29 +77,107 @@
     #     certificate_pem_file: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
     #   ignore_errors: yes
 
+
+
+    # - name: reset file
+    #   copy:
+    #     src: /home/user1/openshift-install-4.9-upi-installer/openshift4/nsx-secret.yaml
+    #     dest: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+
+    # - name: Read client cert
+    #   slurp:
+    #     src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
+    #   register: client_cert_base64
+
+    # - name: Read client cert key
+    #   slurp:
+    #     src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
+    #   register: client_cert_key_base64
+
+    # - name: Set values in NSX Secret for authentication
+    #   replace:
+    #     path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+    #     regexp: "{{ item.src }}"
+    #     replace: "{{ item.dest }}"
+    #   with_items:
+    #   - src: "tls.crt: \"\""
+    #     dest: "tls.crt: \"{{ client_cert_base64.content }}\""
+    #   - src: "tls.key: \"\""
+    #     dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
+    
+
+
+
     - name: reset file
       copy:
-        src: /home/user1/openshift-install-4.9-upi-installer/openshift4/nsx-secret.yaml
-        dest: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+        src: /home/user1/openshift-install-4.9-upi-installer/openshift4/lb-secret.yaml
+        dest: "{{ vars.openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
 
-    - name: Read client cert
-      slurp:
-        src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt"
-      register: client_cert_base64
+    - name: remove first
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+      - "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
 
-    - name: Read client cert key
-      slurp:
-        src: "{{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
-      register: client_cert_key_base64
+    - name: Check OpenShift TLS load-balancer certificate .crt file
+      stat:
+        path: "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
+      register: local_openshift_tls_crt
 
-    - name: Set values in NSX Secret for authentication
+    # - name: Copy the current OpenSSL config file
+    #   copy:
+    #     src: /etc/pki/tls/openssl.cnf
+    #     dest: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    #   register: openssl_config_file_copy
+
+    - name: Add extra config to the OpenSSL config file
+      blockinfile:
+        path: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+        block: |
+          [ req ]
+          default_bits = 4096
+          distinguished_name = req_distinguished_name
+          prompt = no
+          x509_extensions = v3_req
+          [ req_distinguished_name ]
+          {{ ncp_config.openshift_tls_certificate_subject_rev }}
+          [ v3_req ]
+          subjectAltName = @alt_names
+          [ alt_names ]
+          DNS.1 = {{ ncp_config.openshift_tls_certificate_san_dns }}
+          DNS.2 = kubernetes
+          DNS.3 = kubernetes.default
+          DNS.4 = kubernetes.default.svc
+          DNS.5 = kubernetes.default.svc.cluster.local
+          DNS.6 = openshift
+          DNS.7 = openshift.default
+          DNS.8 = openshift.default.svc
+          DNS.9 = openshift.default.svc.cluster.local
+          IP.1 = {{ openshift_ingress_ip }}
+        create: yes
+
+    - name: Create a new OpenShift TLS certificate if it does not exist
+      shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
+              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
+              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
+              '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
+      when: not local_openshift_tls_crt.stat.exists
+      register: openshift_tls_crt
+
+    - name: Export the new OpenShift TLS certificate if it does not exist
+      shell: "openssl rsa -in 
+              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out 
+              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key"
+      when: openshift_tls_crt.changed
+
+    - name: Set values in Load-Balancer Secret
       replace:
-        path: "{{ vars.openshift_config_dir }}/ncp-plugin/nsx-secret.yaml"
+        path: "{{ openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
         regexp: "{{ item.src }}"
         replace: "{{ item.dest }}"
       with_items:
       - src: "tls.crt: \"\""
-        dest: "tls.crt: \"{{ client_cert_base64.content }}\""
+        dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | b64encode }}\""
       - src: "tls.key: \"\""
-        dest: "tls.key: \"{{ client_cert_key_base64.content }}\""
-    
+        dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}\""

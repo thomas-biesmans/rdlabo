@@ -61,30 +61,7 @@
             {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -out
             {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key"
     when: not local_client_cert.stat.exists
-
-
-  # - name: Create a new client certificate if it does not exist
-  #   shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout
-  #           {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key -out
-  #           {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj
-  #           '/CN=NSX Admin for Ansible' -config <(
-  #             printf '
-  #             [ req ]\n
-  #             default_bits = 4096\n
-  #             distinguished_name = req_distinguished_name\n
-  #             prompt = no\n
-  #             [ req_distinguished_name ]\n
-  #             countryName = BE\n
-  #             stateOrProvinceName = Vlaams-Brabant\n
-  #             localityName = Huizingen\n
-  #             organizationName = RDLabo\n
-  #             commonName = NSX Admin for Ansible\n
-  #             [ client_server_ssl ]\n
-  #             extendedKeyUsage = clientAuth\n'
-  #           )"
-  #   when: not local_client_cert.stat.exists
-
-
+    
 
   - name: Remove the current role to uploaded certificate because of bad idempotency
     vmware.ansible_for_nsxt.nsxt_principal_identities:
@@ -180,6 +157,21 @@
       dest: "lb_default_cert_path = /etc/nsx-ujo/lb-cert/tls.crt"
     - src: "#lb_priv_key_path = <None>"
       dest: "lb_priv_key_path = /etc/nsx-ujo/lb-cert/tls.key"
+    - src: "log_dropped_traffic = False"
+      dest: "log_dropped_traffic = True"
+    - src: "baseline_policy_type = allow_namespace"
+      dest: "baseline_policy_type = allow_cluster"
+    - src: "#log_firewall_traffic = <None>"
+      dest: "log_firewall_traffic = DENY"
+
+  # - name: Make NCP HA
+  #   replace:
+  #     path: "{{ vars.openshift_config_dir }}/ncp-plugin/operator.nsx.vmware.com_ncpinstalls_crd.yaml"
+  #     regexp: "{{ item.src }}"
+  #     replace: "{{ item.dest }}"
+  #   with_items:
+  #   - src: "minimum: 1"
+  #     dest: "minimum: 3"
 
   - name: Read client cert
     slurp:
@@ -390,16 +382,24 @@
         default_bits = 4096
         distinguished_name = req_distinguished_name
         prompt = no
-        req_extensions = req_ext
+        x509_extensions = v3_req
         [ req_distinguished_name ]
         {{ ncp_config.openshift_tls_certificate_subject_rev }}
-        [ req_ext ]
+        [ v3_req ]
         subjectAltName = @alt_names
-        [alt_names]
+        [ alt_names ]
         DNS.1 = {{ ncp_config.openshift_tls_certificate_san_dns }}
+        DNS.2 = kubernetes
+        DNS.3 = kubernetes.default
+        DNS.4 = kubernetes.default.svc
+        DNS.5 = kubernetes.default.svc.cluster.local
+        DNS.6 = openshift
+        DNS.7 = openshift.default
+        DNS.8 = openshift.default.svc
+        DNS.9 = openshift.default.svc.cluster.local
         IP.1 = {{ openshift_ingress_ip }}
       create: yes
-    when: openssl_config_file_copy.changed
+    # when: openssl_config_file_copy.changed
 
   - name: Create a new OpenShift TLS certificate if it does not exist
     shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout

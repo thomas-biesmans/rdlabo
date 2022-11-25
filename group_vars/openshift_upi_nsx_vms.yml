@@ -138,6 +138,6 @@ ncp_config:
   bastion_image_registry_certificate_volume: /home/user1/var-image-registry-certs
   bastion_image_registry_certificate_name: image-registry-cert
   openshift_tls_certificate_name: openshift-tls-cert
-  openshift_tls_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=*.openshift-upi-nsx.rdlabo.local"
-  openshift_tls_certificate_subject_rev: "countryName = BE\nstateOrProvinceName = Vlaams-Brabant\nlocalityName = Huizingen\norganizationName = RDLabo\ncommonName = *.openshift-upi-nsx.rdlabo.local"
-  openshift_tls_certificate_san_dns: "*.openshift-upi-nsx.rdlabo.local"
+  openshift_tls_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=*.apps.openshift-upi-nsx.rdlabo.local"
+  openshift_tls_certificate_subject_rev: "countryName = BE\nstateOrProvinceName = Vlaams-Brabant\nlocalityName = Huizingen\norganizationName = RDLabo\ncommonName = *.apps.openshift-upi-nsx.rdlabo.local"
+  openshift_tls_certificate_san_dns: "*.apps.openshift-upi-nsx.rdlabo.local"
