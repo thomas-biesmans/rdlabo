@@ -132,11 +132,15 @@ ncp_config:
   ncp_image_extracted_container_file: "nsx-container-4.0.1.20665035/Kubernetes/nsx-ncp-ubi-4.0.1.20665035.tar"
   ncp_image_loaded_image_name: "registry.local/4.0.1.20665035/nsx-ncp-ubi:latest"
   ncp_image_tagged_image_name_for_openshift: "nsx-ncp-ubi:v4.0.1"
+  root_ca_certificate_name: root-ca
+  root_ca_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=Root CA RDLabo"
   bastion_image_registry_port: 8082
   bastion_image_registry_container_name: registry-upi-nsx
-  # bastion_image_registry_volume: /home/user1/var-image-registry
+  bastion_image_registry_volume: /home/user1/var-image-registry
   bastion_image_registry_certificate_volume: /home/user1/var-image-registry-certs
   bastion_image_registry_certificate_name: image-registry-cert
+  bastion_image_registry_certificate_subject: "/CN=Image Registry for NCP"
+  bastion_image_registry_certificate_subject_rev: "countryName = BE\nstateOrProvinceName = Vlaams-Brabant\nlocalityName = Huizingen\norganizationName = RDLabo\ncommonName = Image Registry for NCP"
   openshift_tls_certificate_name: openshift-tls-cert
   openshift_tls_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=*.apps.openshift-upi-nsx.rdlabo.local"
   openshift_tls_certificate_subject_rev: "countryName = BE\nstateOrProvinceName = Vlaams-Brabant\nlocalityName = Huizingen\norganizationName = RDLabo\ncommonName = *.apps.openshift-upi-nsx.rdlabo.local"

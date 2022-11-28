@@ -248,7 +248,7 @@
 
         - name: Set image registry & load balancer certificates as trust bundles for NSX
           set_fact:
-            trustBundle: "{{ lookup('file', '{{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem') }}\n\n{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') }}"
+            trustBundle: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt') }}" # Use \n\n to enter a 2nd cert
           when: nsx_integration
 
         - name: Template out the inventory file to the config dir
@@ -1166,7 +1166,7 @@
       delegate_to: localhost
       register: infra_node_boot
 
-    - name: If booted, wait 5 minutes before proceeding so the node can bootstrap
+    - name: If booted, wait 5 minutes before proceeding so the nodes can bootstrap
       pause:
         minutes: 5
       when: infra_node_boot.changed

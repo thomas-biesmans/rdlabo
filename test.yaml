@@ -108,76 +108,483 @@
 
 
 
-    - name: reset file
-      copy:
-        src: /home/user1/openshift-install-4.9-upi-installer/openshift4/lb-secret.yaml
-        dest: "{{ vars.openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
-
-    - name: remove first
-      file:
-        path: "{{ item }}"
-        state: absent
-      with_items:
-      - "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
-
-    - name: Check OpenShift TLS load-balancer certificate .crt file
-      stat:
-        path: "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
-      register: local_openshift_tls_crt
-
-    # - name: Copy the current OpenSSL config file
+    # - name: reset file
     #   copy:
-    #     src: /etc/pki/tls/openssl.cnf
-    #     dest: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
-    #   register: openssl_config_file_copy
+    #     src: /home/user1/openshift-install-4.9-upi-installer/openshift4/lb-secret.yaml
+    #     dest: "{{ vars.openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
 
-    - name: Add extra config to the OpenSSL config file
-      blockinfile:
-        path: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
-        block: |
-          [ req ]
-          default_bits = 4096
-          distinguished_name = req_distinguished_name
-          prompt = no
-          x509_extensions = v3_req
-          [ req_distinguished_name ]
-          {{ ncp_config.openshift_tls_certificate_subject_rev }}
-          [ v3_req ]
-          subjectAltName = @alt_names
-          [ alt_names ]
-          DNS.1 = {{ ncp_config.openshift_tls_certificate_san_dns }}
-          DNS.2 = kubernetes
-          DNS.3 = kubernetes.default
-          DNS.4 = kubernetes.default.svc
-          DNS.5 = kubernetes.default.svc.cluster.local
-          DNS.6 = openshift
-          DNS.7 = openshift.default
-          DNS.8 = openshift.default.svc
-          DNS.9 = openshift.default.svc.cluster.local
-          IP.1 = {{ openshift_ingress_ip }}
-        create: yes
+    # - name: remove first
+    #   file:
+    #     path: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #   - "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
 
-    - name: Create a new OpenShift TLS certificate if it does not exist
-      shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
-              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
-              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
-              '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
-      when: not local_openshift_tls_crt.stat.exists
-      register: openshift_tls_crt
+    # - name: Check OpenShift TLS load-balancer certificate .crt file
+    #   stat:
+    #     path: "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
+    #   register: local_openshift_tls_crt
 
-    - name: Export the new OpenShift TLS certificate if it does not exist
-      shell: "openssl rsa -in 
-              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out 
-              {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key"
-      when: openshift_tls_crt.changed
+    # # - name: Copy the current OpenSSL config file
+    # #   copy:
+    # #     src: /etc/pki/tls/openssl.cnf
+    # #     dest: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    # #   register: openssl_config_file_copy
 
-    - name: Set values in Load-Balancer Secret
-      replace:
-        path: "{{ openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
-        regexp: "{{ item.src }}"
-        replace: "{{ item.dest }}"
-      with_items:
-      - src: "tls.crt: \"\""
-        dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | b64encode }}\""
-      - src: "tls.key: \"\""
-        dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}\""
+    # - name: Add extra config to the OpenSSL config file
+    #   blockinfile:
+    #     path: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    #     block: |
+    #       [ req ]
+    #       default_bits = 4096
+    #       distinguished_name = req_distinguished_name
+    #       prompt = no
+    #       x509_extensions = v3_req
+    #       [ req_distinguished_name ]
+    #       {{ ncp_config.openshift_tls_certificate_subject_rev }}
+    #       [ v3_req ]
+    #       subjectAltName = @alt_names
+    #       [ alt_names ]
+    #       DNS.1 = {{ ncp_config.openshift_tls_certificate_san_dns }}
+    #       DNS.2 = kubernetes
+    #       DNS.3 = kubernetes.default
+    #       DNS.4 = kubernetes.default.svc
+    #       DNS.5 = kubernetes.default.svc.cluster.local
+    #       DNS.6 = openshift
+    #       DNS.7 = openshift.default
+    #       DNS.8 = openshift.default.svc
+    #       DNS.9 = openshift.default.svc.cluster.local
+    #       IP.1 = {{ openshift_ingress_ip }}
+    #     create: yes
+
+    # - name: Create a new OpenShift TLS certificate if it does not exist
+    #   shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
+    #           '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    #   when: not local_openshift_tls_crt.stat.exists
+    #   register: openshift_tls_crt
+
+    # - name: Export the new OpenShift TLS certificate if it does not exist
+    #   shell: "openssl rsa -in 
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out 
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key"
+    #   when: openshift_tls_crt.changed
+
+    # - name: Set values in Load-Balancer Secret
+    #   replace:
+    #     path: "{{ openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
+    #     regexp: "{{ item.src }}"
+    #     replace: "{{ item.dest }}"
+    #   with_items:
+    #   - src: "tls.crt: \"\""
+    #     dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | b64encode }}\""
+    #   - src: "tls.key: \"\""
+    #     dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}\""
+
+
+    # - name: Check CA certificate key
+    #   stat:
+    #     path: "{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key"
+    #   register: local_ca_cert_key
+
+    # - name: Check CA certificate 
+    #   stat:
+    #     path: "{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt"
+    #   register: local_ca_cert
+
+    # - name: Create a new CA certificate if it does not exist
+    #   shell: "openssl req -new -nodes -x509 -newkey rsa:4096 -days 3650 -keyout
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -out 
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -subj
+    #           '{{ ncp_config.root_ca_certificate_subject }}'"
+    #   when: not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
+
+
+    # - name: Check image registry certificate .pem file
+    #   stat:
+    #     path: "{{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem"
+    #   register: local_image_registry_pem
+
+    # # Self-signed
+    # # - name: Create a new image registry certificate if it does not exist
+    # #   shell: "openssl req -newkey rsa:4096 -x509 -days 3650 -nodes -keyout
+    # #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.key -out
+    # #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem -subj
+    # #           {{ ncp_config.certificate_nsx_client_subject }} -addext 'subjectAltName = IP:{{ bastion_ip }}'"
+    # #   when: not local_image_registry_pem.stat.exists
+    # #   register: image_registry_certificate
+
+    # - name: Add extra config to the OpenSSL config file
+    #   blockinfile:
+    #     path: "{{ openshift_config_dir }}/openssl_tls_imageregistry.cnf"
+    #     block: |
+    #       [ req ]
+    #       default_bits = 4096
+    #       distinguished_name = req_distinguished_name
+    #       prompt = no
+    #       x509_extensions = v3_req
+    #       [ req_distinguished_name ]
+    #       {{ ncp_config.bastion_image_registry_certificate_subject_rev }}
+    #       [ v3_req ]
+    #       subjectAltName = @alt_names
+    #       [ alt_names ]
+    #       IP = {{ bastion_ip }}
+    #     create: yes
+    #   when: not local_image_registry_pem.stat.exists
+    
+    # - name: Create a new image registry certificate request if it does not exist
+    #   shell: "openssl req -newkey rsa:4096 -nodes -keyout
+    #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.key -out
+    #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.csr.pem -subj
+    #           '{{ ncp_config.bastion_image_registry_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf"
+    #   when: not local_image_registry_pem.stat.exists
+
+    # - name: Sign the new image registry certificate request if it does not exist
+    #   shell: "openssl x509 -req -days 3650 -set_serial 01 -in
+    #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.csr.pem -out
+    #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem -CA
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -CAkey
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -extfile
+    #           {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf -extensions v3_req"
+    #   when: not local_image_registry_pem.stat.exists
+    #   register: image_registry_certificate
+
+
+
+    # - name: Check OpenShift TLS load-balancer certificate .crt file
+    #   stat:
+    #     path: "{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt"
+    #   register: local_openshift_tls_crt
+
+    # # - name: Copy the current OpenSSL config file
+    # #   copy:
+    # #     src: /etc/pki/tls/openssl.cnf
+    # #     dest: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    # #   register: openssl_config_file_copy
+
+    # - name: Add extra config to the OpenSSL config file
+    #   blockinfile:
+    #     path: "{{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    #     block: |
+    #       [ req ]
+    #       default_bits = 4096
+    #       distinguished_name = req_distinguished_name
+    #       prompt = no
+    #       x509_extensions = v3_req
+    #       [ req_distinguished_name ]
+    #       {{ ncp_config.openshift_tls_certificate_subject_rev }}
+    #       [ v3_req ]
+    #       subjectAltName = @alt_names
+    #       [ alt_names ]
+    #       DNS.1 = {{ ncp_config.openshift_tls_certificate_san_dns }}
+    #       DNS.2 = kubernetes
+    #       DNS.3 = kubernetes.default
+    #       DNS.4 = kubernetes.default.svc
+    #       DNS.5 = kubernetes.default.svc.cluster.local
+    #       DNS.6 = openshift
+    #       DNS.7 = openshift.default
+    #       DNS.8 = openshift.default.svc
+    #       DNS.9 = openshift.default.svc.cluster.local
+    #       IP.1 = {{ openshift_ingress_ip }}
+    #     create: yes
+    #   # when: openssl_config_file_copy.changed
+    
+    # # Self-signed
+    # # - name: Create a new OpenShift TLS certificate if it does not exist
+    # #   shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
+    # #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
+    # #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
+    # #           '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    # #   when: not local_openshift_tls_crt.stat.exists
+    # #   register: openshift_tls_crt
+
+    # - name: Create a new OpenShift TLS certificate request if it does not exist
+    #   shell: "openssl req -newkey rsa:4096 -sha256 -nodes -keyout
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.csr.crt -subj
+    #           '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
+    #   when: not local_openshift_tls_crt.stat.exists
+
+    # - name: Sign the new OpenShift TLS certificate request if it does not exist
+    #   shell: "openssl x509 -req -days 3650 -set_serial 01 -in
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.csr.crt -out
+    #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -CA
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -CAkey
+    #           {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -extfile
+    #           {{ openshift_config_dir }}/openssl_tls_apps.cnf -extensions v3_req"
+    #   when: not local_openshift_tls_crt.stat.exists
+    #   register: openshift_tls_crt
+      
+    # - name: Find root certificate for the TLS certificate
+    #   community.crypto.certificate_complete_chain:
+    #     input_chain: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') }}"
+    #     # intermediate_certificates:
+    #     # - /etc/ssl/csr/www.ansible.com-chain.pem
+    #     root_certificates:
+    #     - "{{ openshift_config_dir }}"
+    #   register: openshift_tls_certificates
+
+    # - copy:
+    #     src: /home/user1/openshift-install-4.9-upi-installer/openshift4/lb-secret.yaml
+    #     dest: "{{ openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
+    #     force: yes
+
+    # - name: Set values in Load-Balancer Secret
+    #   replace:
+    #     path: "{{ openshift_config_dir }}/ncp-plugin/lb-secret.yaml"
+    #     regexp: "{{ item.src }}"
+    #     replace: "{{ item.dest }}"
+    #   with_items:
+    #   - src: "tls.crt: \"\""
+    #     dest: "tls.crt: \"{{ (
+    #       lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') + '\n' +
+    #       lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt')
+    #     ) | b64encode }}\""
+    #   - src: "tls.key: \"\""
+    #     dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}\""
+  
+
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work
+    #   vars:
+    #     app_namespace: default
+    #     app_networkpolicies:
+    #     - name: openshift-allow-oauth-apiserver-to-default-apiserver
+    #       destination: {}
+    #       source: 
+    #       - from:
+    #         - podSelector:
+    #             matchLabels:
+    #               deployment: apiserver
+    #           namespaceSelector:
+    #             matchLabels:
+    #               project: default
+    #     - name: openshift-allow-auth-operator-to-auth
+    #       destination: {}
+    #       source: 
+    #       - from:
+    #         - podSelector:
+    #             matchLabels:
+    #               deployment: apiserver
+    #           namespaceSelector:
+    #             matchLabels:
+    #               project: default
+
+    #     app_networkpolicies_egress:
+    #     - name: openshift-allow-oauth-apiserver-to-apps-routes
+    #       destination: {}
+    #       source: 
+    #         matchLabels:
+    #           project: default
+    #       destination:
+    #       - to:
+    #         - ipBlock:
+    #             cidr: 10.200.1.1/24
+
+
+    #     # - name: allow-wordpress-mysql
+    #     #   destination:
+    #     #     matchLabels:
+    #     #       deployment: mysql
+    #     #   source:
+    #     #   - from:
+    #     #     - podSelector:
+    #     #         matchLabels:
+    #     #           deployment: apiserver
+    #     #       namespaceSelector:
+    #     #         matchLabels:
+    #     #           project: default
+    #     #     ports:
+    #     #     - port: 443
+    #     #       protocol: TCP
+    #     # - name: allow-ingress-to-wordpress
+    #     #   destination:
+    #     #     matchLabels:
+    #     #       deployment: wordpress
+    #     #   source:
+    #     #   - ports:
+    #     #     - protocol: TCP
+    #     #       port: 80
+    #     #     - protocol: TCP
+    #     #       port: 443
+
+    #   block:
+  
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
+          
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
+
+
+
+    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#2
+      vars:
+        app_namespace: openshift-authentication-operator
+        app_networkpolicies: []
+
+        app_networkpolicies_egress:
+        - name: openshift-allow-oauth-operator-to-apps-route
+          destination: {}
+          source: 
+            matchLabels:
+              app: authentication-operator
+          destination:
+          - to:
+            - ipBlock:
+                cidr: 10.200.1.1/24
+            - ipBlock:
+                cidr: 172.30.0.0/16
+            - ipBlock:
+                cidr: 0.0.0.0/0
+
+      block:
+  
+      - name: Add Network Policies
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy.yml'
+        with_items: "{{ app_networkpolicies }}"
+          
+      - name: Add Network Policies (egress)
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+        with_items: "{{ app_networkpolicies_egress }}"
+
+
+
+    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#3
+      vars:
+        app_namespace: openshift-authentication
+        app_networkpolicies:
+        - name: openshift-allow-authentication-operator-to-authentication
+          destination: {}
+          source: 
+          - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: openshift-authentication-operator
+              podSelector:
+                matchLabels:
+                  app: authentication-operator
+              
+
+        app_networkpolicies_egress: []
+
+      block:
+  
+      - name: Add Network Policies
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy.yml'
+        with_items: "{{ app_networkpolicies }}"
+          
+      - name: Add Network Policies (egress)
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+        with_items: "{{ app_networkpolicies_egress }}"
+
+
+    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#4
+      vars:
+        app_namespace: openshift-authentication-operator
+        app_networkpolicies: []
+
+        app_networkpolicies_egress:
+        - name: openshift-allow-oauth-to-apps-route
+          destination: {}
+          source: 
+            matchLabels:
+              app: oauth-openshift
+          destination:
+          - to:
+            - ipBlock:
+                cidr: 10.200.1.0/24
+            - ipBlock:
+                cidr: 172.30.0.0/16
+            - ipBlock:
+                cidr: 0.0.0.0/0
+
+      block:
+  
+      - name: Add Network Policies
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy.yml'
+        with_items: "{{ app_networkpolicies }}"
+          
+      - name: Add Network Policies (egress)
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+        with_items: "{{ app_networkpolicies_egress }}"
+
+
+
+    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#5
+      vars:
+        app_namespace: openshift-ingress
+
+        app_networkpolicies:
+        - name: openshift-allow-all-ingress
+          destination: {}
+          source: 
+          - from:
+            - ipBlock:
+                cidr: 0.0.0.0/0
+          destination: {}
+
+        app_networkpolicies_egress: []
+
+      block:
+  
+      - name: Add Network Policies
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy.yml'
+        with_items: "{{ app_networkpolicies }}"
+          
+      - name: Add Network Policies (egress)
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+        with_items: "{{ app_networkpolicies_egress }}"
+
+
+    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#6
+      vars:
+        app_namespace: default
+
+        app_networkpolicies:
+        - name: openshift-allow-all-api
+          destination: {}
+          source: 
+          - from:
+            - ipBlock:
+                cidr: 0.0.0.0/0
+          destination: {}
+          
+        app_networkpolicies_egress: []
+
+      block:
+  
+      - name: Add Network Policies
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy.yml'
+        with_items: "{{ app_networkpolicies }}"
+          
+      - name: Add Network Policies (egress)
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+        with_items: "{{ app_networkpolicies_egress }}"
+

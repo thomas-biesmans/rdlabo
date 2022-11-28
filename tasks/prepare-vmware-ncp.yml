@@ -52,7 +52,7 @@
     shell: "openssl req -newkey rsa:2048 -sha256 -x509 -days 3650 -extensions client_server_ssl -nodes -keyout 
         {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.key_pkcs8 -new -out 
         {{ openshift_config_dir }}/ncp-plugin/{{ ncp_config.certificate_nsx_client_name }}.crt -subj 
-        {{ ncp_config.certificate_nsx_client_subject }} -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
+        '{{ ncp_config.certificate_nsx_client_subject }}' -config {{ openshift_config_dir }}/openssl_client_nsx.cnf"
     when: not local_client_cert.stat.exists
     ignore_errors: yes
 
@@ -191,8 +191,8 @@
       dest: "lb_priv_key_path = /etc/nsx-ujo/lb-cert/tls.key"
     - src: "log_dropped_traffic = False"
       dest: "log_dropped_traffic = True"
-    - src: "baseline_policy_type = allow_namespace"
-      dest: "baseline_policy_type = allow_cluster"
+    # - src: "baseline_policy_type = allow_namespace"
+    #   dest: "baseline_policy_type = allow_cluster"
     - src: "#log_firewall_traffic = <None>"
       dest: "log_firewall_traffic = DENY"
 
@@ -206,8 +206,22 @@
   #     dest: "minimum: 3"
 
 
+  - name: Check CA certificate key
+    stat:
+      path: "{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key"
+    register: local_ca_cert_key
 
+  - name: Check CA certificate 
+    stat:
+      path: "{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt"
+    register: local_ca_cert
 
+  - name: Create a new CA certificate if it does not exist
+    shell: "openssl req -new -nodes -x509 -newkey rsa:4096 -days 3650 -keyout
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -out 
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -subj
+            '{{ ncp_config.root_ca_certificate_subject }}'"
+    when: not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
 
 
   - name: Check wether NCP image is already downloaded
@@ -232,7 +246,7 @@
       state: directory
       mode: '0777'
     with_items:
-    # - "{{ ncp_config.bastion_image_registry_volume }}"
+    - "{{ ncp_config.bastion_image_registry_volume }}"
     - "{{ ncp_config.bastion_image_registry_certificate_volume }}"
 
   - name: Configure image registry directores - SELinux file context, should be idempotent, isn't...
@@ -245,7 +259,7 @@
     vars:
       ansible_python_interpreter: /usr/bin/python3.6
     with_items:
-    # - "{{ ncp_config.bastion_image_registry_volume }}(/.*)?"
+    - "{{ ncp_config.bastion_image_registry_volume }}(/.*)?"
     - "{{ ncp_config.bastion_image_registry_certificate_volume }}(/.*)?"
 
   - name: Check image registry certificate .pem file
@@ -253,11 +267,47 @@
       path: "{{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem"
     register: local_image_registry_pem
 
-  - name: Create a new image registry certificate if it does not exist
-    shell: "openssl req -newkey rsa:4096 -x509 -days 3650 -nodes -keyout
+  # Self-signed
+  # - name: Create a new image registry certificate if it does not exist
+  #   shell: "openssl req -newkey rsa:4096 -x509 -days 3650 -nodes -keyout
+  #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.key -out
+  #           {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem -subj
+  #           '{{ ncp_config.certificate_nsx_client_subject }}' -addext 'subjectAltName = IP:{{ bastion_ip }}'"
+  #   when: not local_image_registry_pem.stat.exists
+  #   register: image_registry_certificate
+
+  - name: Add extra config to the OpenSSL config file
+    blockinfile:
+      path: "{{ openshift_config_dir }}/openssl_tls_imageregistry.cnf"
+      block: |
+        [ req ]
+        default_bits = 4096
+        distinguished_name = req_distinguished_name
+        prompt = no
+        x509_extensions = v3_req
+        [ req_distinguished_name ]
+        {{ ncp_config.bastion_image_registry_certificate_subject_rev }}
+        [ v3_req ]
+        subjectAltName = @alt_names
+        [ alt_names ]
+        IP = {{ bastion_ip }}
+      create: yes
+    when: not local_image_registry_pem.stat.exists
+  
+  - name: Create a new image registry certificate request if it does not exist
+    shell: "openssl req -newkey rsa:4096 -nodes -keyout
             {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.key -out
-            {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem -subj
-            {{ ncp_config.certificate_nsx_client_subject }} -addext 'subjectAltName = IP:{{ bastion_ip }}'"
+            {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.csr.pem -subj
+            '{{ ncp_config.bastion_image_registry_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf"
+    when: not local_image_registry_pem.stat.exists
+
+  - name: Sign the new image registry certificate request if it does not exist
+    shell: "openssl x509 -req -days 3650 -set_serial 01 -in
+            {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.csr.pem -out
+            {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.pem -CA
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -CAkey
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -extfile
+            {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf -extensions v3_req"
     when: not local_image_registry_pem.stat.exists
     register: image_registry_certificate
 
@@ -405,14 +455,41 @@
         IP.1 = {{ openshift_ingress_ip }}
       create: yes
     # when: openssl_config_file_copy.changed
+  
+  # Self-signed
+  # - name: Create a new OpenShift TLS certificate if it does not exist
+  #   shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
+  #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
+  #           {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
+  #           '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
+  #   when: not local_openshift_tls_crt.stat.exists
+  #   register: openshift_tls_crt
 
-  - name: Create a new OpenShift TLS certificate if it does not exist
-    shell: "openssl req -newkey rsa:4096 -sha256 -x509 -days 3650 -nodes -keyout
+  - name: Create a new OpenShift TLS certificate request if it does not exist
+    shell: "openssl req -newkey rsa:4096 -sha256 -nodes -keyout
             {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8 -out
-            {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -subj
+            {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.csr.crt -subj
             '{{ ncp_config.openshift_tls_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_apps.cnf"
     when: not local_openshift_tls_crt.stat.exists
+
+  - name: Sign the new OpenShift TLS certificate request if it does not exist
+    shell: "openssl x509 -req -days 3650 -set_serial 01 -in
+            {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.csr.crt -out
+            {{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt -CA
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -CAkey
+            {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -extfile
+              {{ openshift_config_dir }}/openssl_tls_apps.cnf -extensions v3_req"
+    when: not local_openshift_tls_crt.stat.exists
     register: openshift_tls_crt
+
+  - name: Find root certificate for the TLS certificate
+    community.crypto.certificate_complete_chain:
+      input_chain: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') }}"
+      # intermediate_certificates:
+      # - /etc/ssl/csr/www.ansible.com-chain.pem
+      root_certificates:
+      - "{{ openshift_config_dir }}"
+    register: openshift_tls_certificates
 
   - name: Export the new OpenShift TLS certificate key to RSA if it did not exist
     shell: "openssl rsa -in 
@@ -427,6 +504,11 @@
       replace: "{{ item.dest }}"
     with_items:
     - src: "tls.crt: \"\""
-      dest: "tls.crt: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | b64encode }}\""
+      dest: "tls.crt: \"{{ (
+        lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') + '\n' +
+        lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt')
+      ) | b64encode }}\""
     - src: "tls.key: \"\""
       dest: "tls.key: \"{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}\""
+  
+  # - pause:
