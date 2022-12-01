@@ -34,7 +34,7 @@ platform:
     vCenter: {{ vars.vcenter_hostname }}
 publish: External
 pullSecret: '{{ vars.openshift_auth_code }}'
-sshKey: |
-  {{ sshKey['content'] | b64decode  }}
 additionalTrustBundle: |
   {{ trustBundle | indent(width=2) | default( omit ) }}
+sshKey: |
+  {{ sshKey['content'] | b64decode  }}

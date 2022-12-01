@@ -423,168 +423,256 @@
     #     with_items: "{{ app_networkpolicies_egress }}"
 
 
+    # Network Policies attempt for allow_namespace #
+    ################################################
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#2
+    #   vars:
+    #     app_namespace: openshift-authentication-operator
+    #     app_networkpolicies: []
 
-    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#2
-      vars:
-        app_namespace: openshift-authentication-operator
-        app_networkpolicies: []
+    #     app_networkpolicies_egress:
+    #     - name: openshift-allow-oauth-operator-to-apps-route
+    #       destination: {}
+    #       source: 
+    #         matchLabels:
+    #           app: authentication-operator
+    #       destination:
+    #       - to:
+    #         - ipBlock:
+    #             cidr: 10.200.1.1/24
+    #         - ipBlock:
+    #             cidr: 172.30.0.0/16
+    #         - ipBlock:
+    #             cidr: 0.0.0.0/0
 
-        app_networkpolicies_egress:
-        - name: openshift-allow-oauth-operator-to-apps-route
-          destination: {}
-          source: 
-            matchLabels:
-              app: authentication-operator
-          destination:
-          - to:
-            - ipBlock:
-                cidr: 10.200.1.1/24
-            - ipBlock:
-                cidr: 172.30.0.0/16
-            - ipBlock:
-                cidr: 0.0.0.0/0
-
-      block:
+    #   block:
   
-      - name: Add Network Policies
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy.yml'
-        with_items: "{{ app_networkpolicies }}"
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
           
-      - name: Add Network Policies (egress)
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
-        with_items: "{{ app_networkpolicies_egress }}"
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
 
 
 
-    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#3
-      vars:
-        app_namespace: openshift-authentication
-        app_networkpolicies:
-        - name: openshift-allow-authentication-operator-to-authentication
-          destination: {}
-          source: 
-          - from:
-            - namespaceSelector:
-                matchLabels:
-                  kubernetes.io/metadata.name: openshift-authentication-operator
-              podSelector:
-                matchLabels:
-                  app: authentication-operator
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#3
+    #   vars:
+    #     app_namespace: openshift-authentication
+    #     app_networkpolicies:
+    #     - name: openshift-allow-authentication-operator-to-authentication
+    #       destination: {}
+    #       source: 
+    #       - from:
+    #         - namespaceSelector:
+    #             matchLabels:
+    #               kubernetes.io/metadata.name: openshift-authentication-operator
+    #           podSelector:
+    #             matchLabels:
+    #               app: authentication-operator
               
 
-        app_networkpolicies_egress: []
+    #     app_networkpolicies_egress: []
 
-      block:
+    #   block:
   
-      - name: Add Network Policies
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy.yml'
-        with_items: "{{ app_networkpolicies }}"
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
           
-      - name: Add Network Policies (egress)
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
-        with_items: "{{ app_networkpolicies_egress }}"
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
 
 
-    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#4
-      vars:
-        app_namespace: openshift-authentication-operator
-        app_networkpolicies: []
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#4
+    #   vars:
+    #     app_namespace: openshift-authentication-operator
+    #     app_networkpolicies: []
 
-        app_networkpolicies_egress:
-        - name: openshift-allow-oauth-to-apps-route
-          destination: {}
-          source: 
-            matchLabels:
-              app: oauth-openshift
-          destination:
-          - to:
-            - ipBlock:
-                cidr: 10.200.1.0/24
-            - ipBlock:
-                cidr: 172.30.0.0/16
-            - ipBlock:
-                cidr: 0.0.0.0/0
+    #     app_networkpolicies_egress:
+    #     - name: openshift-allow-oauth-to-apps-route
+    #       destination: {}
+    #       source: 
+    #         matchLabels:
+    #           app: oauth-openshift
+    #       destination:
+    #       - to:
+    #         - ipBlock:
+    #             cidr: 10.200.1.0/24
+    #         - ipBlock:
+    #             cidr: 172.30.0.0/16
+    #         - ipBlock:
+    #             cidr: 0.0.0.0/0
 
-      block:
+    #   block:
   
-      - name: Add Network Policies
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy.yml'
-        with_items: "{{ app_networkpolicies }}"
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
           
-      - name: Add Network Policies (egress)
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
-        with_items: "{{ app_networkpolicies_egress }}"
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
 
 
 
-    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#5
-      vars:
-        app_namespace: openshift-ingress
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#5
+    #   vars:
+    #     app_namespace: openshift-ingress
 
-        app_networkpolicies:
-        - name: openshift-allow-all-ingress
-          destination: {}
-          source: 
-          - from:
-            - ipBlock:
-                cidr: 0.0.0.0/0
-          destination: {}
+    #     app_networkpolicies:
+    #     - name: openshift-allow-all-ingress
+    #       destination: {}
+    #       source: 
+    #       - from:
+    #         - ipBlock:
+    #             cidr: 0.0.0.0/0
+    #       destination: {}
 
-        app_networkpolicies_egress: []
+    #     app_networkpolicies_egress: []
 
-      block:
+    #   block:
   
-      - name: Add Network Policies
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy.yml'
-        with_items: "{{ app_networkpolicies }}"
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
           
-      - name: Add Network Policies (egress)
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
-        with_items: "{{ app_networkpolicies_egress }}"
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
 
 
-    - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#6
-      vars:
-        app_namespace: default
+    # - name: Add NetworkPolicies required to make 'baseline_policy_type = allow_namespace' work \#6
+    #   vars:
+    #     app_namespace: default
 
-        app_networkpolicies:
-        - name: openshift-allow-all-api
-          destination: {}
-          source: 
-          - from:
-            - ipBlock:
-                cidr: 0.0.0.0/0
-          destination: {}
+    #     app_networkpolicies:
+    #     - name: openshift-allow-all-api
+    #       destination: {}
+    #       source: 
+    #       - from:
+    #         - ipBlock:
+    #             cidr: 0.0.0.0/0
+    #       destination: {}
           
-        app_networkpolicies_egress: []
+    #     app_networkpolicies_egress: []
 
-      block:
+    #   block:
   
-      - name: Add Network Policies
-        kubernetes.core.k8s:
-          state: present
-          template: 'templates/openshift_4_resource_networkpolicy.yml'
-        with_items: "{{ app_networkpolicies }}"
+    #   - name: Add Network Policies
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy.yml'
+    #     with_items: "{{ app_networkpolicies }}"
           
-      - name: Add Network Policies (egress)
+    #   - name: Add Network Policies (egress)
+    #     kubernetes.core.k8s:
+    #       state: present
+    #       template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
+    #     with_items: "{{ app_networkpolicies_egress }}"
+
+
+      # - name: Increase NCP replica count
+      #   kubernetes.core.k8s_info:
+      #     api_version: operator.nsx.vmware.com/v1
+      #     namespace: nsx-system-operator
+      #     kind: ncpinstall
+      #     name: ncp-install
+      #   register: dump
+
+      # - debug:
+      #     msg: "{{ dump.resources[0] }}"
+
+      # - name: Increase NCP replica count
+      #   kubernetes.core.k8s_json_patch:
+      #     api_version: operator.nsx.vmware.com/v1
+      #     namespace: nsx-system-operator
+      #     kind: ncpinstall
+      #     name: ncp-install
+      #     patch:
+      #       - op: replace
+      #         path: "/spec/ncpReplicas"
+      #         value: 3
+
+
+      # - name: Check
+      #   kubernetes.core.k8s_info:
+      #     api_version: config.openshift.io/v1
+      #     namespace: openshift-config
+      #     kind: Image
+      #     name: cluster
+      #   register: dump
+
+      # - debug:
+      #     msg: "{{ dump.resources[0] }}"
+
+      # - name: Add custom CA as trustedBundle, not performed automatically as proxy is not set in install-config
+      #   kubernetes.core.k8s_json_patch:
+      #     api_version: config.openshift.io/v1
+      #     namespace: openshift-config
+      #     kind: Image
+      #     name: cluster
+      #     patch:
+      #     - op: add
+      #       path: "/spec/additionalTrustedCA/name"
+      #       value: user-ca-bundle
+
+
+      - name: Add Ingress LB TLS secret
         kubernetes.core.k8s:
           state: present
-          template: 'templates/openshift_4_resource_networkpolicy_egress.yml'
-        with_items: "{{ app_networkpolicies_egress }}"
+          definition:
+            api_version: v1
+            kind: Secret
+            metadata:
+              name: lb-chain-secret
+              namespace: openshift-ingress
+            type: kubernetes.io/tls
+            data:
+              tls.crt: "{{ (
+                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') + '\n' +
+                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt')
+              ) | b64encode }}"
+              tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8') | b64encode }}"
 
+      # - name: Patch Ingress Controllers to use the LB secret
+      #   kubernetes.core.k8s_info:
+      #     api_version: operator.openshift.io/v1
+      #     namespace: openshift-ingress-operator
+      #     kind: IngressController
+      #     name: default
+      #   register: dump
+
+      # - debug:
+      #     msg: "{{ dump }}"
+
+
+      # - name: Patch Ingress Controllers to use the LB secret
+      #   kubernetes.core.k8s_json_patch:
+      #     api_version: operator.openshift.io/v1
+      #     namespace: openshift-ingress-operator
+      #     kind: IngressController
+      #     name: default
+      #     patch:
+      #     - op: add
+      #       path: "/spec/defaultCertificate"
+      #       value:
+      #         name: lb-chain-secret
