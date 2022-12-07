@@ -45,3 +45,15 @@ vlans:
   gateway: 10.200.0.254
   revlookupzonename: 0.200.10.in-addr.arpa
   fwdlookupzonename: rdlabo.local
+- name: NSX-OpenShift-UPI-NSX-Workers
+  network: 10.201.0.0
+  netmask: 255.255.255.0
+  gateway: 10.201.0.254
+  revlookupzonename: 0.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+- name: NSX-OpenShift-UPI-NSX-Infra
+  network: 10.201.1.0
+  netmask: 255.255.255.0
+  gateway: 10.201.1.254
+  revlookupzonename: 1.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local

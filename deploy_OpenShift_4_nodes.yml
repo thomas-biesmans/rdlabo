@@ -79,7 +79,7 @@
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
       tags: deploy_infrastructure_dhcp
-
+      
     - name: Deploy NSX segments
       ansible.builtin.include_tasks:
         file: tasks/deploy-vmware-nsx-segments.yml
@@ -1048,11 +1048,9 @@
               namespace: openshift-ingress
             type: kubernetes.io/tls
             data:
-              tls.crt: "{{ (
-                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') + '\n' +
-                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt')
-              ) | b64encode }}"
-              tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key') | b64encode }}"
+              tls.crt: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt', rstrip=false) | b64encode }}"
+              tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key', rstrip=false) | b64encode }}"
+
 
       - name: Patch Ingress Controllers to use the LB secret
         kubernetes.core.k8s_json_patch:
@@ -1065,6 +1063,7 @@
             path: "/spec/defaultCertificate"
             value:
               name: lb-chain-secret
+
 
     - name: Check etcd members
       kubernetes.core.k8s_info:

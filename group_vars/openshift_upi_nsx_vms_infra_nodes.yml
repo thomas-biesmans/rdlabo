@@ -1,7 +1,7 @@
 ---
 custom_community_vmware_vmware__guest:
   networks:
-  - name: "NSX-OpenShift-UPI-NSX"
+  - name: "NSX-OpenShift-UPI-NSX-Infra"
     device_type: vmxnet3
     connected: true
     start_connected: true

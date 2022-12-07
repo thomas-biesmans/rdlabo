@@ -635,24 +635,6 @@
       #       path: "/spec/additionalTrustedCA/name"
       #       value: user-ca-bundle
 
-
-      - name: Add Ingress LB TLS secret
-        kubernetes.core.k8s:
-          state: present
-          definition:
-            api_version: v1
-            kind: Secret
-            metadata:
-              name: lb-chain-secret
-              namespace: openshift-ingress
-            type: kubernetes.io/tls
-            data:
-              tls.crt: "{{ (
-                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') + '\n' +
-                lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt')
-              ) | b64encode }}"
-              tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key_pkcs8') | b64encode }}"
-
       # - name: Patch Ingress Controllers to use the LB secret
       #   kubernetes.core.k8s_info:
       #     api_version: operator.openshift.io/v1
@@ -676,3 +658,39 @@
       #       path: "/spec/defaultCertificate"
       #       value:
       #         name: lb-chain-secret
+
+
+
+      - name: Add Ingress LB TLS secret
+        kubernetes.core.k8s:
+          state: present
+          definition:
+            api_version: v1
+            kind: Secret
+            metadata:
+              name: lb-chain-secret
+              namespace: openshift-ingress
+            type: kubernetes.io/tls
+            data:
+              tls.crt: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt', rstrip=false) | b64encode }}"
+              tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key', rstrip=false) | b64encode }}"
+
+
+      # - name: Patch Ingress Controllers to use the LB secret
+      #   kubernetes.core.k8s_json_patch:
+      #     api_version: operator.openshift.io/v1
+      #     namespace: openshift-ingress-operator
+      #     kind: IngressController
+      #     name: default
+      #     patch:
+      #     - op: add
+      #       path: "/spec/defaultCertificate"
+      #       value:
+      #         name: lb-chain-secret
+
+      # - debug:
+      #     msg: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | to_nice_json | b64encode }}"
+
+      # - debug:
+      #     msg: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt', rstrip=false) | b64encode }}"
+

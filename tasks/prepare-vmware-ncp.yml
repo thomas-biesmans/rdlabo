@@ -339,6 +339,9 @@
       state: absent
     when: image_registry_certificate.changed
 
+  - name: Podman prune everything beforehand
+    shell: podman system prune --all -f 
+
   - name: Run image registry container
     containers.podman.podman_container:
       name: "{{ ncp_config.bastion_image_registry_container_name }}"
