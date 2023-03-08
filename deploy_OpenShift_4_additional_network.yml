@@ -1,0 +1,67 @@
+--- 
+- import_playbook: tasks/check_all.yml
+
+
+- name: Check OpenShift deployment status
+  hosts: openshift_clusters
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Check whether OpenShift cluster exists already
+    tags: always
+    delegate_to: localhost
+    block:
+
+    - name: Check whether OpenShift cluster exists already
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: openshift-kube-apiserver
+      register: namespace_kube_apiserver
+      timeout: 10
+      retries: 3
+      ignore_errors: yes
+
+    - name: "Halt when namespace 'openshift-kube-apiserver' does not already exists"
+      fail:
+        msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
+      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
+
+
+- name: 
+  hosts: openshift_clusters
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+
+
+
+#
+# - network_name: name of the network, unique in the cluster
+# - network_nic: NIC on the worker nodes, e.g. ens224 for the 2nd NIC on VMWare VMs
+# - network_ipam: IPAM configuration for the external network.
+#   + External DHCP example:
+#      {
+#        "type": "dhcp"
+#      }
+#   + Internal whereabouts DHCP example:
+#      {
+#        "type": "whereabouts",
+#        "range": "10.255.246.0/24",
+#        "exclude": [
+#          "10.255.246.0/25",
+#          "10.255.246.128/26"
+#        ]
+#      }
