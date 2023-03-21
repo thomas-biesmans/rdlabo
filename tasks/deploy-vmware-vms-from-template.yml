@@ -222,7 +222,7 @@
 
       delegate_to: localhost
       register: deploy_macchange
-      loop: "{{ vars.new_networks }}"
+      loop: "{{ vars.new_networks[0] }}"
       when: vars.mac is defined and not deploy.changed
 
   rescue:

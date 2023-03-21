@@ -18,9 +18,17 @@ Make sure the Ansible requirements are installed next with the following command
     python3.8 -m pip install pywinrm --user
     python3.8 -m pip install nsnitro
 
-    # Using pip3 is deprecated, the previous solution should be used
-    # pip3 install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt
-    # pip3 install pywinrm
+    # For Python 3.9
+    python3.9 -m pip install packaging --user
+    python3.9 -m pip install jinja2 --user
+    python3.9 -m pip install resolvelib==0.8.1 --user
+    python3.9 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
+    python3.9 -m pip uninstall pyVmomi
+    python3.9 -m pip install pyVmomi==7.0.3 --user
+    python3.9 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
+    python3.9 -m pip install pywinrm --user
+    python3.9 -m pip install nsnitro --user
+    
 
 Versions used in the OKD pass:
  - ovirt.ovirt:1.6.6

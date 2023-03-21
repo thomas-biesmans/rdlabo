@@ -3,7 +3,7 @@
 
 
 - name: Check OpenShift deployment status
-  hosts: openshift_clusters
+  hosts: openshift_upi_vms # openshift_clusters
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -12,6 +12,12 @@
   environment:
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
+
+  - name: Combine customized VM config
+    set_fact:
+      community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest | default({}), recursive=true) }}"
+      ansible_becomes_password: "{{ client_password }}"
+    tags: always
 
   - name: Check whether OpenShift cluster exists already
     tags: always
@@ -31,11 +37,21 @@
     - name: "Halt when namespace 'openshift-kube-apiserver' does not already exists"
       fail:
         msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
-      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
+      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
 
+    - name: Deploy NSX segments
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-vmware-nsx-segments.yml
+        apply:
+          tags: vm
+      tags: vm, deploy_nsx_segments
+      vars:
+        ansible_python_interpreter: /usr/bin/python3.9
+      when: nsx_integration
+      
 
 - name: Deploy the network to the worker nodes
-  hosts: openshift_worker_nodes
+  hosts: openshift_upi_vms_worker_nodes # openshift_worker_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -45,17 +61,24 @@
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
+  - debug:
+      msg: "{{ vars.community_vmware_vmware__guest.networks[1:] }}"
+
   - name: Deploy the NIC
-    community.vmware.vcenter_folder:
+    community.vmware.vmware_guest_network:
       validate_certs: "{{ validate_certs | default(false) }}"
       hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
       username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
       password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
       datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-      folder_name: "{{ item | default('vm') }}"
-      parent_folder: "{{ vars.community_vmware_vmware__guest.folder.split('/')[1:1+index_current]|join('/') }}"
-      folder_type: vm
+      name: "{{ inventory_hostname_short }}"
       state: present
+      network_name: "{{ item.name }}"
+      device_type: "{{ item.device_type | default('vmxnet3') }}"
+      connected: "{{ item.connected | default('true') }}"
+      start_connected: "{{ item.start_connected | default('true') }}"
+      mac_address: "{{ vars.mac | default (omit)}}"
+      label: "{{ item.label | default (omit)}}"
     loop: "{{ vars.community_vmware_vmware__guest.networks[1:] }}"
     loop_control:
       extended: true
