@@ -88,6 +88,11 @@ default_community_vmware_vmware__guest:
     connected: true
     start_connected: true
     label: "Network adapter 1"
+  - name: "VLAN669-RD Labo Large"
+    device_type: vmxnet3
+    connected: true
+    start_connected: true
+    label: "Network adapter 2"
     # type: static # Used for the IP and for O/S customization
     # ip: {} # Set through inventory, used for O/S customization
     # gateway: 10.255.254.254 # Used for O/S customization
