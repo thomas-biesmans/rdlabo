@@ -34,8 +34,8 @@
       when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
 
 
-- name: 
-  hosts: openshift_clusters
+- name: Deploy the network to the worker nodes
+  hosts: openshift_worker_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -45,7 +45,23 @@
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
+  - name: Deploy the NIC
+    community.vmware.vcenter_folder:
+      validate_certs: "{{ validate_certs | default(false) }}"
+      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+      folder_name: "{{ item | default('vm') }}"
+      parent_folder: "{{ vars.community_vmware_vmware__guest.folder.split('/')[1:1+index_current]|join('/') }}"
+      folder_type: vm
+      state: present
+    loop: "{{ vars.community_vmware_vmware__guest.networks[1:] }}"
+    loop_control:
+      extended: true
+      index_var: index_current
 
+    delegate_to: localhost
 
 
 #

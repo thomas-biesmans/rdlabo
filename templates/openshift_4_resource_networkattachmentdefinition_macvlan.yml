@@ -1,5 +1,21 @@
 ---
 # vars:
+# - network_name: name of the network, unique in the cluster
+# - network_nic: NIC on the worker nodes, e.g. ens224 for the 2nd NIC on VMWare VMs
+# - network_ipam: IPAM configuration for the external network.
+#   + External DHCP example:
+#      {
+#        "type": "dhcp"
+#      }
+#   + Internal whereabouts DHCP example:
+#      {
+#        "type": "whereabouts",
+#        "range": "10.255.246.0/24",
+#        "exclude": [
+#          "10.255.246.0/25",
+#          "10.255.246.128/26"
+#        ]
+#      }
 
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
