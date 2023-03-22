@@ -57,10 +57,14 @@ openshift_upi_vms_worker_nodes:
   hosts:
     upi-worker-0.openshift-upi.rdlabo.local:
       ip: 10.255.254.245
-      mac: 00:05:69:aa:aa:05
+      mac:
+      - 00:05:69:aa:aa:06
+      - 00:05:69:aa:ab:06
     upi-worker-1.openshift-upi.rdlabo.local:
       ip: 10.255.254.246
-      mac: 00:05:69:aa:aa:06
+      mac:
+      - 00:05:69:aa:aa:06
+      - 00:05:69:aa:ab:06
   vars:
     type: worker
 
@@ -114,10 +118,14 @@ openshift_upi_nsx_vms_worker_nodes:
   hosts:
     upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
       ip: 10.200.0.18
-      mac: 00:05:69:aa:aa:15
+      mac:
+      - 00:05:69:aa:aa:15
+      - 00:05:69:aa:ab:15
     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
       ip: 10.200.0.16
-      mac: 00:05:69:aa:aa:16
+      mac:
+      - 00:05:69:aa:aa:16
+      - 00:05:69:aa:ab:16
   vars:
     type: worker
 

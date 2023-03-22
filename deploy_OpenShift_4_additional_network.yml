@@ -3,7 +3,7 @@
 
 
 - name: Check OpenShift deployment status
-  hosts: openshift_upi_vms # openshift_clusters
+  hosts: openshift_clusters
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -51,7 +51,7 @@
       
 
 - name: Deploy the network to the worker nodes
-  hosts: openshift_upi_vms_worker_nodes # openshift_worker_nodes
+  hosts: openshift_worker_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml
@@ -79,12 +79,14 @@
       start_connected: "{{ item.start_connected | default('true') }}"
       mac_address: "{{ vars.mac | default (omit)}}"
       label: "{{ item.label | default (omit)}}"
-    loop: "{{ vars.community_vmware_vmware__guest.networks[1:] }}"
+    loop: "{{ vars.community_vmware_vmware__guest.networks }}"
     loop_control:
       extended: true
       index_var: index_current
 
     delegate_to: localhost
+    register: nic_attch
+  - debug: var=nic_attch
 
 
 #
