@@ -77,7 +77,7 @@
       device_type: "{{ item.device_type | default('vmxnet3') }}"
       connected: "{{ item.connected | default('true') }}"
       start_connected: "{{ item.start_connected | default('true') }}"
-      mac_address: "{{ vars.mac | default (omit)}}"
+      mac_address: "{{ vars.nics[index_current].mac | default (omit)}}"
       label: "{{ item.label | default (omit)}}"
     loop: "{{ vars.community_vmware_vmware__guest.networks }}"
     loop_control:
