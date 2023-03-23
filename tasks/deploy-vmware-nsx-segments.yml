@@ -16,3 +16,4 @@
   delegate_to: localhost
   when: nsx_integration
   throttle: 1
+  run_once: true

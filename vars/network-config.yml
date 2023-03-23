@@ -9,6 +9,12 @@ vlans:
   gateway: 10.255.254.254
   revlookupzonename: 254.255.10.in-addr.arpa
   fwdlookupzonename: rdlabo.local
+- name: VLAN669-RD Labo Large
+  network: 10.254.0.0
+  netmask: 255.255.128.0
+  gateway: 10.254.0.1
+  revlookupzonename: 0.254.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: VLAN666-BURA
   network: 10.255.255.0
   netmask: 255.255.255.0
@@ -56,4 +62,10 @@ vlans:
   netmask: 255.255.255.0
   gateway: 10.201.1.254
   revlookupzonename: 1.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+- name: NSX-OpenShift-ClientSubnet
+  network: 10.10.0.0
+  netmask: 255.255.255.0
+  gateway: 10.10.0.254
+  revlookupzonename: 0.10.10.in-addr.arpa
   fwdlookupzonename: rdlabo.local

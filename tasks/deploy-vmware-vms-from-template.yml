@@ -1,10 +1,5 @@
 ---
 
-- name: Display VM details 
-  ansible.builtin.debug:
-    msg: "Test: {{ vars.community_vmware_vmware__guest.folder }} & {{ vcenter_hostname }} & {{ inventory_hostname }} & {{ inventory_hostname_short }} & {{ vars.ip }}"
-
-
 - name: Check whether the cluster exists
   when:
     - vars.community_vmware_vmware__guest.cluster is defined
@@ -124,9 +119,6 @@
     delegate_to: localhost
     register: facts_pre_deploy
 
-  # - debug:
-  #     msg: " biep"
-  #   when: facts_pre_deploy.instance.hw_power_status != "poweredOn"
 
   - name: Deploy VM if it does not exist
     when: facts_pre_deploy.failed

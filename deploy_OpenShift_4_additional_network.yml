@@ -39,6 +39,10 @@
         msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
       when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
 
+    - name: Deploy DHCP reservations
+      ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
+      tags: deploy_infrastructure_dhcp
+      
     - name: Deploy NSX segments
       ansible.builtin.include_tasks:
         file: tasks/deploy-vmware-nsx-segments.yml
@@ -61,33 +65,9 @@
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
-  - debug:
-      msg: "{{ vars.community_vmware_vmware__guest.networks[1:] }}"
-
-  - name: Deploy the NIC
-    community.vmware.vmware_guest_network:
-      validate_certs: "{{ validate_certs | default(false) }}"
-      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-      name: "{{ inventory_hostname_short }}"
-      state: present
-      network_name: "{{ item.name }}"
-      device_type: "{{ item.device_type | default('vmxnet3') }}"
-      connected: "{{ item.connected | default('true') }}"
-      start_connected: "{{ item.start_connected | default('true') }}"
-      mac_address: "{{ vars.nics[index_current].mac | default (omit)}}"
-      label: "{{ item.label | default (omit)}}"
-    loop: "{{ vars.community_vmware_vmware__guest.networks }}"
-    loop_control:
-      extended: true
-      index_var: index_current
-
-    delegate_to: localhost
-    register: nic_attch
-  - debug: var=nic_attch
-
+  - name: Deploy VMs
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-vmware-vnic-to-vm.yml
 
 #
 # - network_name: name of the network, unique in the cluster

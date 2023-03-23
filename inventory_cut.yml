@@ -31,44 +31,56 @@ rhel_vms:
 openshift_upi_vms_master_nodes:
   hosts:
     upi-master-0.openshift-upi.rdlabo.local:
-      ip: 10.255.254.240
-      mac: 00:05:69:aa:aa:00
+      nics:
+      - ip: 10.255.254.240
+        mac: 00:05:69:aa:aa:00
     upi-master-1.openshift-upi.rdlabo.local:
-      ip: 10.255.254.241
-      mac: 00:05:69:aa:aa:01
+      nics:
+      - ip: 10.255.254.241
+        mac: 00:05:69:aa:aa:01
     upi-master-2.openshift-upi.rdlabo.local:
-      ip: 10.255.254.242
-      mac: 00:05:69:aa:aa:02
+      nics:
+      - ip: 10.255.254.242
+        mac: 00:05:69:aa:aa:02
   vars:
     type: master
 
 openshift_upi_vms_infra_nodes:
   hosts:
     upi-infra-0.openshift-upi.rdlabo.local:
-      ip: 10.255.254.243
-      mac: 00:05:69:aa:aa:03
+      nics:
+      - ip: 10.255.254.243
+        mac: 00:05:69:aa:aa:03
     upi-infra-1.openshift-upi.rdlabo.local:
-      ip: 10.255.254.244
-      mac: 00:05:69:aa:aa:04
+      nics:
+      - ip: 10.255.254.244
+        mac: 00:05:69:aa:aa:04
   vars:
     type: infra
 
 openshift_upi_vms_worker_nodes:
   hosts:
     upi-worker-0.openshift-upi.rdlabo.local:
-      ip: 10.255.254.245
-      mac: 00:05:69:aa:aa:05
+      nics:
+      - ip: 10.255.254.245
+        mac: 00:05:69:aa:aa:06
+      - ip: 10.255.127.246
+        mac: 00:05:69:aa:ab:06
     upi-worker-1.openshift-upi.rdlabo.local:
-      ip: 10.255.254.246
-      mac: 00:05:69:aa:aa:06
+      nics:
+      - ip: 10.255.254.246
+        mac: 00:05:69:aa:aa:06
+      - ip: 10.255.127.246
+        mac: 00:05:69:aa:ab:06
   vars:
     type: worker
 
 openshift_upi_vms_bootstrap_node:
   hosts:
     upi-bootstrap.openshift-upi.rdlabo.local:
-      ip: 10.255.254.247
-      mac: 00:05:69:aa:aa:07
+      nics:
+      - ip: 10.255.254.247
+        mac: 00:05:69:aa:aa:07
   vars:
     type: bootstrap
 
@@ -88,44 +100,56 @@ openshift_upi_vms:
 openshift_upi_nsx_vms_master_nodes:
   hosts:
     upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.200.0.10
-      mac: 00:05:69:aa:aa:10
+      nics:
+      - ip: 10.200.0.10
+        mac: 00:05:69:aa:aa:10
     upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.200.0.11
-      mac: 00:05:69:aa:aa:11
+      nics:
+      - ip: 10.200.0.11
+        mac: 00:05:69:aa:aa:11
     upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
-      ip: 10.200.0.12
-      mac: 00:05:69:aa:aa:12
+      nics:
+      - ip: 10.200.0.12
+        mac: 00:05:69:aa:aa:12
   vars:
     type: master
 
 openshift_upi_nsx_vms_infra_nodes:
   hosts:
     upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.201.1.10
-      mac: 00:05:69:aa:aa:13
+      nics:
+      - ip: 10.201.1.10
+        mac: 00:05:69:aa:aa:13
     upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.201.1.11
-      mac: 00:05:69:aa:aa:14
+      nics:
+      - ip: 10.201.1.11
+        mac: 00:05:69:aa:aa:14
   vars:
     type: infra
 
 openshift_upi_nsx_vms_worker_nodes:
   hosts:
     upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
-      ip: 10.201.0.10
-      mac: 00:05:69:aa:aa:15
+      nics:
+      - ip: 10.201.0.10
+        mac: 00:05:69:aa:aa:15
+      - ip: 10.10.0.10
+        mac: 00:05:69:aa:ab:15
     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
-      ip: 10.201.0.11
-      mac: 00:05:69:aa:aa:16
+      nics:
+      - ip: 10.201.0.11
+        mac: 00:05:69:aa:aa:16
+      - ip: 10.10.0.11
+        mac: 00:05:69:aa:ab:16
   vars:
     type: worker
 
 openshift_upi_nsx_vms_bootstrap_node:
   hosts:
     upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
-      ip: 10.200.0.17
-      mac: 00:05:69:aa:aa:17
+      nics:
+      - ip: 10.200.0.17
+        mac: 00:05:69:aa:aa:17
   vars:
     type: bootstrap
 

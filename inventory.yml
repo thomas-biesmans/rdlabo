@@ -1,4 +1,12 @@
 ---
+# Per https://docs.openshift.com/container-platform/4.12/installing/installing_vsphere/installing-vsphere-network-customizations.html#csr-management_installing-vsphere-network-customizations
+# OpenShift expects a MAC address in one of four VMwar OUI ranges:
+#  - 00:05:69:00:00:00 to 00:05:69:FF:FF:FF
+#  - 00:0c:29:00:00:00 to 00:0c:29:FF:FF:FF
+#  - 00:1c:14:00:00:00 to 00:1c:14:FF:FF:FF
+#  - 00:50:56:00:00:00 to 00:50:56:3F:FF:FF
+#  The first range failed with adding an additional network on NSX-T (regular port group was no problem),
+#   while the last range succeeded.
 
 # OKD 3.11 nodes
 rhel_vms_master_nodes:
@@ -63,14 +71,14 @@ openshift_upi_vms_worker_nodes:
     upi-worker-0.openshift-upi.rdlabo.local:
       nics:
       - ip: 10.255.254.245
-        mac: 00:05:69:aa:aa:06
-      - ip: 10.255.127.246
-        mac: 00:05:69:aa:ab:06
+        mac: 00:05:69:aa:aa:05
+      - ip: 10.254.127.245
+        mac: 00:05:69:aa:ab:05
     upi-worker-1.openshift-upi.rdlabo.local:
       nics:
       - ip: 10.255.254.246
         mac: 00:05:69:aa:aa:06
-      - ip: 10.255.127.246
+      - ip: 10.254.127.246
         mac: 00:05:69:aa:ab:06
   vars:
     type: worker
@@ -134,13 +142,13 @@ openshift_upi_nsx_vms_worker_nodes:
       - ip: 10.201.0.10
         mac: 00:05:69:aa:aa:15
       - ip: 10.10.0.10
-        mac: 00:05:69:aa:ab:15
+        mac: 00:05:56:aa:aa:15
     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
       nics:
       - ip: 10.201.0.11
         mac: 00:05:69:aa:aa:16
       - ip: 10.10.0.11
-        mac: 00:05:69:aa:ab:16
+        mac: 00:05:56:aa:aa:16
   vars:
     type: worker
 

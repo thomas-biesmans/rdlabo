@@ -1,27 +1,58 @@
 ---
 
-- name: Find matching network
-  set_fact:
-    found_network: "{{ item.network }}"
-  loop: "{{ vars.vlans }}"
-  when: item.name == vars.custom_community_vmware_vmware__guest.networks[0].name
+- name: Checking whether networks are added in network-config.yml
+  fail:
+    msg: "Network {{ vars.community_vmware_vmware__guest.networks[index_current].name }} is not found in network-config.yml!"
+  vars:
+    found_networks: "{{ (vars.vlans
+      | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
+      | map(attribute='network')
+      | list) }}"
+  when: found_networks | length | int == 0
+  loop: "{{ vars.community_vmware_vmware__guest.networks }}"
+  loop_control:
+    extended: true
+    index_var: index_current
 
-- name: "DHCP Reservation: name - desc - ip - scope_id - mac - dns-hostname"
+- name: "DHCP Reservation: network - name - desc - ip - scope_id - mac - dns-hostname"
   debug:
-    msg: "{{ inventory_hostname_short }} - {{ inventory_hostname_short }} - '{{ vars.ip }}' - {{ vars.found_network }} - {{ vars.mac | replace(':','-') }} - 
-            {{ inventory_hostname_short }}"
+    msg: "{{ index_current }}
+           - {{ inventory_hostname_short }}
+           - {{ inventory_hostname_short }}
+           - '{{ vars.nics[index_current].ip }}'
+           - {{ found_networks[0] }}
+           - {{ vars.nics[index_current].mac | replace(':','-') }}
+           - {{ inventory_hostname_short }}"
+  vars:
+    found_networks: "{{ (vars.vlans
+      | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
+      | map(attribute='network')
+      | list) }}"
+  loop: "{{ vars.community_vmware_vmware__guest.networks }}"
+  loop_control:
+    extended: true
+    index_var: index_current
 
 - name: Create DHCP Reservations
   community.windows.win_dhcp_lease:
     type: reservation
     reservation_name: "{{ inventory_hostname_short }}"
     description: "{{ inventory_hostname_short }}"
-    ip: "{{ vars.ip }}"
-    scope_id: "{{ vars.found_network }}"
-    mac: "{{ vars.mac | replace(':','-') }}"
+    ip: "{{ vars.nics[index_current].ip }}"
+    scope_id: "{{ found_networks[0] }}"
+    mac: "{{ vars.nics[index_current].mac | replace(':','-') }}"
     dns_hostname: "{{ inventory_hostname_short }}"
     dns_regtype: noreg
-  delegate_to: "{{ item }}"
-  with_items: "{{ groups.windows_dns }}"
+  vars:
+    found_networks: "{{ (vars.vlans
+      | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
+      | map(attribute='network')
+      | list) }}"
+  loop: "{{ vars.community_vmware_vmware__guest.networks | product(groups.windows_dns) | list }}"
+  loop_control:
+    extended: true
+    index_var: index_current
+  delegate_to: "{{ item[1] }}"
   ignore_errors: yes
 
+- pause:
