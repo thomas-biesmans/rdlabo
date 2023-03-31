@@ -69,20 +69,121 @@
     ansible.builtin.include_tasks:
       file: tasks/deploy-vmware-vnic-to-vm.yml
 
-#
-# - network_name: name of the network, unique in the cluster
-# - network_nic: NIC on the worker nodes, e.g. ens224 for the 2nd NIC on VMWare VMs
-# - network_ipam: IPAM configuration for the external network.
-#   + External DHCP example:
-#      {
-#        "type": "dhcp"
-#      }
-#   + Internal whereabouts DHCP example:
-#      {
-#        "type": "whereabouts",
-#        "range": "10.255.246.0/24",
-#        "exclude": [
-#          "10.255.246.0/25",
-#          "10.255.246.128/26"
-#        ]
-#      }
+
+- name: Deploy OpenShift configuration for the additional network
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy the DHCP shim to th 
+    kubernetes.core.k8s:
+      api_version: networks.operator.openshift.io
+      definition:
+        api_version: networks.operator.openshift.io
+        kind: Config
+        metadata:
+          name: cluster
+        spec:
+          additionalNetworks:
+          - name: dhcp-shim
+            namespace: default
+            type: Raw
+            rawCNIConfig: |-
+              {
+                "name": "dhcp-shim",
+                "cniVersion": "0.3.1",
+                "type": "bridge",
+                "ipam": {
+                  "type": "dhcp"
+                }
+              }
+    register: network_operator_config
+
+  # - name: If network-operator was changed, wait 5 minutes before proceeding so the operator can reconfigure
+  #   pause:
+  #     minutes: 5
+  #   when: network_operator_config.changed
+
+
+  # Example app using an additional network
+  - name: Example app using the additional network
+    vars:
+      app_name: todo-http
+      app_namespace: test-todo-http-ansible-additionalnetwork
+      app_container_source: quay.io/redhattraining/todo-angular:v1.1
+      app_service_port: 80
+      app_service_protocol: tcp
+      app_container_port: 8080
+      app_resources:
+        limits:
+          cpu: '0.5'
+      app_annotations:
+        k8s.v1.cni.cncf.io/networks: NSX-OpenShift-ClientSubnet
+      network_name: NSX-OpenShift-ClientSubnet
+      # app_annotations:
+      #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
+      # network_name: VLAN669-RD Labo Large
+      network_nic: ens224
+      network_ipam: 
+      {
+        "type": "dhcp"
+      }
+
+    block:
+
+    - name: Add namespace for ToDo app through Ansible  
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_namespace.yml'
+
+    - name: Add the additional network
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_namespace_networkattachmentdefinition_macvlan.yml'
+        
+    - name: Set Image reference, allowing variabel precedence
+      set_fact:
+        app_container_source_set_fact: "{{ app_container_source }}"
+        
+    - name: Add Deployment
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        template: 'templates/openshift_4_resource_deployment.yml'
+      register: app_deployment
+      until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+      retries: 5
+      delay: 5
+
+    - name: Add Service
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_service.yml'
+
+    - name: Add Route
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_route.yml'
+
+    - name: Query ToDo Ansible example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://todo-http-test-todo-http-ansible-additionalnetwork.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+
+    - name: Get pod IPs
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: pod
+        name: "{{ app_name }}"
+        namespace: "{{ app_namespace }}"
+      register: pod_info
+
+    - debug:
+        msg: "Network status: {{ pod_info.resources[0].metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] }}"
+

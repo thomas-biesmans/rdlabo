@@ -3,6 +3,8 @@
 # - network_name: name of the network, unique in the cluster
 # - network_nic: NIC on the worker nodes, e.g. ens224 for the 2nd NIC on VMWare VMs
 # - network_ipam: IPAM configuration for the external network.
+#   + Static: not shown
+#   + Host-local: not shown, only for single host
 #   + External DHCP example:
 #      {
 #        "type": "dhcp"

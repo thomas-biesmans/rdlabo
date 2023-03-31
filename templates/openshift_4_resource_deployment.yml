@@ -26,6 +26,7 @@ spec:
     metadata:
       labels:
         deployment: "{{ app_name }}"
+      annotations: "{{ app_annotations | default (omit) }}"
     spec:
       containers:
       - image: "{{ app_container_source_set_fact }}" 
