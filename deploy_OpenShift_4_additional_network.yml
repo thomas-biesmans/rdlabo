@@ -39,6 +39,10 @@
         msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
       when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
 
+  - name: Deploy pre-reqs
+    delegate_to: localhost
+    block:
+
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
       tags: deploy_infrastructure_dhcp
@@ -81,28 +85,12 @@
     KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
   tasks:
 
-  - name: Deploy the DHCP shim to th 
+  - name: Deploy the DHCP shim to the clusters
+    tags: deploy_dhcp_shim
+    delegate_to: localhost
     kubernetes.core.k8s:
-      api_version: networks.operator.openshift.io
-      definition:
-        api_version: networks.operator.openshift.io
-        kind: Config
-        metadata:
-          name: cluster
-        spec:
-          additionalNetworks:
-          - name: dhcp-shim
-            namespace: default
-            type: Raw
-            rawCNIConfig: |-
-              {
-                "name": "dhcp-shim",
-                "cniVersion": "0.3.1",
-                "type": "bridge",
-                "ipam": {
-                  "type": "dhcp"
-                }
-              }
+      api_version: operator.openshift.io/v1
+      template: 'templates/openshift_4_resource_dhcp-shim.yml'
     register: network_operator_config
 
   # - name: If network-operator was changed, wait 5 minutes before proceeding so the operator can reconfigure
@@ -113,6 +101,8 @@
 
   # Example app using an additional network
   - name: Example app using the additional network
+    tags: deploy_example
+    delegate_to: localhost
     vars:
       app_name: todo-http
       app_namespace: test-todo-http-ansible-additionalnetwork
@@ -124,16 +114,14 @@
         limits:
           cpu: '0.5'
       app_annotations:
-        k8s.v1.cni.cncf.io/networks: NSX-OpenShift-ClientSubnet
-      network_name: NSX-OpenShift-ClientSubnet
+        k8s.v1.cni.cncf.io/networks: network-nsx-openshift-clientsubnet
+      network_name: network-nsx-openshift-clientsubnet # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
       network_nic: ens224
-      network_ipam: 
-      {
-        "type": "dhcp"
-      }
+      network_ipam:
+        type: dhcp
 
     block:
 
@@ -141,12 +129,12 @@
       kubernetes.core.k8s:
         state: present
         template: 'templates/openshift_4_resource_namespace.yml'
-
+        
     - name: Add the additional network
       kubernetes.core.k8s:
-        state: present
+        api_version: k8s.cni.cncf.io/v1
         template: 'templates/openshift_4_resource_namespace_networkattachmentdefinition_macvlan.yml'
-        
+
     - name: Set Image reference, allowing variabel precedence
       set_fact:
         app_container_source_set_fact: "{{ app_container_source }}"

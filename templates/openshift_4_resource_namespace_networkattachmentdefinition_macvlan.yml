@@ -23,6 +23,7 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   name: "{{ network_name }}"
+  namespace: "{{ app_namespace | default (omit) }}"
 spec:
   config: |- 
     {
@@ -30,5 +31,5 @@ spec:
       "type": "macvlan",
       "master": "{{ network_nic }}",
       "mode": "bridge",
-      "ipam": "{{ network_ipam }}"
+      "ipam": {{ network_ipam | to_json }}
     }
