@@ -138,7 +138,7 @@
     - name: Set Image reference, allowing variabel precedence
       set_fact:
         app_container_source_set_fact: "{{ app_container_source }}"
-        
+
     - name: Add Deployment
       kubernetes.core.k8s:
         api_version: apps/v1
@@ -168,10 +168,15 @@
       kubernetes.core.k8s_info:
         api_version: v1
         kind: pod
-        name: "{{ app_name }}"
+        label_selectors:
+        - "deployment = {{ app_name }}"
         namespace: "{{ app_namespace }}"
       register: pod_info
 
     - debug:
-        msg: "Network status: {{ pod_info.resources[0].metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] }}"
+        msg: "Network status: {{ item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] }}"
+      when: item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] is defined
+      with_items: "{{ pod_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
 
