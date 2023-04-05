@@ -54,5 +54,3 @@
     index_var: index_current
   delegate_to: "{{ item[1] }}"
   ignore_errors: yes
-
-- pause:
