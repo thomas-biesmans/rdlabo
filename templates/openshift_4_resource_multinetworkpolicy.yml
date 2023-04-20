@@ -1,0 +1,16 @@
+---
+# vars:
+# - item.name: name of the application this MultiNetworkPolicy is applied on as a source
+# - item.networkname: name of the network this MultiNetworkPolicy is applied on as a source
+# - item.destination: name of the application this MultiNetworkPolicy is applied on as a source
+# - item.source: name of the application this MultiNetworkPolicy is applied on as a source
+
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: "{{ item.name }}"
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: "{{ item.networkname }}"
+spec:
+  podSelector: {{ item.destination }}
+  ingress: {{ item.source }}

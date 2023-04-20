@@ -1,9 +1,9 @@
 ---
 # vars:
 # - app_namespace: Name of the namespace
-# - item.name: name of the application this Network Policy is applied on as a source
-# - item.destination: name of the application this Network Policy is applied on as a source
-# - item.source: name of the application this Network Policy is applied on as a source
+# - item.name: name of the application this NetworkPolicy is applied on as a source
+# - item.destination: name of the application this NetworkPolicy is applied on as a source
+# - item.source: name of the application this NetworkPolicy is applied on as a source
 
 api_version: networking.k8s.io/v1
 kind: NetworkPolicy

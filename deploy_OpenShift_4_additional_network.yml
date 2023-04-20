@@ -263,3 +263,18 @@
       with_items: "{{ pod_info.resources }}"
       loop_control:
         label: "{{ item.metadata.name }}"
+
+
+
+  - name: Patch the network operator to allow MultiNetworkPolicy
+    tags: deploy_multinetpol
+    delegate_to: localhost
+    kubernetes.core.k8s_json_patch:
+      api_version: operator.openshift.io/v1
+      namespace: nsx-system-operator
+      kind: Network
+      name: cluster
+      patch:
+        - op: replace
+          path: "/spec/useMultiNetworkPolicy"
+          value: true
