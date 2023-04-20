@@ -163,7 +163,7 @@
     - name: Query ToDo Ansible example
       include_tasks: 'tasks/query_url.yml'
       with_items:
-      - url: "http://todo-http-test-todo-http-ansible-additionalnetwork.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
         text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
 
     - name: Get pod IPs
@@ -245,7 +245,7 @@
     - name: Query ToDo Ansible example
       include_tasks: 'tasks/query_url.yml'
       with_items:
-      - url: "http://todo-http-{{ app_name }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
         text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
 
     - name: Get pod IPs
