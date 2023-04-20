@@ -111,3 +111,15 @@ default_community_vmware_vmware__guest:
       value: base64
     - key: guestinfo.ignition.config.data
       value: 'TBD'
+ipam_config:
+  nic2_dhcp:
+    network_nic: ens224
+    network_ipam:
+      type: dhcp
+  nic2_whereabouts:
+    network_nic: ens224
+    network_ipam:
+      type: whereabouts
+      range: 10.254.126.0/24
+      exclude:
+      - 10.254.126.128/25

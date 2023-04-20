@@ -147,3 +147,16 @@ ncp_config:
   openshift_tls_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=*.apps.openshift-upi-nsx.rdlabo.local"
   openshift_tls_certificate_subject_rev: "countryName = BE\nstateOrProvinceName = Vlaams-Brabant\nlocalityName = Huizingen\norganizationName = RDLabo\ncommonName = *.apps.openshift-upi-nsx.rdlabo.local"
   openshift_tls_certificate_san_dns: "*.apps.openshift-upi-nsx.rdlabo.local"
+
+ipam_config:
+  nic2_dhcp:
+    network_nic: ens224
+    network_ipam:
+      type: dhcp
+  nic2_whereabouts:
+    network_nic: ens224
+    network_ipam:
+      type: whereabouts
+      range: 10.10.0.0/24
+      exclude:
+      - 10.10.0.0/25

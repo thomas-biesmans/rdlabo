@@ -13,6 +13,8 @@ default_vmware_portgroup:
 nsx_hostname: 10.255.254.127
 nsx_username: "{{ vmware_nsx_username }}"
 nsx_password: "{{ vmware_nsx_password }}"
+nsx_dhcp_relays:
+
 nsx_segment_config:
 - name: NSX-OpenShift-UPI-NSX
   transport_zone_display_name: "NSX-Overlay"

@@ -1,5 +1,5 @@
 ---
-- name: Create NSX Segment
+- name: Create NSX DHCP Relays
   vmware.ansible_for_nsxt.nsxt_policy_segment:
     hostname: "{{ nsx_hostname }}"
     username: "{{ vmware_nsx_username }}"
@@ -10,7 +10,6 @@
     transport_zone_display_name: "{{ item.transport_zone_display_name }}"
     subnets: "{{ item.subnets }}"
     connectivity_path: "{{ item.connectivity_path }}"
-    dhcp_config_path: "{{ item.dhcp_config_path | default(omit) }}"
     admin_state: UP
 
   with_items: "{{ nsx_segment_config }}"
