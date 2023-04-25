@@ -728,8 +728,6 @@
             - protocol: TCP
               port: 443
 
-
-
       block:
 
       - name: Add namespace for WordPress on MySQL app with Network Policies through Ansible

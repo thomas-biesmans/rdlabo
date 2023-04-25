@@ -278,3 +278,215 @@
         - op: replace
           path: "/spec/useMultiNetworkPolicy"
           value: true
+
+
+  # Example app using an additional network and a denyall MultiNetworkPolicy
+  - name: Example app using the additional network with 'whereabouts' IPAM and a denyall MultiNetPol
+    tags: deploy_example_multinetpol, deploy_example_multinetpol_deny
+    delegate_to: localhost
+    vars:
+      app_name: todo-http
+      app_namespace: test-todo-http-ansible-additionalnetwork-whereabouts-multinetpol-deny
+      app_container_source: quay.io/redhattraining/todo-angular:v1.1
+      app_service_port: 80
+      app_service_protocol: tcp
+      app_container_port: 8080
+      app_resources:
+        limits:
+          cpu: '0.5'
+      app_annotations:
+        k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
+      network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
+      # app_annotations:
+      #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
+      # network_name: VLAN669-RD Labo Large
+      network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
+      network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
+      app_multi_networkpolicies:
+      - name: deny-by-default
+        destination: ""
+        source: ""
+        networkname: network-second-nic-whereabouts
+
+
+    block:
+
+    - name: Add namespace for ToDo app through Ansible  
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_namespace.yml'
+        
+    - name: Add the additional network
+      kubernetes.core.k8s:
+        api_version: k8s.cni.cncf.io/v1
+        template: 'templates/openshift_4_resource_namespace_networkattachmentdefinition_macvlan.yml'
+
+    - name: Set Image reference, allowing variabel precedence
+      set_fact:
+        app_container_source_set_fact: "{{ app_container_source }}"
+
+    - name: Add Deployment
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        template: 'templates/openshift_4_resource_deployment.yml'
+      register: app_deployment
+      until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+      retries: 5
+      delay: 5
+
+    - name: Add Service
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_service.yml'
+
+    - name: Add Route
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_route.yml'
+
+    - name: Add MultiNetworkPolicies
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_multinetworkpolicy.yml'
+      with_items: "{{ app_multinetworkpolicies }}"
+
+    - name: Query ToDo Ansible example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+
+    - name: Get pod IPs
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: pod
+        label_selectors:
+        - "deployment = {{ app_name }}"
+        namespace: "{{ app_namespace }}"
+      register: pod_info
+
+    - debug:
+        msg: "Network status: {{ item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] }}"
+      when: item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] is defined
+      with_items: "{{ pod_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+
+
+  # Example app using an additional network and an allowed MultiNetworkPolicy
+  - name: Example app using the additional network with 'whereabouts' IPAM and an allowed MultiNetPol
+    tags: deploy_example_multinetpol, deploy_example_multinetpol_allow
+    delegate_to: localhost
+    vars:
+      app_name: todo-http
+      app_namespace: test-todo-http-ansible-additionalnetwork-whereabouts-multinetpol-allow
+      app_container_source: quay.io/redhattraining/todo-angular:v1.1
+      app_service_port: 80
+      app_service_protocol: tcp
+      app_container_port: 8080
+      app_resources:
+        limits:
+          cpu: '0.5'
+      app_annotations:
+        k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
+      network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
+      # app_annotations:
+      #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
+      # network_name: VLAN669-RD Labo Large
+      network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
+      network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
+      app_multi_networkpolicies:
+      - name: deny-by-default
+        destination: ""
+        source: ""
+        networkname: network-second-nic-whereabouts
+      - name: allow-wordpress-mysql
+        destination:
+          matchLabels:
+            deployment: mysql
+        source:
+        - from:
+          - podSelector:
+              matchLabels:
+                deployment: wordpress
+          ports:
+          - port: 3306
+            protocol: TCP
+        networkname: network-second-nic-whereabouts
+      - name: allow-ingress-to-wordpress
+        destination:
+          matchLabels:
+            deployment: wordpress
+        source:
+        - ports:
+          - protocol: TCP
+            port: 80
+          - protocol: TCP
+            port: 443
+        networkname: network-second-nic-whereabouts
+
+    block:
+
+    - name: Add namespace for ToDo app through Ansible  
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_namespace.yml'
+        
+    - name: Add the additional network
+      kubernetes.core.k8s:
+        api_version: k8s.cni.cncf.io/v1
+        template: 'templates/openshift_4_resource_namespace_networkattachmentdefinition_macvlan.yml'
+
+    - name: Set Image reference, allowing variabel precedence
+      set_fact:
+        app_container_source_set_fact: "{{ app_container_source }}"
+
+    - name: Add Deployment
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        template: 'templates/openshift_4_resource_deployment.yml'
+      register: app_deployment
+      until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+      retries: 5
+      delay: 5
+
+    - name: Add Service
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_service.yml'
+
+    - name: Add Route
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_route.yml'
+
+    - name: Add MultiNetworkPolicies
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_multinetworkpolicy.yml'
+      with_items: "{{ app_multinetworkpolicies }}"
+
+    - name: Query ToDo Ansible example
+      include_tasks: 'tasks/query_url.yml'
+      with_items:
+      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+
+    - name: Get pod IPs
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: pod
+        label_selectors:
+        - "deployment = {{ app_name }}"
+        namespace: "{{ app_namespace }}"
+      register: pod_info
+
+    - debug:
+        msg: "Network status: {{ item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] }}"
+      when: item.metadata.annotations['k8s.v1.cni.cncf.io/networks-status'] is defined
+      with_items: "{{ pod_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+
