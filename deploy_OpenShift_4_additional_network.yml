@@ -280,13 +280,14 @@
           value: true
 
 
-  # Example app using an additional network and a denyall MultiNetworkPolicy
-  - name: Example app using the additional network with 'whereabouts' IPAM and a denyall MultiNetPol
-    tags: deploy_example_multinetpol, deploy_example_multinetpol_deny
+  # Example app using an additional network and a MultiNetworkPolicy
+  - name: Example app using the additional network with 'whereabouts' IPAM, a denyall MultiNetPol `
+           and allow that only allows pods to access the additional network
+    tags: deploy_example_multinetpol, deploy_example_multinetpol_pods_only
     delegate_to: localhost
     vars:
       app_name: todo-http
-      app_namespace: test-todo-http-ansible-additionalnetwork-whereabouts-multinetpol-deny
+      app_namespace: test-todo-http-ansible-multinetpol-pods
       app_container_source: quay.io/redhattraining/todo-angular:v1.1
       app_service_port: 80
       app_service_protocol: tcp
@@ -302,12 +303,17 @@
       # network_name: VLAN669-RD Labo Large
       network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
       network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
-      app_multi_networkpolicies:
-      - name: deny-by-default
+      app_multinetworkpolicies:
+      # - name: deny-by-default
+      #   destination: ""
+      #   source: ""
+      #   networkname: network-second-nic-whereabouts
+      - name: allows-pods-only
         destination: ""
-        source: ""
+        source:
+        - from:
+          - podSelector: {}
         networkname: network-second-nic-whereabouts
-
 
     block:
 
@@ -350,11 +356,9 @@
         template: 'templates/openshift_4_resource_multinetworkpolicy.yml'
       with_items: "{{ app_multinetworkpolicies }}"
 
-    - name: Query ToDo Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+    - name: Debug manually
+      debug:
+        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
 
     - name: Get pod IPs
       kubernetes.core.k8s_info:
@@ -374,13 +378,15 @@
 
 
 
-  # Example app using an additional network and an allowed MultiNetworkPolicy
-  - name: Example app using the additional network with 'whereabouts' IPAM and an allowed MultiNetPol
-    tags: deploy_example_multinetpol, deploy_example_multinetpol_allow
+  
+  # Example app using an additional network and a MultiNetworkPolicy
+  - name: Example app using the additional network with 'whereabouts' IPAM, a denyall MultiNetPol `
+           and allow that  allows pods and the additional network to access the additional network
+    tags: deploy_example_multinetpol, deploy_example_multinetpol_pods_and_network
     delegate_to: localhost
     vars:
       app_name: todo-http
-      app_namespace: test-todo-http-ansible-additionalnetwork-whereabouts-multinetpol-allow
+      app_namespace: test-todo-http-ansible-multinetpol-network
       app_container_source: quay.io/redhattraining/todo-angular:v1.1
       app_service_port: 80
       app_service_protocol: tcp
@@ -396,34 +402,18 @@
       # network_name: VLAN669-RD Labo Large
       network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
       network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
-      app_multi_networkpolicies:
-      - name: deny-by-default
+      app_multinetworkpolicies:
+      # - name: deny-by-default
+      #   destination: ""
+      #   source: ""
+      #   networkname: network-second-nic-whereabouts
+      - name: allows-pods-only
         destination: ""
-        source: ""
-        networkname: network-second-nic-whereabouts
-      - name: allow-wordpress-mysql
-        destination:
-          matchLabels:
-            deployment: mysql
         source:
         - from:
-          - podSelector:
-              matchLabels:
-                deployment: wordpress
-          ports:
-          - port: 3306
-            protocol: TCP
-        networkname: network-second-nic-whereabouts
-      - name: allow-ingress-to-wordpress
-        destination:
-          matchLabels:
-            deployment: wordpress
-        source:
-        - ports:
-          - protocol: TCP
-            port: 80
-          - protocol: TCP
-            port: 443
+          - podSelector: {}
+          - ipBlock:
+              cidr: "10.254.0.0/17"
         networkname: network-second-nic-whereabouts
 
     block:
@@ -467,11 +457,9 @@
         template: 'templates/openshift_4_resource_multinetworkpolicy.yml'
       with_items: "{{ app_multinetworkpolicies }}"
 
-    - name: Query ToDo Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+    - name: Debug manually
+      debug:
+        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
 
     - name: Get pod IPs
       kubernetes.core.k8s_info:

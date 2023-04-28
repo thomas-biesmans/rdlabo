@@ -11,6 +11,9 @@ metadata:
   name: "{{ item.name }}"
   annotations:
     k8s.v1.cni.cncf.io/policy-for: "{{ item.networkname }}"
+  namespace: "{{ app_namespace }}"
 spec:
-  podSelector: {{ item.destination }}
-  ingress: {{ item.source }}
+  podSelector: {{ item.destination | default ({}, true) }}
+  ingress: {{ item.source | default ([], true) }}
+  policyTypes:
+  - Ingress

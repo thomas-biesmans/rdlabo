@@ -120,6 +120,6 @@ ipam_config:
     network_nic: ens224
     network_ipam:
       type: whereabouts
-      range: 10.254.126.0/24
+      range: 10.254.126.0-10.254.126.255/17
       exclude:
-      - 10.254.126.128/25
+      - 10.254.0.0/18

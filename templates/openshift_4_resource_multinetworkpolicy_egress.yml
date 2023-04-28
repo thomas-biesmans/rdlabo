@@ -11,6 +11,7 @@ metadata:
   name: "{{ item.name }}"
   annotations:
     k8s.v1.cni.cncf.io/policy-for: "{{ item.networkname }}"
+  namespace: "{{ app_namespace }}"
 spec:
   podSelector: {{ item.source }}
   egress: {{ item.destination }}
