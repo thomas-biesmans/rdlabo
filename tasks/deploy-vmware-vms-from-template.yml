@@ -64,15 +64,17 @@
 #     msg: "{{ vars.community_vmware_vmware__guest }}"
 # - pause:
 
+- name: Get a list of all MACs
+  set_fact:
+    listofmacs: "{{ vars.nics | map(attribute='mac') | map('community.general.dict_kv', 'mac') | list }}"
 
 - name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
-    patch:
-    - mac: "{{ vars.nics[0].mac }}"
+    new_networks: "{{ community_vmware_vmware__guest.networks | zip( listofmacs ) | map('combine') | list }}"
 
-- name: Update VM network IP & MAC based on inventory, adding network to the list
-  set_fact:
-    new_networks: "{{ [] + [community_vmware_vmware__guest.networks | combine(patch, recursive=True)] }}"
+- name: Print an overview of attached NICs for the new VMs
+  debug:
+    msg: "{{ vars.new_networks }}"
 
 # - name: Update VM network IP & MAC based on inventory, adding network to the list
 #   set_fact:
@@ -176,7 +178,6 @@
       delegate_to: localhost
       register: deploy
       failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
-  
 
     - name: Update VMs' Advanced Settings
       throttle: "{{ parallel_deployments }}"
@@ -192,7 +193,7 @@
         advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default (omit) }}"
 
       delegate_to: localhost
-      when: vars.community_vmware_vmware__guest.advanced_settings is defined and not deploy.changed
+      when: vars.community_vmware_vmware__guest.advanced_settings is defined
 
     - name: Update VMNics with fixed macs
       throttle: "{{ parallel_deployments }}"
@@ -209,16 +210,22 @@
         device_type: "{{ item.device_type | default('vmxnet3') }}"
         connected: "{{ item.connected | default('true') }}"
         start_connected: "{{ item.start_connected | default('true') }}"
-        mac_address: "{{ vars.nics[0].mac | default (omit)}}"
+        mac_address: "{{ item.mac | default (omit)}}"
         label: "{{ item.label | default (omit)}}"
 
       delegate_to: localhost
       register: deploy_macchange
-      loop: "{{ vars.new_networks[0] }}"
-      when: vars.nics[0].mac is defined and not deploy.changed
+      loop: "{{ vars.new_networks }}"
+      when: item.mac is defined
 
+    - pause:
   rescue:
+  - name: Pause to warn for deletion
+    pause:
+      prompt: About to remove and redeploy one or more VMs. Press enter to continue or abort with Ctrl-C
+
   - name: Remove the VM prior to retry
+    when: facts_pre_deploy.failed
     community.vmware.vmware_guest:
       validate_certs: "{{ validate_certs | default(false) }}"
       hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"

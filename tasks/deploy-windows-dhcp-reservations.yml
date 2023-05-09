@@ -19,7 +19,7 @@
     msg: "{{ index_current }}
            - {{ inventory_hostname_short }}
            - {{ inventory_hostname_short }}
-           - '{{ vars.nics[index_current].ip }}'
+           - {{ vars.nics[index_current].ip }}
            - {{ found_networks[0] }}
            - {{ vars.nics[index_current].mac | replace(':','-') }}
            - {{ inventory_hostname_short }}"
@@ -28,10 +28,11 @@
       | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
       | map(attribute='network')
       | list) }}"
-  loop: "{{ vars.community_vmware_vmware__guest.networks }}"
+  loop: "{{ vars.community_vmware_vmware__guest.networks | product(groups.windows_dns) | list  }}"
   loop_control:
     extended: true
     index_var: index_current
+    label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
 
 - name: Create DHCP Reservations
   community.windows.win_dhcp_lease:
@@ -52,5 +53,6 @@
   loop_control:
     extended: true
     index_var: index_current
+    label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
   delegate_to: "{{ item[1] }}"
   ignore_errors: yes
