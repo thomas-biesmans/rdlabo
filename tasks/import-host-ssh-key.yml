@@ -8,7 +8,7 @@
   delegate_to: localhost
 
 - name: Query the new SSH host key
-  shell: "ssh-keyscan -T 10 -t ssh-rsa {{ vars.ip }},{{ inventory_hostname }}"
+  shell: "ssh-keyscan -T 10 -t ssh-rsa {{ vars.nics[0].ip }},{{ inventory_hostname }}"
   register: ssh_results_rsa_key
   retries: 12
   delay: 5

@@ -56,9 +56,9 @@
 #   ansible.utils.update_fact:
 #     updates:
 #     - path: community_vmware_vmware__guest.networks[0].mac
-#       value: "{{ vars.mac }}"
+#       value: "{{ vars.nics[0].mac }}"
 #   register: community_vmware_vmware__guest
-#   when: not vars.os_customization_for_ip and vars.mac is defined
+#   when: not vars.os_customization_for_ip and vars.nics[0].mac is defined
 
 # - debug:
 #     msg: "{{ vars.community_vmware_vmware__guest }}"
@@ -68,7 +68,7 @@
 - name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
     patch:
-    - mac: "{{ vars.mac }}"
+    - mac: "{{ vars.nics[0].mac }}"
 
 - name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
@@ -76,31 +76,31 @@
 
 # - name: Update VM network IP & MAC based on inventory, adding network to the list
 #   set_fact:
-#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true) | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
-#   when: vars.os_customization_for_ip and vars.mac is defined
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.nics[0].ip}, recursive=true)] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.nics[0].ip}, recursive=true) | combine({'mac': vars.nics[0].mac | default ('')}, recursive=true)] }}"
+#   when: vars.os_customization_for_ip and vars.nics[0].mac is defined
 
 # - name: Update VM network IP only based on inventory, adding network to the list
 #   set_fact:
-#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.ip}, recursive=true)] }}"
-#   when: vars.os_customization_for_ip and vars.mac is not defined
+#     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.nics[0].ip}, recursive=true)] }}"
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'ip': vars.nics[0].ip}, recursive=true)] }}"
+#   when: vars.os_customization_for_ip and vars.nics[0].mac is not defined
 
 # - name: Update VM network MAC only based on inventory, adding network to the list
 #   set_fact:
 #     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
-#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'mac': vars.mac | default ('')}, recursive=true)] }}"
-#   when: not vars.os_customization_for_ip and vars.mac is defined
+#     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks | combine({'mac': vars.nics[0].mac | default ('')}, recursive=true)] }}"
+#   when: not vars.os_customization_for_ip and vars.nics[0].mac is defined
 
 # - name: Do not update VM network when no IP or MAC are added based on inventory, adding network to the list
 #   set_fact:
 #     new_networks: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
 #     new_networks_with_mac: "{{ new_networks + [community_vmware_vmware__guest.networks] }}"
-#   when: not vars.os_customization_for_ip and vars.mac is not defined
+#   when: not vars.os_customization_for_ip and vars.nics[0].mac is not defined
 
 - name: Show added IPs and MACs
   debug:
-    msg: "IP: {{ vars.ip | default ('Not defined')}}, MAC: {{ vars.mac | default ('Not defined') }}"
+    msg: "IP: {{ vars.nics[0].ip | default ('Not defined')}}, MAC: {{ vars.nics[0].mac | default ('Not defined') }}"
 
 - name: Deploy the VM including retry and rescue
   block:
@@ -175,7 +175,7 @@
 
       delegate_to: localhost
       register: deploy
-      failed_when: vars.os_customization_for_ip and not (vars.ip in (deploy.instance.hw_eth0.ipaddresses ))
+      failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
   
 
     - name: Update VMs' Advanced Settings
@@ -209,13 +209,13 @@
         device_type: "{{ item.device_type | default('vmxnet3') }}"
         connected: "{{ item.connected | default('true') }}"
         start_connected: "{{ item.start_connected | default('true') }}"
-        mac_address: "{{ vars.mac | default (omit)}}"
+        mac_address: "{{ vars.nics[0].mac | default (omit)}}"
         label: "{{ item.label | default (omit)}}"
 
       delegate_to: localhost
       register: deploy_macchange
       loop: "{{ vars.new_networks[0] }}"
-      when: vars.mac is defined and not deploy.changed
+      when: vars.nics[0].mac is defined and not deploy.changed
 
   rescue:
   - name: Remove the VM prior to retry
@@ -245,7 +245,7 @@
     name: "{{ inventory_hostname_short }}"
   delegate_to: localhost
   register: facts_post_deploy
-  when: vars.mac is defined
+  when: vars.nics[0].mac is defined
 
 # - name: Show VM info
 #   debug:
