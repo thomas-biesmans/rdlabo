@@ -15,20 +15,20 @@
 
 - name: "DNS Forward records: name - value - zone"
   debug:
-    msg: "{{ inventory_hostname | replace('.' + vars.found_fwdlookupzonename , '') }}, {{ vars.ip }}, {{ vars.found_fwdlookupzonename }}"
-           
+    msg: "{{ inventory_hostname | replace('.' + vars.found_fwdlookupzonename , '') }}, {{ vars.nics[0].ip }}, {{ vars.found_fwdlookupzonename }}"
+
 - name: Create Windows DNS A record
   community.windows.win_dns_record:
     name: "{{ inventory_hostname | replace('.' + vars.found_fwdlookupzonename , '') }}"
     type: A
-    value: "{{ vars.ip }}"
+    value: "{{ vars.nics[0].ip }}"
     zone: "{{ vars.found_fwdlookupzonename }}"
   delegate_to: "{{ item }}"
   with_items: "{{ groups.windows_dns }}"
 
 - name: "DNS Reverse records: name - value - zone"
   debug:
-    msg: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}, {{ inventory_hostname_short }}, {{ vars.found_revlookupzonename }}"
+    msg: "{{ vars.nics[0].ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}, {{ inventory_hostname_short }}, {{ vars.found_revlookupzonename }}"
 
 - name: Create Windows DNS Reverse Lookup zone
   community.windows.win_dns_zone:
@@ -42,7 +42,7 @@
 
 - name: Create Windows DNS PTR record
   community.windows.win_dns_record:
-    name: "{{ vars.ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
+    name: "{{ vars.nics[0].ip[vars.found_revlookupzonename.index('.in-addr.arpa')+1:] }}"
     type: PTR
     value: "{{ inventory_hostname_short }}" # "{{ inventory_hostname | replace(vars.found_fwdlookupzonename , '') }}"
     zone: "{{ vars.found_revlookupzonename }}"
