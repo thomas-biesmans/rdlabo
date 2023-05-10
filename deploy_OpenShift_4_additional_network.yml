@@ -127,7 +127,7 @@
 
     block:
 
-    - name: Add namespace for ToDo app through Ansible  
+    - name: Add namespace for ToDo app through Ansible using 'dhcp' IPAM
       kubernetes.core.k8s:
         state: present
         template: 'templates/openshift_4_resource_namespace.yml'
@@ -209,7 +209,7 @@
 
     block:
 
-    - name: Add namespace for ToDo app through Ansible  
+    - name: Add namespace for ToDo app through Ansible using 'whereabouts' IPAM
       kubernetes.core.k8s:
         state: present
         template: 'templates/openshift_4_resource_namespace.yml'
