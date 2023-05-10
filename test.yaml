@@ -28,6 +28,45 @@
     dict2:
     -  key3: value3
     -  key3: valuec
+    loglines:
+    - ModuleExecutor.calculate_configured_servicegroup()
+    - 'calculated configured servicegroup {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''servicetype'': ''SSL_BRIDGE''}'
+    - ModuleExecutor.calculate_configured_servicemembers()
+    - 'calculated configured service members [{''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.240'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.241'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.242'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.247'', ''port'': 22623, ''weight'': ''1''}]'
+    - ModuleExecutor.calculate_configured_monitor_bindings()
+    - ModuleExecutor.update_or_create()
+    - ModuleExecutor.servicegroup_exists()
+    - 'get result {''http_response_data'': {''url'': ''https://10.255.254.152/nitro/v1/config/servicegroup/lb_svg_openshift_openshift-upi_api_ignition'', ''status'': 200, ''date'': ''Wed, 10 May 2023 07:53:42 GMT'', ''server'': ''Apache'', ''x-frame-options'': ''SAMEORIGIN'', ''expires'': ''Thu, 19 Nov 1981 08:52:00 GMT'', ''cache-control'': ''no-store, no-cache, must-revalidate, post-check=0, pre-check=0'', ''pragma'': ''no-cache'', ''vary'': ''Accept-Encoding'', ''feature-policy'': "camera ''none''; microphone ''none''; geolocation ''none''", ''referrer-policy'': ''no-referrer'', ''x-xss-protection'': ''1; mode=block'', ''x-content-type-options'': ''nosniff'', ''content-length'': ''1511'', ''content-type'': ''application/json; charset=utf-8'', ''connection'': ''close'', ''strict-transport-security'': ''max-age=157680000'', ''cookies_string'': '''', ''cookies'': {}, ''msg'': ''OK (1511 bytes)''}, ''nitro_errorcode'': 0, ''nitro_message'': ''Done'', ''nitro_severity'': ''NONE'', ''data'':
+      {''errorcode'': 0, ''message'': ''Done'', ''severity'': ''NONE'', ''servicegroup'': [{''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''numofconnections'': 0, ''servicetype'': ''SSL_BRIDGE'', ''td'': ''0'', ''serviceconftype'': True, ''cachetype'': ''SERVER'', ''maxclient'': ''0'', ''maxreq'': ''0'', ''cacheable'': ''NO'', ''cip'': ''DISABLED'', ''usip'': ''NO'', ''pathmonitor'': ''NO'', ''pathmonitorindv'': ''NO'', ''useproxyport'': ''YES'', ''monweight'': ''0'', ''sp'': ''OFF'', ''rtspsessionidremap'': ''OFF'', ''clttimeout'': 180, ''svrtimeout'': 360, ''cka'': ''NO'', ''tcpb'': ''NO'', ''cmp'': ''NO'', ''maxbandwidth'': ''0'', ''state'': ''ENABLED'', ''svrstate'': ''DOWN'', ''delay'': 0, ''ip'': ''0.0.0.0'', ''monthreshold'': ''0'', ''monstate'': ''ENABLED'', ''monitor_state'': ''Unknown'', ''monstatcode'': 0, ''monstatparam1'': 0, ''monstatparam2'': 0, ''monstatparam3'': 0, ''monitortotalprobes'': ''0'', ''monitortotalfailedprobes'': ''0'', ''monitorcurrentfailedprobes'':
+      ''0'', ''downstateflush'': ''ENABLED'', ''statechangetimesec'': ''Wed Apr 12 02:03:10 2023'', ''statechangetimemsec'': ''318'', ''tickssincelaststatechange'': ''244023187'', ''stateupdatereason'': ''0'', ''clmonowner'': ''0'', ''clmonview'': ''0'', ''groupcount'': ''0'', ''hashid'': ''0'', ''graceful'': ''NO'', ''healthmonitor'': ''YES'', ''appflowlog'': ''ENABLED'', ''autoscale'': ''DISABLED'', ''memberport'': 0, ''serviceipstr'': ''0.0.0.0'', ''passive'': False, ''servicegroupeffectivestate'': ''DOWN'', ''monconnectionclose'': ''NONE'', ''nodefaultbindings'': ''NO'', ''nameserver'': ''0.0.0.0'', ''dbsttl'': 0, ''svcitmactsvcs'': ''0'', ''svcitmboundsvcs'': ''0'', ''responsetime'': ''0'', ''orderstr'': ''Default''}]}}'
+    - ModuleExecutor.servicegroup_identical()
+    - Existing servicegroup has identical values to configured.
+    - ModuleExecutor.sync_bindings()
+    - ModuleExecutor syncing binding servicemembers
+    - mode is exact
+    - ModuleExecutor.get_existing_servicemembers()
+    - 'existing_servicemembers [{''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.247'', ''port'': 22623, ''svrstate'': ''DOWN'', ''statechangetimesec'': ''Wed May 10 07:15:18 2023'', ''tickssincelaststatechange'': ''230363'', ''weight'': ''1'', ''servername'': ''10.255.254.247'', ''customserverid'': ''None'', ''serverid'': ''0'', ''state'': ''ENABLED'', ''hashid'': ''0'', ''graceful'': ''NO'', ''delay'': 0, ''delay1'': 0, ''nameserver'': ''0.0.0.0'', ''dbsttl'': 0, ''orderstr'': ''Default''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.242'', ''port'': 22623, ''svrstate'': ''DOWN'', ''statechangetimesec'': ''Tue May  9 08:35:11 2023'', ''tickssincelaststatechange'': ''8391130'', ''weight'': ''1'', ''servername'': ''10.255.254.242'', ''customserverid'': ''None'', ''serverid'': ''0'', ''state'': ''ENABLED'', ''hashid'': ''0'', ''graceful'': ''NO'', ''delay'': 0, ''delay1'': 0, ''nameserver'': ''0.0.0.0'',
+      ''dbsttl'': 0, ''orderstr'': ''Default''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.241'', ''port'': 22623, ''svrstate'': ''DOWN'', ''statechangetimesec'': ''Tue May  9 08:35:12 2023'', ''tickssincelaststatechange'': ''8390977'', ''weight'': ''1'', ''servername'': ''10.255.254.241'', ''customserverid'': ''None'', ''serverid'': ''0'', ''state'': ''ENABLED'', ''hashid'': ''0'', ''graceful'': ''NO'', ''delay'': 0, ''delay1'': 0, ''nameserver'': ''0.0.0.0'', ''dbsttl'': 0, ''orderstr'': ''Default''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.240'', ''port'': 22623, ''svrstate'': ''DOWN'', ''statechangetimesec'': ''Tue May  9 08:35:11 2023'', ''tickssincelaststatechange'': ''8391109'', ''weight'': ''1'', ''servername'': ''10.255.254.240'', ''customserverid'': ''None'', ''serverid'': ''0'', ''state'': ''ENABLED'', ''hashid'': ''0'', ''graceful'': ''NO'', ''delay'': 0, ''delay1'': 0, ''nameserver'':
+      ''0.0.0.0'', ''dbsttl'': 0, ''orderstr'': ''Default''}]'
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.240. Retrieved NITRO object: (<class ''str''>) 10.255.254.247'
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.241. Retrieved NITRO object: (<class ''str''>) 10.255.254.247'
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.242. Retrieved NITRO object: (<class ''str''>) 10.255.254.247'
+    - ModuleExecutor.servicemember_identical()
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.240. Retrieved NITRO object: (<class ''str''>) 10.255.254.242'
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.241. Retrieved NITRO object: (<class ''str''>) 10.255.254.242'
+    - ModuleExecutor.servicemember_identical()
+    - ModuleExecutor.servicemember_identical()
+    - 'Servicemember attribute "ip" differs. Playbook parameter: (<class ''str''>) 10.255.254.240. Retrieved NITRO object: (<class ''str''>) 10.255.254.241'
+    - ModuleExecutor.servicemember_identical()
+    - ModuleExecutor.servicemember_identical()
+    - 'configured_already_present [{''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.247'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.242'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.241'', ''port'': 22623, ''weight'': ''1''}, {''servicegroupname'': ''lb_svg_openshift_openshift-upi_api_ignition'', ''ip'': ''10.255.254.240'', ''port'': 22623, ''weight'': ''1''}]'
+    - Configured binding already exists
+    - Configured binding already exists
   tasks:
     # - name: Merge dict2 to dict1
     #   set_fact:
@@ -43,46 +82,27 @@
     # - name: Print dict1
     #   debug:
     #     var: dict1
+    - name: Print  dict1
+      debug:
+        var: dict1 
     - name: Print filtered dict1
       debug:
-        var: dict1 |map(attribute='key1')|map('community.general.dict_kv', 'tempkey') | list
-    - name: Zip dict2 to dict1
-      set_fact:
-        dict1: "{{ dict1|zip(dict2)|map('combine') }}"
-    - name: Print dict1
+        var: dict1[0]
+    - name: Print filtered dict1
       debug:
-        var: dict1
+        var: dict1[0].key1
+    
+    - name: check for string
+      debug:
+        msg: found!
+      when: loglines is search('configured_already_present')
 
-      # - name: Add Ingress LB TLS secret
-      #   kubernetes.core.k8s:
-      #     state: present
-      #     definition:
-      #       api_version: v1
-      #       kind: Secret
-      #       metadata:
-      #         name: lb-chain-secret
-      #         namespace: openshift-ingress
-      #       type: kubernetes.io/tls
-      #       data:
-      #         tls.crt: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt', rstrip=false) | b64encode }}"
-      #         tls.key: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.key', rstrip=false) | b64encode }}"
-
-
-      # - name: Patch Ingress Controllers to use the LB secret
-      #   kubernetes.core.k8s_json_patch:
-      #     api_version: operator.openshift.io/v1
-      #     namespace: openshift-ingress-operator
-      #     kind: IngressController
-      #     name: default
-      #     patch:
-      #     - op: add
-      #       path: "/spec/defaultCertificate"
-      #       value:
-      #         name: lb-chain-secret
-
-      # - debug:
-      #     msg: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt') | to_nice_json | b64encode }}"
-
-      # - debug:
-      #     msg: "{{ lookup('file', '{{ openshift_config_dir }}/{{ ncp_config.openshift_tls_certificate_name }}.crt', rstrip=false) | b64encode }}"
-
+    # - name: Print filtered dict1
+    #   debug:
+    #     var: dict1 |map(attribute='key1')|map('community.general.dict_kv', 'tempkey') | list
+    # - name: Zip dict2 to dict1
+    #   set_fact:
+    #     dict1: "{{ dict1|zip(dict2)|map('combine') }}"
+    # - name: Print dict1
+    #   debug:
+    #     var: dict1
