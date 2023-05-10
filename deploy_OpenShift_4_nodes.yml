@@ -256,7 +256,7 @@
             src: templates/openshift_4_upi_install_config_vmware_template.yml
             dest: "{{ vars.openshift_config_dir }}/install-config.yaml"
             force: no
-            
+        
         - name: Take a copy of the install-config as a backup
           copy:
             src: "{{ vars.openshift_config_dir }}/install-config.yaml"
@@ -606,11 +606,11 @@
           path: "{{ citrix_sdk_nested_tar_dir.files[0].path }}"
           state: absent
 
-    - name: Ensure Citrix SDK is installed
+    - name: Ensure Citrix SDK is installed, if needed a specific Python needs to be configured
       become: true
       run_once: true
       ansible.builtin.shell:
-        cmd: "python3.8 setup.py install"
+        cmd: "python setup.py install"
         chdir: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
 
 
@@ -626,7 +626,7 @@
     - name: Build load balancer topology - API service group
       set_fact:
         temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": openshift_api_port,
           "weight": 1
         }] }}'
@@ -642,7 +642,7 @@
     - name: Build load balancer topology - API ignition service group
       set_fact:
         temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
@@ -659,7 +659,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'
@@ -925,7 +925,7 @@
     - name: Build load balancer topology - API service group
       set_fact:
         temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": openshift_api_port,
           "weight": 1
         }] }}'
@@ -940,7 +940,7 @@
     - name: Build load balancer topology - API ignition service group
       set_fact:
         temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
@@ -1265,7 +1265,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'
@@ -1437,7 +1437,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].ip,
+          "ip": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'

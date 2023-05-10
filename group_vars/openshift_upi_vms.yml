@@ -107,6 +107,8 @@ default_community_vmware_vmware__guest:
       value: true
     - key: ethernet0.checkMACAddress
       value: false
+    - key: ethernet1.checkMACAddress
+      value: false
     - key: guestinfo.ignition.config.data.encoding
       value: base64
     - key: guestinfo.ignition.config.data

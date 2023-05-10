@@ -126,7 +126,7 @@
     when: facts_pre_deploy.failed
     block:
 
-    - name: Deploy the VM from a regular template
+    - name: Deploy the VM from a regular template, only the first NIC seems to be deployed
       throttle: "{{ parallel_deployments }}"
       retries: 3
       delay: 10
@@ -169,7 +169,7 @@
         #       state: present
         #       type: iso
         #       iso_path: "[datastore1] livecd.iso"
-        networks: "{{ new_networks }}" #| default( default_vmware_portgroup ) }}"
+        networks: "{{ vars.new_networks }}" #| default( default_vmware_portgroup ) }}"
         customization: "{{ vars.community_vmware_vmware__guest.customization | default (omit) }}"
         # advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
 
@@ -195,7 +195,7 @@
       delegate_to: localhost
       when: vars.community_vmware_vmware__guest.advanced_settings is defined
 
-    - name: Update VMNics with fixed macs
+    - name: Update VMNics with fixed macs, only handling the first NIC
       throttle: "{{ parallel_deployments }}"
       retries: 3
       delay: 10
@@ -215,10 +215,10 @@
 
       delegate_to: localhost
       register: deploy_macchange
-      loop: "{{ vars.new_networks }}"
+      loop:
+      - "{{ vars.new_networks[0] }}"
       when: item.mac is defined
 
-    - pause:
   rescue:
   - name: Pause to warn for deletion
     pause:

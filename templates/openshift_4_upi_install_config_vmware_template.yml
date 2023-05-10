@@ -35,6 +35,6 @@ platform:
 publish: External
 pullSecret: '{{ vars.openshift_auth_code }}'
 additionalTrustBundle: |
-  {{ trustBundle | indent(width=2) | default( omit ) }}
+  {{ trustBundle | default( '' ) | indent(width=2) }}
 sshKey: |
   {{ sshKey['content'] | b64decode  }}

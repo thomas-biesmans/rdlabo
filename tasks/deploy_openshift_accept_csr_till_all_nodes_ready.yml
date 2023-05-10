@@ -38,12 +38,12 @@
       nodes_ready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') | length | int }}"
       nodes_notready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','!=','Ready') | length | int }}"
 
-  - name: "Retry attempt #{{ retry_counter | int }} - Retry if nodes aren't ready yet"
+  - name: "Retry attempt #{{ retry_counter | int }} of 45 - Retry if nodes aren't ready yet"
     fail:
       msg: "Number of ready nodes, {{ nodes_ready }} of {{ vars.number_of_ready_nodes }} not yet reached, retrying."
     when: nodes_ready < vars.number_of_ready_nodes 
 
-  - name: "Retry attempt #{{ retry_counter | int }} - Continue if all nodes are found"
+  - name: "Retry attempt #{{ retry_counter | int }} of 45 - Continue if all nodes are found"
     debug:
       msg: "Continuing, {{ nodes_ready }} of {{ vars.number_of_ready_nodes }} nodes are ready."
 

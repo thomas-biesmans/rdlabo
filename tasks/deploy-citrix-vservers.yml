@@ -13,6 +13,16 @@
     servicegroupbindings:
     - servicegroupname: "{{ item.servicegroup.name }}"
   with_items: "{{ citrix_vservers }}"
+  ignore_errors: True
+  register: config
+
+- name: Fail if there is an error other than the identical configuration
+  fail:
+    msg: "Following errors present: {{ item.loglines }}"
+  loop: "{{ config.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.failed and not item.loglines is search('configured_already_present')
 
 - name: Save running configuration
   citrix.adc.citrix_adc_save_config:
@@ -21,3 +31,10 @@
     nitro_pass: "{{ citrix_password_unecnrypted }}"
     validate_certs: false
   run_once: true
+  ignore_errors: True
+  register: config_save
+
+- name: Fail if there is an error other than the identical configuration
+  fail:
+    msg: "Following errors present: {{ config_save.loglines }}"
+  when: config_save.failed and not config_save.loglines is search('configured_already_present')
