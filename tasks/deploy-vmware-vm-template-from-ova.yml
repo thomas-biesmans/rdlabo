@@ -1,0 +1,119 @@
+---
+
+- ansible.builtin.include_tasks: tasks/deploy-vmware-vms-folders.yml
+
+- name: Get a list of all MACs
+  set_fact:
+    listofmacs: "{{ vars.nics | map(attribute='mac') | map('community.general.dict_kv', 'mac') | list }}"
+
+- name: Update VM network IP & MAC based on inventory, adding network to the list
+  set_fact:
+    new_networks: "{{ community_vmware_vmware__guest.networks | zip( listofmacs ) | map('combine') | list }}"
+
+- name: Print an overview of attached NICs for the new VMs
+  debug:
+    msg: "{{ vars.new_networks }}"
+
+
+- name: Deploy the VM OVA including retry and rescue
+  block:
+
+  - name: Get VM facts pre-deploy
+    retries: 3
+    delay: 10
+    ignore_errors: true
+    community.vmware.vmware_guest:
+      validate_certs: "{{ validate_certs | default(false) }}"
+      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
+      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+      name: "{{ vars.community_vmware_vmware__guest.template }}"
+      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+    delegate_to: localhost
+    register: facts_pre_deploy
+
+
+  - name: Deploy VM if it does not exist
+    when: facts_pre_deploy.failed
+    block:
+
+    - name: Deploy the VM from an OVA
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_deploy_ovf:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+        cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
+        # folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}" - see issues https://github.com/ansible-collections/community.vmware/issues/1460
+        name: "{{ vars.community_vmware_vmware__guest.template }}"
+        power_on: false
+        wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default(false) }}"
+        ovf: "{{ vars.openshift_download_dir }}/rhcos-vmware.x86_64.ova"
+        datastore: "{{ vars.community_vmware_vmware__guest.disk[0].datastore }}"
+        networks: "{u'VM Network':u'{{ vars.community_vmware_vmware__guest.networks[0].name }}'}"
+      delegate_to: localhost
+      register: deploy
+      failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
+
+    - name: Move the deployed VM to the proper folder
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest_move:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+        dest_folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+        moid: "{{ deploy.instance.moid }}"
+        
+      delegate_to: localhost
+      register: deploy
+      failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
+
+  rescue:
+  - name: Pause to warn for deletion
+    pause:
+      prompt: About to remove and redeploy one or more VMs. Press enter to continue or abort with Ctrl-C
+
+  - name: Remove the VM prior to retry
+    when: facts_pre_deploy.failed
+    community.vmware.vmware_guest:
+      validate_certs: "{{ validate_certs | default(false) }}"
+      hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+      username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+      password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+      datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+      cluster: "{{ vars.community_vmware_vmware__guest.cluster }}"
+      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+      name: "{{ vars.community_vmware_vmware__guest.template }}"
+      state: absent
+      force: yes
+    delegate_to: localhost
+    when: vars.delete_during_retry
+
+- name: Get VM facts
+  retries: 3
+  delay: 10
+  community.vmware.vmware_guest:
+    validate_certs: "{{ validate_certs | default(false) }}"
+    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
+    datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
+    name: "{{ vars.community_vmware_vmware__guest.template }}"
+    folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
+  delegate_to: localhost
+  register: facts_post_deploy
+  when: vars.nics[0].mac is defined
+
+# - name: Show VM info
+#   debug:
+#     msg: "{{ facts_post_deploy }}"
+

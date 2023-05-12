@@ -81,28 +81,95 @@
     #     dict1: "{{ dict1|zip(dict2)|map('combine') }}"
     # - name: Print dict1
     #   debug:
-    #     var: dict1
-    - name: Print  dict1
-      debug:
-        var: dict1 
-    - name: Print filtered dict1
-      debug:
-        var: dict1[0]
-    - name: Print filtered dict1
-      debug:
-        var: dict1[0].key1
-    
-    - name: check for string
-      debug:
-        msg: found!
-      when: loglines is search('configured_already_present')
-
+    # #     var: dict1
+    # - name: Print  dict1
+    #   debug:
+    #     var: dict1 
     # - name: Print filtered dict1
     #   debug:
-    #     var: dict1 |map(attribute='key1')|map('community.general.dict_kv', 'tempkey') | list
-    # - name: Zip dict2 to dict1
-    #   set_fact:
-    #     dict1: "{{ dict1|zip(dict2)|map('combine') }}"
-    # - name: Print dict1
+    #     var: dict1[0]
+    # - name: Print filtered dict1
     #   debug:
-    #     var: dict1
+    #     var: dict1[0].key1
+    
+    # - name: check for string
+    #   debug:
+    #     msg: found!
+    #   when: loglines is search('configured_already_present')
+
+
+
+- name: Deploy the Citrix load balancers
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/citrix_load_balancer.yml
+  tags: prep_citrix
+  tasks:
+
+  - name: Prep Citrix SDK
+    delegate_to: localhost
+    run_once: true
+    when: citrix_lb_integration
+    block:
+      
+      
+    - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
+      find:
+        paths: "{{ vars.openshift_download_dir }}/nitro-python"
+        file_type: directory
+        patterns: "nitro-python-*"
+      register: citrix_sdk_file
+
+    - name: Download and extract the SDK
+      when: citrix_sdk_file.files | length == 0
+      block:
+        
+      - name: Check whether Citrix SDK was downloaded from http://<ip>/nitro-python.tgz
+        stat:
+          path: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+        register: citrix_sdk_downloaded_archive
+
+      - name: Stop if file wasn't downloaded yet
+        fail:
+          msg: "Download the Citrix SDK for Python from the ADC > Downloads > SDK for Python"
+        when: not citrix_sdk_downloaded_archive.stat.exists 
+
+      # - name: Download specific sources
+      #   get_url:
+      #     url: "http://{{ citrix_ip }}/nitro-python.tgz"
+      #     dest: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+      #     validate_certs: no
+        # when: vars.openshift_custom_version_source | length > 0
+
+      - name: Untar the Citrix SDK
+        unarchive:
+          src: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
+          dest: "{{ vars.openshift_download_dir }}/nitro-python"
+
+      - name: Find archives inside of extracted dir
+        find:
+          paths: "{{ vars.openshift_download_dir }}/nitro-python"
+          patterns: "ns_nitro-python*.tar"
+        register: citrix_sdk_nested_tar
+
+      - name: Untar the Citrix SDK
+        unarchive:
+          src: "{{ citrix_sdk_nested_tar.files[0].path }}"
+          dest: "{{ vars.openshift_download_dir }}/nitro-python/"
+
+    - name: Re-find extracted directory inside of extracted dir in case we needed to extract
+      find:
+        paths: "{{ vars.openshift_download_dir }}/nitro-python"
+        file_type: directory
+        patterns: "nitro-python-*"
+      register: citrix_sdk_file
+
+    - name: Ensure Citrix SDK is installed, if needed a specific Python needs to be configured
+      become: true
+      run_once: true
+      ansible.builtin.shell:
+        cmd: "python setup.py install"
+        chdir: "{{ citrix_sdk_file.files[0].path }}"

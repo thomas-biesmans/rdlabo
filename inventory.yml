@@ -238,6 +238,7 @@ openshift_storage_nodes:
     openshift_upi_vms_storage_nodes:
     openshift_upi_nsx_vms_storage_nodes:
 
+
 all:
   vars:
     list_of_openshift_clusters:

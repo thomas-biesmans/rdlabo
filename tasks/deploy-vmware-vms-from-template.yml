@@ -1,68 +1,6 @@
 ---
 
-- name: Check whether the cluster exists
-  when:
-    - vars.community_vmware_vmware__guest.cluster is defined
-  block:
-    - name: Check cluster - Gather cluster information
-      community.vmware.vmware_cluster_info:
-        validate_certs: "{{ validate_certs | default(false) }}"
-        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-        datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-      register: get_cluster_info_result
-
-    - name: Check cluster - Fail if the cluster doesn't exist
-      fail:
-        msg: "{{ vars.community_vmware_vmware__guest.cluster }} not found."
-      when:
-        - "not vars.community_vmware_vmware__guest.cluster in get_cluster_info_result.clusters"
-  
-  delegate_to: localhost
-
-
-# - name: show path
-#   debug:
-#     msg: "Now '{{ item }}', total '{{ vars.community_vmware_vmware__guest.folder.split('/')[1:1+index_current]|join('/') }}'"
-#   loop: "{{ vars.community_vmware_vmware__guest.folder.split('/')[1:] }}"
-#   loop_control:
-#     extended: true
-#     index_var: index_current
-
-
-- name: Deploy the VM folder recursively
-  community.vmware.vcenter_folder:
-    validate_certs: "{{ validate_certs | default(false) }}"
-    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
-    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
-    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
-    datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
-    folder_name: "{{ item | default('vm') }}"
-    parent_folder: "{{ vars.community_vmware_vmware__guest.folder.split('/')[1:1+index_current]|join('/') }}"
-    folder_type: vm
-    state: present
-  loop: "{{ vars.community_vmware_vmware__guest.folder.split('/')[1:] }}"
-  loop_control:
-    extended: true
-    index_var: index_current
-
-  delegate_to: localhost
-
-
-# - debug:
-#     msg: "{{ vars.community_vmware_vmware__guest }}"
-# - name: Test - Update VM network MAC only based on inventory, adding network to the list
-#   ansible.utils.update_fact:
-#     updates:
-#     - path: community_vmware_vmware__guest.networks[0].mac
-#       value: "{{ vars.nics[0].mac }}"
-#   register: community_vmware_vmware__guest
-#   when: not vars.os_customization_for_ip and vars.nics[0].mac is defined
-
-# - debug:
-#     msg: "{{ vars.community_vmware_vmware__guest }}"
-# - pause:
+- ansible.builtin.include_tasks: tasks/deploy-vmware-vms-folders.yml
 
 - name: Get a list of all MACs
   set_fact:
@@ -118,6 +56,7 @@
       password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
       datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
       name: "{{ inventory_hostname_short }}"
+      folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
     delegate_to: localhost
     register: facts_pre_deploy
 
@@ -250,6 +189,7 @@
     password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"  
     datacenter: "{{ vars.community_vmware_vmware__guest.datacenter }}"
     name: "{{ inventory_hostname_short }}"
+    folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
   delegate_to: localhost
   register: facts_post_deploy
   when: vars.nics[0].mac is defined

@@ -10,12 +10,14 @@ bastion_webroot: /home/user1/var-www-html-upi-nsx
 bastion_ip: 10.255.254.23
 bastion_port: 8081
 bastion_container_name: webserver-upi-nsx
-openshift_download_dir: /home/user1/openshift-install-4.9-upi-installer
-openshift_config_dir: /home/user1/openshift-install-4.9-upi-nsx-config
-openshift_example_dir: /home/user1/openshift-install-4.9-upi-nsx-examples
-openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.9/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
+openshift_download_dir: /home/user1/openshift-install-4.11-upi-installer
+openshift_config_dir: /home/user1/openshift-install-4.11-upi-nsx-config
+openshift_example_dir: /home/user1/openshift-install-4.11-upi-nsx-examples
+openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.11.37/openshift-install-linux.tar.gz
+# https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.11/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
 openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-install-linux.tar.gz
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
+openshift_custom_ova_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/latest/rhcos-vmware.x86_64.ova
 openshift_cluster_name: openshift-upi-nsx
 openshift_cluster_domain: rdlabo.local
 openshift_networkType: ncp
@@ -45,10 +47,10 @@ nsx_integration: true
 default_community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo-NSX
-  folder: /RD Labo/Various/OpenShift-4-UPI-NSX
+  folder: /P250/vm/RD Labo/Various/OpenShift-4-UPI-NSX
   name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
   state: poweredoff
-  template: Template-RHCOS # Case sensitive
+  template: Template-RHCOS-UPI-NSX # Case sensitive
   disk:
   - size_gb: 120
     type: eagerzeroedthick # thin, thick, eagerzeroedthick
@@ -104,10 +106,10 @@ default_community_vmware_vmware__guest:
     - key: guestinfo.ignition.config.data
       value: 'TBD'
 ncp_config:
-  ncp_plugin_source: https://github.com/vmware/nsx-container-plugin-operator/releases/download/v4.0.1/openshift4.tar.gz
+  ncp_plugin_source: https://github.com/vmware/nsx-container-plugin-operator/releases/download/v4.1.0/openshift4.tar.gz
   baseline_policy_type: allow_namespace
   enable_multus: false
-  ncp_image: vmware/nsx-container-plugin-operator:v4.0.0
+  ncp_image: vmware/nsx-container-plugin-operator:v4.1.0
   certificate_nsx_client_name: nsx-admin-cert
   certificate_nsx_client_subject: "/CN=nsx-admin-ansible"
   single_tier_topology: True # Single-tier = no T1, False not supported on OpenShift
@@ -116,7 +118,7 @@ ncp_config:
   edge_cluster: 7a4b9a26-ec5a-44d4-ac8f-9f5fe5f660ef # EdgeCluster01
   external_ip_pools_lb: openshift-upi-nsx-external-lb-pool
   external_ip_pools: openshift-upi-nsx-ip-pool
-  ncp_operator_version: "vmware/nsx-container-plugin-operator:v4.0.1" # See https://hub.docker.com/r/vmware/nsx-container-plugin-operator/tags
+  ncp_operator_version: "vmware/nsx-container-plugin-operator:v4.1.0" # See https://hub.docker.com/r/vmware/nsx-container-plugin-operator/tags
   # The container plugin operator is publicly available, the container plugin itself isn't, so download it to the download dir.
   # See https://customerconnect.vmware.com/downloads/info/slug/networking_security/vmware_nsx/4_x#drivers_tools
   # List of versions:
@@ -130,10 +132,15 @@ ncp_config:
   #   ncp_image_extracted_container_file: "nsx-container-4.0.1.20665035/Kubernetes/nsx-ncp-ubi-4.0.1.20665035.tar"
   #   ncp_image_loaded_image_name: "registry.local/4.0.1.20665035/nsx-ncp-ubi:latest"
   #   ncp_image_tagged_image_name_for_openshift: "nsx-ncp-ubi:v4.0.1"
-  ncp_image_downloaded_container_file: "nsx-container-4.0.1.20665035.zip" 
-  ncp_image_extracted_container_file: "nsx-container-4.0.1.20665035/Kubernetes/nsx-ncp-ubi-4.0.1.20665035.tar"
-  ncp_image_loaded_image_name: "registry.local/4.0.1.20665035/nsx-ncp-ubi:latest"
-  ncp_image_tagged_image_name_for_openshift: "nsx-ncp-ubi:v4.0.1"
+  # - version: v4.1.0
+  #   ncp_image_downloaded_container_file: "nsx-container-4.1.0.21302845.zip" 
+  #   ncp_image_extracted_container_file: "nsx-container-4.1.0.21302845/Kubernetes/nsx-ncp-ubi-4.1.0.21302845.tar"
+  #   ncp_image_loaded_image_name: "registry.local/4.0.1.21302845/nsx-ncp-ubi:latest"
+  #   ncp_image_tagged_image_name_for_openshift: "nsx-ncp-ubi:v4.1.0"
+  ncp_image_downloaded_container_file: "nsx-container-4.1.0.21302845.zip" 
+  ncp_image_extracted_container_file: "nsx-container-4.1.0.21302845/Kubernetes/nsx-ncp-ubi-4.1.0.21302845.tar"
+  ncp_image_loaded_image_name: "registry.local/4.1.0.21302845/nsx-ncp-ubi:latest"
+  ncp_image_tagged_image_name_for_openshift: "nsx-ncp-ubi:v4.1.0"
   root_ca_certificate_name: root-ca
   root_ca_certificate_subject: "/C=BE/ST=Vlaams-Brabant/L=Huizingen/O=RDLabo/OU=IT/CN=Root CA RDLabo"
   bastion_image_registry_port: 8082

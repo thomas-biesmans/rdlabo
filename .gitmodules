@@ -1,0 +1,3 @@
+[submodule "agnosticd"]
+	path = agnosticd
+	url = https://github.com/redhat-cop/agnosticd
