@@ -34,6 +34,12 @@ nsx_segment_config:
   - gateway_address: 10.201.1.254/24
   connectivity_path: /infra/tier-1s/T1-GW
   dhcp_config_path: /infra/dhcp-relay-configs/RDLDC02
+- name: NSX-OpenShift-UPI-NSX-Storage
+  transport_zone_display_name: "NSX-Overlay"
+  subnets:
+  - gateway_address: 10.201.2.254/24
+  connectivity_path: /infra/tier-1s/T1-GW
+  dhcp_config_path: /infra/dhcp-relay-configs/RDLDC02
 - name: NSX-OpenShift-ClientSubnet
   transport_zone_display_name: "NSX-Overlay"
   subnets:

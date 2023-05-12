@@ -92,6 +92,24 @@ openshift_upi_vms_bootstrap_node:
   vars:
     type: bootstrap
 
+openshift_upi_vms_storage_nodes:
+  hosts:
+    upi-storage-0.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.248
+        mac: 00:05:69:aa:aa:08
+    upi-storage-1.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.249
+        mac: 00:05:69:aa:aa:09
+    upi-storage-2.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.250
+        mac: 00:05:69:aa:aa:0a
+  vars:
+    type: storage
+
+
 openshift_upi_vms:
   children:
     openshift_upi_vms_bootstrap_node:
@@ -160,6 +178,23 @@ openshift_upi_nsx_vms_bootstrap_node:
         mac: 00:05:69:aa:aa:17
   vars:
     type: bootstrap
+    
+openshift_upi_nsx_vms_storage_nodes:
+  hosts:
+    upi-nsx-storage-0.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.10
+        mac: 00:05:69:aa:aa:18
+    upi-nsx-storage-1.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.11
+        mac: 00:05:69:aa:aa:19
+    upi-nsx-storage-2.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.12
+        mac: 00:05:69:aa:aa:1a
+  vars:
+    type: storage
 
 openshift_upi_nsx_vms:
   children:

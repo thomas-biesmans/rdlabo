@@ -1,0 +1,242 @@
+--- 
+- import_playbook: tasks/check_all.yml
+
+
+
+- name: Check OpenShift deployment status
+  hosts: openshift_clusters
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Combine customized VM config
+    set_fact:
+      community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest | default({}), recursive=true) }}"
+      ansible_becomes_password: "{{ client_password }}"
+    tags: always
+
+  - name: Check whether OpenShift cluster exists already
+    tags: always
+    delegate_to: localhost
+    block:
+
+    - name: Check whether OpenShift cluster exists already
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: openshift-kube-apiserver
+      register: namespace_kube_apiserver
+      timeout: 10
+      retries: 3
+      ignore_errors: yes
+
+    - name: "Halt when namespace 'openshift-kube-apiserver' does not already exists"
+      fail:
+        msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
+      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
+
+  - name: Deploy pre-reqs
+    delegate_to: localhost
+    block:
+
+    - name: Deploy DHCP reservations
+      ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
+      tags: deploy_infrastructure_dhcp
+      
+    - name: Deploy NSX segments
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-vmware-nsx-segments.yml
+        apply:
+          tags: vm
+      tags: vm, deploy_nsx_segments
+      vars:
+        ansible_python_interpreter: /usr/bin/python3.9
+      when: nsx_integration
+      
+
+- name: Deploy the storage nodes
+  hosts: openshift_storage_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy VMs
+    tags: vm
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-vmware-vnic-to-vm.yml
+      apply:
+        tags: vm
+
+- name: Deploy ignition configs on storage nodes
+  hosts: openshift_storage_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Prepare nodes
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
+    tags: prep_nodes
+    block:
+
+    - name: Update VMs' Advanced Settings with Base64 encoded ignition data
+      throttle: "{{ parallel_deployments }}"
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: present
+        advanced_settings:
+        - key: guestinfo.ignition.config.data
+          value: "{{ lookup('file', '{{ vars.openshift_config_dir }}/{{ item }}.ign') | b64encode }}"
+
+      delegate_to: localhost
+      tags: ignition_vm_deploy
+      with_items:
+      - "storage"
+
+- name: Power on storage nodes
+  hosts: openshift_storage_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Start the storage nodes if bootstrap is needed
+    # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
+    tags: deploy_cluster
+    block:
+
+    - name: Power on storage nodes if bootstrap is needed
+      retries: 3
+      delay: 10
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs | default(false) }}"
+        hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+        username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+        password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+        name: "{{ inventory_hostname_short }}"
+        state: poweredon
+      delegate_to: localhost
+
+- name: Deploy dedicated OpenShift storage nodes
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy storage nodes
+    tags: deploy_cluster_storage
+    delegate_to: localhost
+    block:
+
+    - name: 'Set # of nodes to wait for'
+      set_fact:
+        number_of_ready_nodes: "{{ 0 +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'master')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'worker')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'infra')
+            | map(attribute='ip')
+            | list | length | int +
+          hostvars_dict.values()
+            | selectattr('openshift_cluster_name', 'defined')
+            | selectattr('openshift_cluster_name', 'eq', vars.openshift_cluster_name)
+            | selectattr('type', 'eq', 'storage')
+            | map(attribute='ip')
+            | list | length | int }}"
+
+    - name: Accept storage node bootstrap & node serving CSRs
+      ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr_till_all_nodes_ready.yml
+
+    - name: Mark storage nodes unschedulable with a proper taint
+      kubernetes.core.k8s:
+        api_version: v1
+        definition:
+          api_version: v1
+          kind: Node
+          metadata:
+            name: "{{ hostvars[item].inventory_hostname_short }}"
+            labels:
+              node-role.kubernetes.io/worker: ""
+              node-role.kubernetes.io/infra: ""
+              cluster.ocs.openshift.io/openshift-storage: ""
+          spec:
+            taints:
+            - effect: NoSchedule
+              key: node.ocs.openshift.io/storage
+              value: "true"
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
+      with_items: "{{ groups.openshift_storage_nodes }}"
+
+      
+    - name: Install OpenShift Data Foundation Operator
+      include: tasks/deploy_openshift_operator_install.yml
+      vars:
+        install_operator_action: install
+        install_operator_name: "{{ vars.openshift_data_foundation_config.operator_name }}"
+        install_operator_namespace: openshift-storage
+        install_operator_catalog: redhat-operators
+        install_operator_packagemanifest_name: ocs-operator
+        install_operator_csv_nameprefix: ocs-operator
+        install_operator_channel: "{{ vars.openshift_data_foundation_config.operator_channel }}"
+        install_operator_automatic_install_plan_approval: "{{ vars.openshift_data_foundation_config.operator_automatic_install_plan_approval | default(true) }}"
+        install_operator_manage_namespaces:
+        - "{{ vars.openshift_data_foundation_config.operator_manage_namespaces }}"
+        install_operator_catalogsource_setup: "{{ operator_catalogsource_setup | default(false) }}"
+        install_operator_catalogsource_name: "{{ operator_catalogsource_name | default('') }}"
+        install_operator_catalogsource_image: "{{ operator_catalogsource_image | default('') }}"
+        install_operator_catalogsource_image_tag: "{{ operator_catalogsource_image_tag | default('') }}"
+
+
+
+
+
+
+    - name: List Nodes
+      shell: oc get nodes
+      register: cli_nodes_results
+
+    - debug:
+        msg: "{{ ['Nodes:'] + cli_nodes_results.stdout_lines }}"
+
+    - name: List ClusterOperators
+      shell: oc get co
+      register: cli_co_results
+
+    - debug:
+        msg: "{{ ['ClusterOperators:'] + cli_co_results.stdout_lines }}"
+

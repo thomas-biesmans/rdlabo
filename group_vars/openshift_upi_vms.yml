@@ -113,6 +113,7 @@ default_community_vmware_vmware__guest:
       value: base64
     - key: guestinfo.ignition.config.data
       value: 'TBD'
+
 ipam_config:
   nic2_dhcp:
     network_nic: ens224
@@ -125,3 +126,13 @@ ipam_config:
       range: 10.254.126.0-10.254.126.255/17
       exclude:
       - 10.254.0.0/18
+
+openshift_data_foundation_config:
+  operator_name: ocs-operator # Found through oc get packagemanifests -n openshift-marketplace | grep odf
+  operator_channel: stable-4.11
+  operator_automatic_install_plan_approval: true
+  operator_manage_namespaces: openshift-storage
+  operator_catalogsource_setup: false
+  operator_catalogsource_name: redhat-operators-snapshot-odf
+  operator_catalogsource_image: ""
+  operator_catalogsource_image_tag: ""
