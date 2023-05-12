@@ -34,7 +34,7 @@
       when: not namespace_kube_apiserver.failed and namespace_kube_apiserver.resources[0].status.phase | default('') == "Active"
 
 
-- name: Deploy VMs
+- name: Deploy base infrastructure
   hosts: openshift_clusters
   gather_facts: false
   vars_files:
@@ -87,13 +87,6 @@
           tags: vm
       tags: vm, deploy_nsx_segments
       when: nsx_integration
-      
-    - name: Deploy VMs
-      ansible.builtin.include_tasks:
-        file: tasks/deploy-vmware-vms-from-template.yml
-        apply:
-          tags: vm
-      tags: vm
 
 
 - name: Prepare the web server
@@ -163,7 +156,6 @@
         - "{{ vars.openshift_config_dir }}"
         - "{{ vars.openshift_download_dir }}"
         - "{{ vars.openshift_download_dir }}/nitro-python"
-        - "{{ vars.openshift_download_dir }}/nitro-python/extract"
 
 
       - name: Download specific sources
@@ -211,12 +203,21 @@
       #   - "{{ vars.openshift_download_dir }}/kubectl"
 
       - name: Copy client files to /usr/local/bin for all users
+        become: yes
         copy:
           src: "{{ item }}"
           dest: /usr/local/bin
         with_items: 
         - "{{ vars.openshift_download_dir }}/oc"
         - "{{ vars.openshift_download_dir }}/kubectl"
+
+      - name: Download specific .OVA sources
+        get_url:
+          url: "{{ vars.openshift_custom_ova_source }}"
+          dest: "{{ vars.openshift_download_dir }}/rhcos-vmware.x86_64.ova"
+        when: vars.openshift_custom_ova_source | length > 0
+        retries: 6
+        delay: 5
 
       - name: Check whether new SSH key is already created
         include_tasks: tasks/check_local_ssh_key_creation.yml
@@ -398,6 +399,49 @@
           - "merge-bootstrap"
 
 
+# - name: Prepare OpenShift deployment
+#   hosts: openshift_bootstrap_nodes
+#   gather_facts: false
+#   vars_files:
+#   - passwords/ansible_vault.yml
+#   - vars/network-config.yml
+#   - group_vars/vcenter_vms.yml
+#   tasks:
+
+
+
+- name: Deploy VMs's OVA
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Deploy RHCOS OVA
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-vmware-vm-template-from-ova.yml
+      apply:
+        tags: vm
+    tags: vm
+  
+
+- name: Deploy VMs
+  hosts: openshift_clusters
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  tasks:
+
+  - name: Deploy VMs
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-vmware-vms-from-template.yml
+      apply:
+        tags: vm
+    tags: vm
+
+
 - name: Deploy ignition configs on masters
   hosts: openshift_master_nodes
   gather_facts: false
@@ -546,12 +590,14 @@
     block:
       
     - name: Check whether Citrix SDK was downloaded and extracted from http://<ip>/nitro-python.tgz
-      stat:
-        path: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
+      find:
+        paths: "{{ vars.openshift_download_dir }}/nitro-python"
+        file_type: directory
+        patterns: "nitro-python-*"
       register: citrix_sdk_file
 
     - name: Download and extract the SDK
-      when: not citrix_sdk_file.stat.exists 
+      when: citrix_sdk_file.files | length == 0
       block:
         
       - name: Check whether Citrix SDK was downloaded from http://<ip>/nitro-python.tgz
@@ -575,7 +621,6 @@
         unarchive:
           src: "{{ vars.openshift_download_dir }}/nitro-python.tgz"
           dest: "{{ vars.openshift_download_dir }}/nitro-python"
-          creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
 
       - name: Find archives inside of extracted dir
         find:
@@ -587,31 +632,20 @@
         unarchive:
           src: "{{ citrix_sdk_nested_tar.files[0].path }}"
           dest: "{{ vars.openshift_download_dir }}/nitro-python/"
-          creates: "{{ vars.openshift_download_dir }}/nitro-python/extract/setup.py"
 
-      - name: Find extracted directory inside of extracted dir
-        find:
-          paths: "{{ vars.openshift_download_dir }}/nitro-python"
-          file_type: directory
-          patterns: "nitro-python-*"
-        register: citrix_sdk_nested_tar_dir
-
-      - name: Copy extracted nested dir
-        ansible.posix.synchronize:
-          src: "{{ citrix_sdk_nested_tar_dir.files[0].path }}/"
-          dest: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
-
-      - name: Remove nested dir
-        file:
-          path: "{{ citrix_sdk_nested_tar_dir.files[0].path }}"
-          state: absent
+    - name: Re-find extracted directory inside of extracted dir in case we needed to extract
+      find:
+        paths: "{{ vars.openshift_download_dir }}/nitro-python"
+        file_type: directory
+        patterns: "nitro-python-*"
+      register: citrix_sdk_file
 
     - name: Ensure Citrix SDK is installed, if needed a specific Python needs to be configured
       become: true
       run_once: true
       ansible.builtin.shell:
         cmd: "python setup.py install"
-        chdir: "{{ vars.openshift_download_dir }}/nitro-python/extract/"
+        chdir: "{{ citrix_sdk_file.files[0].path }}"
 
 
   - name: Create Citrix Load-Balancers

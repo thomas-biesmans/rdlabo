@@ -92,6 +92,7 @@ openshift_upi_vms_bootstrap_node:
   vars:
     type: bootstrap
 
+
 openshift_upi_vms:
   children:
     openshift_upi_vms_bootstrap_node:
@@ -161,6 +162,7 @@ openshift_upi_nsx_vms_bootstrap_node:
   vars:
     type: bootstrap
 
+
 openshift_upi_nsx_vms:
   children:
     openshift_upi_nsx_vms_bootstrap_node:
@@ -202,6 +204,7 @@ openshift_storage_nodes:
   children:
     openshift_upi_vms_storage_nodes:
     openshift_upi_nsx_vms_storage_nodes:
+
 
 all:
   vars:
