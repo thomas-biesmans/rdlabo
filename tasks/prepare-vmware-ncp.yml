@@ -306,14 +306,14 @@
         [ alt_names ]
         IP = {{ bastion_ip }}
       create: yes
-    when: not local_image_registry_pem.stat.exists
+    when: not local_image_registry_pem.stat.exists or not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
   
   - name: Create a new image registry certificate request if it does not exist
     shell: "openssl req -newkey rsa:4096 -nodes -keyout
             {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.key -out
             {{ ncp_config.bastion_image_registry_certificate_volume }}/{{ ncp_config.bastion_image_registry_certificate_name }}.csr.pem -subj
             '{{ ncp_config.bastion_image_registry_certificate_subject }}' -config {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf"
-    when: not local_image_registry_pem.stat.exists
+    when: not local_image_registry_pem.stat.exists or not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
 
   - name: Sign the new image registry certificate request if it does not exist
     shell: "openssl x509 -req -days 3650 -set_serial 01 -in
@@ -322,13 +322,13 @@
             {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.crt -CAkey
             {{ openshift_config_dir }}/{{ ncp_config.root_ca_certificate_name }}.key -extfile
             {{ openshift_config_dir }}/openssl_tls_imageregistry.cnf -extensions v3_req"
-    when: not local_image_registry_pem.stat.exists
+    when: not local_image_registry_pem.stat.exists or not local_ca_cert_key.stat.exists or not local_ca_cert.stat.exists
     register: image_registry_certificate
 
   - name: Apply SELinux fcontext if it wasn't already added
     become: yes
     shell: restorecon -irv {{ item }}
-    when: dir_fcontext.changed
+    when: dir_fcontext.changed or image_registry_certificate.changed
     with_items:
     # - "{{ ncp_config.bastion_image_registry_volume }}"
     - "{{ ncp_config.bastion_image_registry_certificate_volume }}"

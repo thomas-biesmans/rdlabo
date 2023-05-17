@@ -20,6 +20,11 @@
       ansible_becomes_password: "{{ client_password }}"
     tags: always
 
+  - name: Gather hostvars as dict
+    set_fact:
+      hostvars_dict: "{{ hostvars }}"
+    tags: always
+
   - name: Check whether OpenShift cluster exists already
     tags: always
     delegate_to: localhost
@@ -73,7 +78,7 @@
   - name: Deploy VMs
     tags: vm
     ansible.builtin.include_tasks:
-      file: tasks/deploy-vmware-vnic-to-vm.yml
+      file: tasks/deploy-vmware-vms-from-template.yml
       apply:
         tags: vm
 
@@ -103,7 +108,7 @@
         state: present
         advanced_settings:
         - key: guestinfo.ignition.config.data
-          value: "{{ lookup('file', '{{ vars.openshift_config_dir }}/{{ item }}.ign') | b64encode }}"
+          value: "{{ lookup('file', '{{ vars.openshift_config_dir }}/worker.ign') | b64encode }}"
 
       delegate_to: localhost
       tags: ignition_vm_deploy
@@ -181,7 +186,7 @@
 
     - name: Accept storage node bootstrap & node serving CSRs
       ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr_till_all_nodes_ready.yml
-
+    - pause:
     - name: Mark storage nodes unschedulable with a proper taint
       kubernetes.core.k8s:
         api_version: v1
@@ -202,7 +207,7 @@
       when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items: "{{ groups.openshift_storage_nodes }}"
 
-      
+    - pause:
     - name: Install OpenShift Data Foundation Operator
       include: tasks/deploy_openshift_operator_install.yml
       vars:
@@ -222,8 +227,18 @@
         install_operator_catalogsource_image_tag: "{{ operator_catalogsource_image_tag | default('') }}"
 
 
-
-
+    - name: Patch the installation to enable the CLI tools
+      tags: deploy_tools
+      delegate_to: localhost
+      kubernetes.core.k8s_json_patch:
+        api_version: ocs.openshift.io/v1
+        namespace: openshift-storage
+        kind: OCSInitialization
+        name: ocsinit
+        patch:
+          - op: replace
+            path: "/spec/enableCephTools"
+            value: true
 
 
     - name: List Nodes

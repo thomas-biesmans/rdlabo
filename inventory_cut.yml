@@ -1,4 +1,12 @@
 ---
+# Per https://docs.openshift.com/container-platform/4.12/installing/installing_vsphere/installing-vsphere-network-customizations.html#csr-management_installing-vsphere-network-customizations
+# OpenShift expects a MAC address in one of four VMwar OUI ranges:
+#  - 00:05:69:00:00:00 to 00:05:69:FF:FF:FF
+#  - 00:0c:29:00:00:00 to 00:0c:29:FF:FF:FF
+#  - 00:1c:14:00:00:00 to 00:1c:14:FF:FF:FF
+#  - 00:50:56:00:00:00 to 00:50:56:3F:FF:FF
+#  The first range failed with adding an additional network on NSX-T (regular port group was no problem),
+#   while the last range succeeded.
 
 # OKD 3.11 nodes
 rhel_vms_master_nodes:
@@ -63,14 +71,14 @@ openshift_upi_vms_worker_nodes:
     upi-worker-0.openshift-upi.rdlabo.local:
       nics:
       - ip: 10.255.254.245
-        mac: 00:05:69:aa:aa:06
-      - ip: 10.255.127.246
-        mac: 00:05:69:aa:ab:06
+        mac: 00:05:69:aa:aa:05
+      - ip: 10.254.127.245
+        mac: 00:05:69:aa:ab:05
     upi-worker-1.openshift-upi.rdlabo.local:
       nics:
       - ip: 10.255.254.246
         mac: 00:05:69:aa:aa:06
-      - ip: 10.255.127.246
+      - ip: 10.254.127.246
         mac: 00:05:69:aa:ab:06
   vars:
     type: worker
@@ -83,6 +91,24 @@ openshift_upi_vms_bootstrap_node:
         mac: 00:05:69:aa:aa:07
   vars:
     type: bootstrap
+
+openshift_upi_vms_storage_nodes:
+  hosts:
+    upi-storage-0.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.248
+        mac: 00:05:69:aa:aa:08
+    upi-storage-1.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.249
+        mac: 00:05:69:aa:aa:09
+    upi-storage-2.openshift-upi.rdlabo.local:
+      nics:
+      - ip: 10.255.254.250
+        mac: 00:05:69:aa:aa:0a
+  vars:
+    type: storage
+
 
 openshift_upi_vms:
   children:
@@ -134,13 +160,13 @@ openshift_upi_nsx_vms_worker_nodes:
       - ip: 10.201.0.10
         mac: 00:05:69:aa:aa:15
       - ip: 10.10.0.10
-        mac: 00:05:69:aa:ab:15
+        mac: 00:05:56:aa:aa:15
     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
       nics:
       - ip: 10.201.0.11
         mac: 00:05:69:aa:aa:16
       - ip: 10.10.0.11
-        mac: 00:05:69:aa:ab:16
+        mac: 00:05:56:aa:aa:16
   vars:
     type: worker
 
@@ -152,6 +178,23 @@ openshift_upi_nsx_vms_bootstrap_node:
         mac: 00:05:69:aa:aa:17
   vars:
     type: bootstrap
+    
+openshift_upi_nsx_vms_storage_nodes:
+  hosts:
+    upi-nsx-storage-0.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.10
+        mac: 00:05:69:aa:aa:18
+    upi-nsx-storage-1.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.11
+        mac: 00:05:69:aa:aa:19
+    upi-nsx-storage-2.openshift-upi-nsx.rdlabo.local:
+      nics:
+      - ip: 10.201.2.12
+        mac: 00:05:69:aa:aa:1a
+  vars:
+    type: storage
 
 openshift_upi_nsx_vms:
   children:
@@ -167,28 +210,28 @@ openshift_upi_nsx_vms:
 openshift_clusters:
   children:
     openshift_upi_vms:
-    openshift_upi_nsx_vms:
 
 # Using same-level groups & phigher precendence on clusters instead of nested groups to prevent parent variable merge
 openshift_bootstrap_nodes:
   children:
-    openshift_upi_nsx_vms_bootstrap_node:
+    openshift_upi_vms_bootstrap_node:
 
 openshift_master_nodes:
   children:
-    openshift_upi_nsx_vms_master_nodes:
+    openshift_upi_vms_master_nodes:
 
 openshift_worker_nodes:
   children:
-    openshift_upi_nsx_vms_worker_nodes:
+    openshift_upi_vms_worker_nodes:
 
 openshift_infra_nodes:
   children:
-    openshift_upi_nsx_vms_infra_nodes:
+    openshift_upi_vms_infra_nodes:
 
 openshift_storage_nodes:
   children:
-    openshift_upi_nsx_vms_storage_nodes:
+    openshift_upi_vms_storage_nodes:
+
 
 all:
   vars:
@@ -201,7 +244,6 @@ vcenter_vms:
   children:
     rhel_vms:
     openshift_upi_vms:
-    openshift_upi_nsx_vms:
 
 windows_dns:
   hosts:

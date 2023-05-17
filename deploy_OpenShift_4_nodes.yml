@@ -814,6 +814,22 @@
         state: poweredon
       delegate_to: localhost
 
+    - name: Pause at least a bit for the master nodes to assume ignition serving
+      pause:
+        seconds: 300
+
+    - name: Query ignition files served by the master nodes, waiting up to 15-45 minutes
+      shell: "curl -k https://{{ openshift_api_url }}:22623/config/worker"
+      retries: 30
+      delay: 30 # default curl timeout is 60s, but is not always triggered
+      until: ignition_curl.stdout[:20] == "{\"ignition\":{\"versio"
+      register: ignition_curl
+      delegate_to: localhost
+
+    - name: Show output received from master node cluster
+      debug:
+        msg: "Output: {{ ignition_curl.stdout[:20] }}"
+
 
 - name: Power on worker nodes
   hosts: openshift_worker_nodes

@@ -33,15 +33,18 @@
       kind: Node
     register: node_list
 
+  - debug:
+      msg: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') }}"
+
   - name: Calculate node progress
     set_fact:
-      nodes_ready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') | length | int }}"
-      nodes_notready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','!=','Ready') | length | int }}"
+      nodes_ready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') | selectattr('status','==','True') | length | int }}"
+      nodes_notready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') | selectattr('status','!=','True') | length | int }}"
 
   - name: "Retry attempt #{{ retry_counter | int }} of 45 - Retry if nodes aren't ready yet"
     fail:
       msg: "Number of ready nodes, {{ nodes_ready }} of {{ vars.number_of_ready_nodes }} not yet reached, retrying."
-    when: nodes_ready < vars.number_of_ready_nodes 
+    when: nodes_ready | int < vars.number_of_ready_nodes | int 
 
   - name: "Retry attempt #{{ retry_counter | int }} of 45 - Continue if all nodes are found"
     debug:
