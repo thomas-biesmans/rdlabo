@@ -16,7 +16,8 @@ Make sure the Ansible requirements are installed next with the following command
     python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
     python3.8 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
     python3.8 -m pip install pywinrm --user
-    python3.8 -m pip install nsnitro
+    python3.8 -m pip install nsnitro --user
+    python3.8 -m pip install jmespath --user
 
     # For Python 3.9
     python3.9 -m pip install packaging --user
@@ -28,6 +29,7 @@ Make sure the Ansible requirements are installed next with the following command
     python3.9 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
     python3.9 -m pip install pywinrm --user
     python3.9 -m pip install nsnitro --user
+    python3.9 -m pip install jmespath --user
     
 
 Versions used in the OKD pass:

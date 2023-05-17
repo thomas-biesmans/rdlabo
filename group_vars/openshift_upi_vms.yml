@@ -130,8 +130,8 @@ ipam_config:
       - 10.254.0.0/18
 
 openshift_data_foundation_config:
-  operator_name: ocs-operator # Found through oc get packagemanifests -n openshift-marketplace | grep odf
-  operator_channel: stable-4.11
+  operator_name: odf-operator # Found through oc get packagemanifests -n openshift-marketplace | grep odf
+  operator_channel: stable-4.11 # Found through oc get packagemanifests/odf-operator -n openshift-marketplace -o yaml | grep stable
   operator_automatic_install_plan_approval: true
   operator_manage_namespaces: openshift-storage
   operator_catalogsource_setup: false

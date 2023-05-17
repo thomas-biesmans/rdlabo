@@ -33,9 +33,6 @@
       kind: Node
     register: node_list
 
-  - debug:
-      msg: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') }}"
-
   - name: Calculate node progress
     set_fact:
       nodes_ready: "{{ node_list.resources | map(attribute='status.conditions') | sum(start=[]) | selectattr('type','==','Ready') | selectattr('status','==','True') | length | int }}"
