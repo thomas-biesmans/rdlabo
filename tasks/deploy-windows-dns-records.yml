@@ -6,12 +6,16 @@
 #     type: primary
 #     state: present
 
+- name: Fail if no single forward lookup zone is found 
+  fail:
+    msg: "No single forward lookup zone found for {{ vars.custom_community_vmware_vmware__guest.networks[0].name }}, there are 
+          {{ vars.vlans | selectattr('name','eq', vars.custom_community_vmware_vmware__guest.networks[0].name) | map(attribute='revlookupzonename') | list | length }}"
+  when: vars.vlans | selectattr('name','eq', vars.custom_community_vmware_vmware__guest.networks[0].name) | map(attribute='revlookupzonename') | list | length != 1
+
 - name: Find matching reverse lookup zone
   set_fact:
-    found_revlookupzonename: "{{ item.revlookupzonename }}"
-    found_fwdlookupzonename: "{{ item.fwdlookupzonename }}"
-  loop: "{{ vars.vlans }}"
-  when: item.name == vars.custom_community_vmware_vmware__guest.networks[0].name
+    found_revlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.custom_community_vmware_vmware__guest.networks[0].name) | map(attribute='revlookupzonename') | list)[0] }}"
+    found_fwdlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.custom_community_vmware_vmware__guest.networks[0].name) | map(attribute='fwdlookupzonename') | list)[0] }}"
 
 - name: "DNS Forward records: name - value - zone"
   debug:

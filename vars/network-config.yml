@@ -63,6 +63,12 @@ vlans:
   gateway: 10.201.1.254
   revlookupzonename: 1.201.10.in-addr.arpa
   fwdlookupzonename: rdlabo.local
+- name: NSX-OpenShift-UPI-NSX-Storage
+  network: 10.201.2.0
+  netmask: 255.255.255.0
+  gateway: 10.201.2.254
+  revlookupzonename: 2.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
 - name: NSX-OpenShift-ClientSubnet
   network: 10.10.0.0
   netmask: 255.255.255.0
