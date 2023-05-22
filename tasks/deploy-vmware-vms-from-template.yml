@@ -8,7 +8,7 @@
 
 - name: Update VM network IP & MAC based on inventory, adding network to the list
   set_fact:
-    new_networks: "{{ community_vmware_vmware__guest.networks | zip( listofmacs ) | map('combine') | list }}"
+    new_networks: "{{ [] + community_vmware_vmware__guest.networks | zip( listofmacs ) | map('combine') | list }}"
 
 - name: Print an overview of attached NICs for the new VMs
   debug:
@@ -65,7 +65,7 @@
     when: facts_pre_deploy.failed
     block:
 
-    - name: Deploy the VM from a regular template, only the first NIC seems to be deployed
+    - name: Deploy the VM from a regular template, ignoring additional NICs
       throttle: "{{ parallel_deployments }}"
       retries: 3
       delay: 10
@@ -79,7 +79,7 @@
         folder: "{{ vars.community_vmware_vmware__guest.folder | default('vm') }}"
         name: "{{ inventory_hostname_short }}"
         state: "present" #"{{ vars.community_vmware_vmware__guest.state | default('poweredon') }}"
-        template: "{{ vars.community_vmware_vmware__guest.template | default('v') }}"
+        template: "{{ vars.community_vmware_vmware__guest.template }}"
         disk: "{{ vars.community_vmware_vmware__guest.disk }}"
         # - size_gb: 30
         #   type: eagerzeroedthick # thin, thick, eagerzeroedthick
@@ -108,7 +108,7 @@
         #       state: present
         #       type: iso
         #       iso_path: "[datastore1] livecd.iso"
-        networks: "{{ vars.new_networks }}" #| default( default_vmware_portgroup ) }}"
+        networks: "{{ [vars.new_networks | first] | list }}"
         customization: "{{ vars.community_vmware_vmware__guest.customization | default (omit) }}"
         # advanced_settings: "{{ vars.community_vmware_vmware__guest.advanced_settings | default ({}) }}"
 
@@ -116,9 +116,7 @@
 
       delegate_to: localhost
       register: deploy
-      failed_when: >
-        deploy.rc != 0 or
-        (vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses )))
+      # failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses )) # only useful in OKD 3.11
 
     - name: Update VMs' Advanced Settings
       throttle: "{{ parallel_deployments }}"
