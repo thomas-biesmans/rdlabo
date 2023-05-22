@@ -3,12 +3,16 @@
   when: vars.type == 'bootstrap'
   block:
 
+  - name: Fail if no single forward lookup zone is found 
+    fail:
+      msg: "No single forward lookup zone found for {{ vars.openshift_api_vlan }}, there are 
+            {{ vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='revlookupzonename') | list | length }}"
+    when: vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='revlookupzonename') | list | length != 1
+
   - name: Find matching reverse lookup zone
     set_fact:
-      found_revlookupzonename: "{{ item.revlookupzonename }}"
-      found_fwdlookupzonename: "{{ item.fwdlookupzonename }}"
-    loop: "{{ vars.vlans }}"
-    when: item.name == vars.openshift_api_vlan
+      found_revlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='revlookupzonename') | list)[0] }}"
+      found_fwdlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='fwdlookupzonename') | list)[0] }}"
 
   - name: Create Windows DNS A record for 'api'
     community.windows.win_dns_record:
@@ -54,12 +58,16 @@
   when: vars.type == 'bootstrap'
   block:
 
+  - name: Fail if no single forward lookup zone is found 
+    fail:
+      msg: "No single forward lookup zone found for {{ vars.openshift_ingress_vlan }}, there are 
+            {{ vars.vlans | selectattr('name','eq', vars.openshift_ingress_vlan) | map(attribute='revlookupzonename') | list | length }}"
+    when: vars.vlans | selectattr('name','eq', vars.openshift_ingress_vlan) | map(attribute='revlookupzonename') | list | length != 1
+
   - name: Find matching reverse lookup zone
     set_fact:
-      found_revlookupzonename: "{{ item.revlookupzonename }}"
-      found_fwdlookupzonename: "{{ item.fwdlookupzonename }}"
-    loop: "{{ vars.vlans }}"
-    when: item.name == vars.openshift_ingress_vlan
+      found_revlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_ingress_vlan) | map(attribute='revlookupzonename') | list)[0] }}"
+      found_fwdlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_ingress_vlan) | map(attribute='fwdlookupzonename') | list)[0] }}"
 
   - name: Create Windows DNS A record for 'apps'
     community.windows.win_dns_record:
