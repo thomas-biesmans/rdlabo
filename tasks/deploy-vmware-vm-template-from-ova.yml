@@ -55,11 +55,10 @@
         wait_for_ip_address: "{{ vars.community_vmware_vmware__guest.wait_for_ip_address | default(false) }}"
         ovf: "{{ vars.openshift_download_dir }}/rhcos-vmware.x86_64.ova"
         datastore: "{{ vars.community_vmware_vmware__guest.disk[0].datastore }}"
-        disk_provisioning: "{{ vars.community_vmware_vmware__guest.disk[0].type }}"
+        disk_provisioning: "{{ vars.template_type }}"
         networks: "{u'VM Network':u'{{ vars.community_vmware_vmware__guest.networks[0].name }}'}"
       delegate_to: localhost
       register: deploy
-      failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
 
     - name: Move the deployed VM to the proper folder
       throttle: "{{ parallel_deployments }}"

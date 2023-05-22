@@ -116,7 +116,9 @@
 
       delegate_to: localhost
       register: deploy
-      failed_when: vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses ))
+      failed_when: >
+        deploy.rc != 0 or
+        (vars.os_customization_for_ip and not (vars.nics[0].ip in (deploy.instance.hw_eth0.ipaddresses )))
 
     - name: Update VMs' Advanced Settings
       throttle: "{{ parallel_deployments }}"

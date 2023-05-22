@@ -56,6 +56,7 @@ default_community_vmware_vmware__guest:
   name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
   state: poweredoff
   template: Template-RHCOS-UPI # Case sensitive
+  template_type: eagerZeroedThick # thin, thick, eagerZeroedThick
   disk:
   - size_gb: 120
     type: eagerzeroedthick # thin, thick, eagerzeroedthick
