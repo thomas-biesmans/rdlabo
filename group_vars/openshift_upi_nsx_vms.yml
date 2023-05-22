@@ -178,3 +178,4 @@ openshift_data_foundation_config:
   operator_catalogsource_name: redhat-operators-snapshot-odf
   operator_catalogsource_image: ""
   operator_catalogsource_image_tag: ""
+  storage_system_name: ocs-storagecluster-storagesystem

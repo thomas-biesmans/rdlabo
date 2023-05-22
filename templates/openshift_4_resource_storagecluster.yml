@@ -1,0 +1,10 @@
+---
+# vars:
+# - app_namespace: Name of the namespace
+# - app_sc_name: name of the Storage Cluster
+
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: "{{ app_sc_name }}"
+  namespace: "{{ app_namespace }}"

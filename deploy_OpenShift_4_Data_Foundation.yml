@@ -254,3 +254,24 @@
           - op: replace
             path: "/spec/enableCephTools"
             value: true
+
+
+    - name: Add an OpenShift Data Foundation StorageCluster
+      vars:
+        app_namespace: "{{ vars.openshift_data_foundation_config.operator_manage_namespaces }}"
+        app_name: "{{ vars.openshift_data_foundation_config.storage_system_name }}"
+
+      block:
+
+      - name: Create a cluster
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_storagecluster.yml'
+
+        register: deploy_odf_cluster
+        retries: 72
+        delay: 5
+        until:
+          - deploy_odf_cluster.resources[0].status.phase is defined
+          - deploy_odf_cluster.resources[0].status.phase | length > 0
+          - deploy_odf_cluster.resources[0].status.phase == 'Ready'
