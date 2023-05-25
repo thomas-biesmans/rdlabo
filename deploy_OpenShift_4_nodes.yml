@@ -1058,6 +1058,36 @@
             path: "/spec/ncpReplicas"
             value: 3
       when: nsx_integration
+
+    - name: Getting current NCP tolerations for nsx-node-agent DaemonSet
+      kubernetes.core.k8s_info:
+        api_version: operator.nsx.vmware.com/v1
+        namespace: nsx-system-operator
+        kind: ncpinstall
+        name: ncp-install
+      register: nsx_node_agent_current_tolerations
+      timeout: 10
+      retries: 3
+      when: nsx_integration
+      
+    - name: Adding NCP tolerations for nsx-node-agent DaemonSet for storage nodes
+      vars:
+        new_tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/infra
+        - effect: NoSchedule
+          key: node.ocs.openshift.io/storage
+          value: "true"
+      kubernetes.core.k8s_json_patch:
+        api_version: operator.nsx.vmware.com/v1
+        namespace: nsx-system-operator
+        kind: ncpinstall
+        name: ncp-install
+        patch:
+          - op: replace
+            path: "/spec/nsx-node-agent/tolerations"
+            value: "{{ nsx_node_agent_current_tolerations.resources[0].spec['nsx-node-agent'].tolerations + new_tolerations}}"
+      when: nsx_integration
       
     # - name: Add custom CA as trustedBundle through image.config.openshift.io/cluster, not performed automatically as proxy isn't set in install-config
     #   kubernetes.core.k8s_json_patch:
