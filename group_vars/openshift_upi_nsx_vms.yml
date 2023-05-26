@@ -178,4 +178,18 @@ openshift_data_foundation_config:
   operator_catalogsource_name: redhat-operators-snapshot-odf
   operator_catalogsource_image: ""
   operator_catalogsource_image_tag: ""
-  storage_system_name: ocs-storagecluster-storagesystem
+  storage_system_name: ocs-deviceset-thin-1
+  osd_requests_cpu: 1 # Default 1
+  osd_requests_memory: 5Gi # Default 5Gi
+  osd_limits_cpu: 2 # Default 2
+  osd_limits_memory: 5Gi # Default 5Gi
+  osd_requests_storage: 512Gi # Minimum 512Gi
+  osd_storageclassname: thin # Default thin for VMware
+  mds_requests_cpu: 1 # Default 1
+  mds_requests_memory: 8Gi # Default 8Gi
+  mds_limits_cpu: 3 # Default 3
+  mds_limits_memory: 8Gi # Default 8Gi
+  rgw_requests_cpu: 1 # Default 1
+  rgw_requests_memory: 4Gi # Default 4Gi
+  rgw_limits_cpu: 2 # Default 2
+  rgw_limits_memory: 4Gi # Default 4Gi
