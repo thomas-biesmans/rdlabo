@@ -299,10 +299,6 @@
         rgw_requests_memory: "{{ vars.openshift_data_foundation_config.rgw_requests_memory }}"
         rgw_limits_cpu: "{{ vars.openshift_data_foundation_config.rgw_limits_cpu }}"
         rgw_limits_memory: "{{ vars.openshift_data_foundation_config.rgw_limits_memory }}"
-
-
-
-
       block:
 
       - name: Create a cluster
@@ -312,8 +308,33 @@
 
         register: deploy_odf_cluster
         retries: 72
-        delay: 5
+        delay: 10
         until:
-          - deploy_odf_cluster.resources[0].status.phase is defined
-          - deploy_odf_cluster.resources[0].status.phase | length > 0
-          - deploy_odf_cluster.resources[0].status.phase == 'Ready'
+          - deploy_odf_cluster.result.status.phase is defined
+          - deploy_odf_cluster.result.status.phase | length > 0
+          - deploy_odf_cluster.result.status.phase == 'Ready'
+
+
+      - name: Remove thin as the default storage class
+        tags: temp
+        kubernetes.core.k8s:
+          definition:
+            kind: StorageClass
+            apiVersion: storage.k8s.io/v1
+            metadata:
+              name: thin
+              annotations:
+                storageclass.kubernetes.io/is-default-class: 'false'
+          state: present
+
+      - name: Set CephFS as default storage class
+        tags: temp
+        kubernetes.core.k8s:
+          definition:
+            kind: StorageClass
+            apiVersion: storage.k8s.io/v1
+            metadata:
+              name: "{{ vars.openshift_data_foundation_config.storage_system_name }}-cephfs"
+              annotations:
+                storageclass.kubernetes.io/is-default-class: 'true'
+          state: present
