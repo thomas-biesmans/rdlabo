@@ -1,3 +1,6 @@
+# Source: https://github.com/redhat-cop/agnosticd/tree/development/ansible/roles/install_operator
+# Amended for dynamic query of CSV names
+
 ---
 - name: Check that operator name has been provided
   assert:
@@ -18,13 +21,13 @@
   - name: "{{ install_operator_name }} - Ensure OperatorGroup exists"
     kubernetes.core.k8s:
       state: present
-      definition: "{{ lookup('template', 'operatorgroup.yaml.j2' ) | from_yaml }}"
+      definition: "{{ lookup('template', 'openshift_4_resource_operator_operatorgroup.yml' ) | from_yaml }}"
 
 - name: "{{ install_operator_name }} - Create CatalogSource for use with catalog snapshot"
   when: install_operator_catalogsource_setup | bool
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('template', 'catalogsource.yaml.j2' ) | from_yaml }}"
+    definition: "{{ lookup('template', 'openshift_4_resource_operator_catalogsource.yml' ) | from_yaml }}"
 
 - name: "{{ install_operator_name }} - Set subscription channel to provided channel"
   when: install_operator_channel | default("") | length > 0
@@ -70,7 +73,7 @@
 - name: "{{ install_operator_name }} - Create operator subscription"
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('template', 'subscription.yaml.j2' ) | from_yaml }}"
+    definition: "{{ lookup('template', 'openshift_4_resource_operator_subscription.yml' ) | from_yaml }}"
 
 - name: "{{ install_operator_name }} - Wait until InstallPlan is created"
   kubernetes.core.k8s_info:
@@ -106,7 +109,7 @@
   when: r_install_plan.resources[0].status.phase is match("RequiresApproval")
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup( 'template', 'installplan.yaml.j2' ) }}"
+    definition: "{{ lookup( 'template', 'openshift_4_resource_operator_installplan.yml' ) }}"
 
 - name: "{{ install_operator_name }} - Get Installed CSV"
   kubernetes.core.k8s_info:
