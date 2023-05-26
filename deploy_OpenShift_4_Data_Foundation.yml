@@ -241,7 +241,6 @@
         install_operator_catalogsource_image: "{{ operator_catalogsource_image | default('') }}"
         install_operator_catalogsource_image_tag: "{{ operator_catalogsource_image_tag | default('') }}"
 
-
     - name: Patch the installation to enable the CLI tools
       tags: deploy_tools
       delegate_to: localhost
@@ -255,11 +254,54 @@
             path: "/spec/enableCephTools"
             value: true
 
+    - name: Get the current console plugins
+      tags: deploy_plugin
+      delegate_to: localhost
+      kubernetes.core.k8s_info:
+        api_version: operator.openshift.io/v1
+        namespace: openshift-storage
+        kind: Console
+        name: cluster
+      register: console_plugins
+
+    - name: Patch the installation to enable the console plugin
+      tags: deploy_plugin
+      delegate_to: localhost
+      vars:
+        plugins: "{{ [] + (console_plugins.resources[0].spec.plugins | default ([])) + ['odf-console'] }}"
+      kubernetes.core.k8s_json_patch:
+        api_version: operator.openshift.io/v1
+        namespace: openshift-storage
+        kind: Console
+        name: cluster
+        patch:
+          - op: add
+            path: "/spec/plugins"
+            value: "{{ plugins }}"
+      when: not 'odf-console' in (console_plugins.resources[0].spec.plugins | default ([]))
+
 
     - name: Add an OpenShift Data Foundation StorageCluster
       vars:
         app_namespace: "{{ vars.openshift_data_foundation_config.operator_manage_namespaces }}"
-        app_name: "{{ vars.openshift_data_foundation_config.storage_system_name }}"
+        app_sc_name: "{{ vars.openshift_data_foundation_config.storage_system_name }}"
+        osd_requests_cpu: "{{ vars.openshift_data_foundation_config.osd_requests_cpu }}"
+        osd_requests_memory: "{{ vars.openshift_data_foundation_config.osd_requests_memory }}"
+        osd_limits_cpu: "{{ vars.openshift_data_foundation_config.osd_limits_cpu }}"
+        osd_limits_memory: "{{ vars.openshift_data_foundation_config.osd_limits_memory }}"
+        osd_storageclassname: "{{ vars.openshift_data_foundation_config.osd_storageclassname }}"
+        osd_requests_storage: "{{ vars.openshift_data_foundation_config.osd_requests_storage }}"
+        mds_requests_cpu: "{{ vars.openshift_data_foundation_config.mds_requests_cpu }}"
+        mds_requests_memory: "{{ vars.openshift_data_foundation_config.mds_requests_memory }}"
+        mds_limits_cpu: "{{ vars.openshift_data_foundation_config.mds_limits_cpu }}"
+        mds_limits_memory: "{{ vars.openshift_data_foundation_config.mds_limits_memory }}"
+        rgw_requests_cpu: "{{ vars.openshift_data_foundation_config.rgw_requests_cpu }}"
+        rgw_requests_memory: "{{ vars.openshift_data_foundation_config.rgw_requests_memory }}"
+        rgw_limits_cpu: "{{ vars.openshift_data_foundation_config.rgw_limits_cpu }}"
+        rgw_limits_memory: "{{ vars.openshift_data_foundation_config.rgw_limits_memory }}"
+
+
+
 
       block:
 

@@ -8,3 +8,44 @@ kind: StorageCluster
 metadata:
   name: "{{ app_sc_name }}"
   namespace: "{{ app_namespace }}"
+spec:
+  nodeTopologies: {}
+  resources:
+    mds:
+      requests:
+        cpu: "{{ mds_requests_cpu | default('1') }}"
+        memory: "{{ mds_requests_memory | default('8Gi') }}"
+      limits:
+        cpu: "{{ mds_limits_cpu | default('3') }}"
+        memory: "{{ mds_limits_memory | default('8Gi') }}"
+    rgw:
+      requests:
+        cpu: "{{ rgw_requests_cpu | default('1') }}"
+        memory: "{{ rgw_requests_memory | default('4Gi') }}"
+      limits:
+        cpu: "{{ rgw_limits_cpu | default('2') }}"
+        memory: "{{ rgw_limits_memory | default('4Gi') }}"
+  storageDeviceSets:
+    - name: ocs-deviceset
+      config: {}
+      count: 1
+      replica: 3
+      resources:
+        requests:
+          cpu: "{{ osd_requests_cpu | default('2') }}"
+          memory: "{{ osd_requests_memory | default('5Gi') }}"
+        limits:
+          cpu: "{{ osd_limits_cpu | default('1') }}"
+          memory: "{{ osd_limits_memory | default('5Gi') }}"
+      placement: {}
+      dataPVCTemplate:
+        spec:
+          storageClassName: "{{ osd_storageclassname | default('thin') }}"
+          accessModes:
+            - ReadWriteOnce
+          volumeMode: Block
+          resources:
+            requests:
+              storage: "{{ osd_requests_storage | default('500Gi') }}"
+      portable: true
+      preparePlacement: {}
