@@ -17,5 +17,5 @@ spec:
   resources:
     requests:
       storage: "{{ app_pvc_size }}"
-  storageClassName: "{{ app_pvc_storageclass | default ('thin') }}"
+  storageClassName: "{{ app_pvc_storageClassName | default ('thin') }}"
   # volumeMode: Filesystem
