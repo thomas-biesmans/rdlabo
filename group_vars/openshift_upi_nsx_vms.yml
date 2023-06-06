@@ -109,7 +109,7 @@ default_community_vmware_vmware__guest:
 ncp_config:
   ncp_plugin_source: https://github.com/vmware/nsx-container-plugin-operator/releases/download/v4.1.0/openshift4.tar.gz
   baseline_policy_type: allow_namespace
-  enable_multus: false
+  enable_multus: true # False by default, true for Multus with multi-NIC support
   ncp_image: vmware/nsx-container-plugin-operator:v4.1.0
   certificate_nsx_client_name: nsx-admin-cert
   certificate_nsx_client_subject: "/CN=nsx-admin-ansible"
