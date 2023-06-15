@@ -343,7 +343,7 @@
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_ceph_rbd
     delegate_to: localhost
-    ignore_errors: true
+    # ignore_errors: true
     block:
 
     # # WordPress on MySQL CLI
@@ -394,12 +394,56 @@
         app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-ceph-rbd"
         app_pvc_mount_path: 
         app_volumeMounts:
-        - mountPath: /usr/share/nginx/html
-          name: "{{ app_name }}-pv"
+        - name: "{{ app_name }}-pv"
+          mountPath: /usr/share/nginx/html
+        - name: "{{ app_name }}-cm"
+          mountPath: /usr/share/nginx/html
         app_volumes:
         - name: "{{ app_name }}-pv"
           persistentVolumeClaim:
             claimName: "{{ app_name }}-pvc"
+        - name: "{{ app_name }}-cm"
+          configMap:
+            name: hello-world-html
+        app_configmaps:
+        - name: hello-world-html
+          # data: |-
+          #   index.html: |-
+          #     <html>
+          #       <head>
+          #       </head>
+          #       <body>
+          #         <h1>Hello World, through a ConfigMap!<h1>
+          #       </body>
+          #     </html>
+          # data: |-
+          #   index.html: |+
+          #     <html>
+          #       <head>
+          #       </head>
+          #       <body>
+          #         <h1>Hello World, through a ConfigMap!<h1>
+          #       </body>
+          #     </html>
+          data:
+          - key: index.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap!<h1>
+                </body>
+              </html>
+          - key: index2.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap with multiple values!<h1>
+                </body>
+              </html>
 
       block:
 
@@ -416,6 +460,12 @@
       - name: Set Image reference, allowing variabel precedence
         set_fact:
           app_container_source_set_fact: "{{ app_container_source }}"
+
+      - name: Add ConfigMaps
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_configmap.yml'
+        with_items: "{{ app_configmaps }}"
           
       - name: Add Deployment
         kubernetes.core.k8s:
@@ -436,9 +486,13 @@
           state: present
           template: 'templates/openshift_4_resource_route.yml'
 
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
       - name: Query ToDo Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://nginx-rbd-test-nginx-ceph-rbd-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'nginx/1.25.0'"
-          text_to_find: 'nginx/1.25.0'
+        - url: "http://nginx-rbd-test-nginx-ceph-rbd-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+          text_to_find: 'Hello World'
 
