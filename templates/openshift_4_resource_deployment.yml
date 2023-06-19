@@ -19,6 +19,7 @@ metadata:
   labels:
     app: "{{ app_name }}"
 spec:
+  replicas: {{ app_replicas | default (omit) }}
   selector:
     matchLabels:
       deployment: "{{ app_name }}"
@@ -28,6 +29,16 @@ spec:
         deployment: "{{ app_name }}"
       annotations: {{ app_annotations | default (omit) }}
     spec:
+{% if app_initContainers | default(omit) | length > 0 %}
+      initContainers:
+{% for initContainer in app_initContainers | default([]) %}
+      - name: "{{ initContainer.name }}"
+        image: "{{ initContainer.image }}"
+        command: {{ initContainer.command | default(omit) }}
+        volumeDevices: {{ app_volumeDevices | default (omit) }}
+        securityContext: {{ initContainer.securityContext | default (omit) }}
+{% endfor %}
+{% endif %}
       containers:
       - image: "{{ app_container_source_set_fact }}" 
         imagePullPolicy: Always
@@ -37,6 +48,7 @@ spec:
           protocol: "{{ app_service_protocol | upper }}"
         resources: {{ app_resources | default (omit) }}
         volumeMounts: {{ app_volumeMounts | default (omit) }}
+        volumeDevices: {{ app_volumeDevices | default (omit) }}
         env: {{ app_envarguments | default (omit) }}
         livenessProbe: {{ app_livenessProbe | default (omit) }}
         startupProbe: {{ app_startupProbe | default (omit) }}

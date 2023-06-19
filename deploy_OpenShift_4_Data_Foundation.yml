@@ -380,7 +380,7 @@
     #     text_to_find: "<title>"
 
 
-    - name: Nginx app through Ansible  
+    - name: Nginx app through Ansible with ceph-rbd
       vars:
         app_name: nginx-rbd
         app_namespace: test-nginx-ceph-rbd-ansible
@@ -388,14 +388,118 @@
         app_service_port: 80
         app_service_protocol: tcp
         app_container_port: 8080
+        app_replicas: 1 # More than 1 would require clustered FileSystem. RHEL supports GFS1&2, but as an add-on.
         app_pvc_name: "{{ app_name }}-pvc"
-        app_pvc_accessmode: ReadWriteOnce
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Block # Generally Block or Filesystem
         app_pvc_size: 1Gi
         app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-ceph-rbd"
+        app_volumeDevices:
+        - name: "{{ app_name }}-pv"
+          devicePath: /dev/xvdb
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+        # app_initContainers:
+        # If an FS is needed, then the idea would be to format it in an initContainer, but mounting requires root, so we'll just go for a check with dd.
+        # - name: format-volume
+        #   image: registry.redhat.io/rhel7/rhel-tools
+        #   command:
+        #   - 'sh'
+        #   - '-c'
+        #   - 'mkfs.ext4 /dev/xvdb && mount /dev/xvdb /usr/share/nginx'
+        #   deviceMounts:
+        #   - name: "{{ app_name }}-pv"
+        #     devicePath: /dev/xvdb
+        #   securityContext:
+        #     # privileged: True
+        #     runAsUser: 0
+        # app_sa_name: "{{ app_name }}-sa"
+        # app_sa_scc: rook-ceph
+
+      block:
+
+      - name: Add namespace for Nginx with RBD app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+
+      # - name: Add Service Account
+      #   kubernetes.core.k8s:
+      #     api_version: apps/v1
+      #     template: 'templates/openshift_4_resource_serviceaccount.yml'
+
+      # - name: Add SCC to  Service Account
+      #   kubernetes.core.k8s:
+      #     api_version: apps/v1
+      #     template: 'templates/openshift_4_resource_scc_to_user.yml'
+
+      - name: Add PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        # until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Waiting 10 seconds
+        pause:
+          seconds: 10
+      
+      - name: Get pod names
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: Pod
+          namespace: "{{ app_namespace }}"
+        register: pod_names
+        timeout: 10
+        retries: 3
+
+      - name: Show pod name
+        debug:
+          msg: "Pod: {{ pod_names.resources[0].metadata.name }}"
+
+      - name: Query disk Ansible example
+        kubernetes.core.k8s_exec:
+          namespace: "{{ app_namespace }}"
+          pod: "{{ pod_names.resources[0].metadata.name }}"
+          command: "dd if=/dev/urandom of=/dev/xvdb bs=64k count=10000"
+        register: pod_exec
+
+      - name: Display exec results
+        debug:
+          msg: "{{ pod_exec.stdout }}\n{{ pod_exec.stderr }}"
+
+
+    - name: Nginx app through Ansible with cephfs 
+      vars:
+        app_name: nginx-fs
+        app_namespace: test-nginx-cephfs-ansible
+        app_container_source: nginxinc/nginx-unprivileged:latest
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_replicas: 2
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 1Gi
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-cephfs"
         app_pvc_mount_path: 
         app_volumeMounts:
         - name: "{{ app_name }}-pv"
-          mountPath: /usr/share/nginx/html
+          mountPath: /usr/share/nginx
         - name: "{{ app_name }}-cm"
           mountPath: /usr/share/nginx/html
         app_volumes:
@@ -407,24 +511,6 @@
             name: hello-world-html
         app_configmaps:
         - name: hello-world-html
-          # data: |-
-          #   index.html: |-
-          #     <html>
-          #       <head>
-          #       </head>
-          #       <body>
-          #         <h1>Hello World, through a ConfigMap!<h1>
-          #       </body>
-          #     </html>
-          # data: |-
-          #   index.html: |+
-          #     <html>
-          #       <head>
-          #       </head>
-          #       <body>
-          #         <h1>Hello World, through a ConfigMap!<h1>
-          #       </body>
-          #     </html>
           data:
           - key: index.html
             value: |
@@ -447,7 +533,7 @@
 
       block:
 
-      - name: Add namespace for Nginx with RBD app through Ansible  
+      - name: Add namespace for Nginx with FS app through Ansible  
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_namespace.yml'
@@ -493,6 +579,6 @@
       - name: Query ToDo Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://nginx-rbd-test-nginx-ceph-rbd-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        - url: "http://nginx-fs-test-nginx-cephfs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
           text_to_find: 'Hello World'
 
