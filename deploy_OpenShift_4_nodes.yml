@@ -24,7 +24,7 @@
         kind: Namespace
         name: openshift-kube-apiserver
       register: namespace_kube_apiserver
-      timeout: 10
+      delay: 10
       retries: 3
       ignore_errors: yes
 
@@ -1066,7 +1066,7 @@
         kind: ncpinstall
         name: ncp-install
       register: nsx_node_agent_current_tolerations
-      timeout: 10
+      delay: 10
       retries: 3
       when: nsx_integration
       
