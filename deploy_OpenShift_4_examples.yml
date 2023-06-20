@@ -50,6 +50,7 @@
       with_items:
       - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
+      tags: test_urls
 
 
     # Quick Nginx Hello World HTTP Ansible
@@ -65,6 +66,8 @@
         app_service_protocol: tcp
         app_container_port: 8080
         app_generic_secret: UizJ9CQw5Oyd5uza9Hgy #"{{ lookup ('password', '/dev/null char{s=ascii_letters length=24') }}"
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_text_to_find: "Hello, world from nginx!"
       block:
 
       - name: Add namespace for Nginx Hello World HTTP app from source through Ansible 
@@ -138,8 +141,9 @@
       - name: Query Nginx HTTP Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://hello-world-nginx-test-nginx-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-          text_to_find: "Hello, world from nginx!"
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
 
 
   - name: Deploy example projects
@@ -165,6 +169,7 @@
       with_items:
       - url: "https://hello-world-nginx-test-nginx-https-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
+      tags: test_urls
 
 
     # Quick Nginx Hello World HTTPS Ansible
@@ -191,6 +196,8 @@
             secretName: "{{ app_name }}"
         app_route_ssl_termination: passthrough
         app_route_hostname: "hello-world-nginx-test-nginx-https-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_url: "https://{{ app_route_hostname }}"
+        app_text_to_find: "Hello, world from nginx!"
 
       block:
 
@@ -261,8 +268,9 @@
       - name: Query Nginx HTTPS Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "https://hello-world-nginx-test-nginx-https-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-          text_to_find: "Hello, world from nginx!"
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
                     
 
   - name: Deploy example projects
@@ -331,6 +339,7 @@
       with_items:
       - url: "http://todo-http-test-todo-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
         text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
+      tags: test_urls
                   
 
     # ToDo Ansible
@@ -345,6 +354,8 @@
         app_resources:
           limits:
             cpu: '0.5'
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
+        app_text_to_find: "<a class="navbar-brand" href="/">ToDo App</a>"
       block:
 
       - name: Add namespace for ToDo app through Ansible  
@@ -378,9 +389,9 @@
       - name: Query ToDo Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://todo-http-test-todo-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-          text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
-
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
 
 
   - name: Deploy example projects
@@ -421,6 +432,7 @@
       with_items:
       - url: "http://wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
         text_to_find: "<title>"
+      tags: test_urls
 
 
     # WordPress on MySQL Ansible - Part 1
@@ -529,6 +541,8 @@
             path: /
             port: 80
             scheme: HTTP
+        app_url: "http://{{ app_route_hostname }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
+        app_text_to_find: "<title>"
 
       block:
 
@@ -572,8 +586,9 @@
       - name: Query WordPress on MySQL Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://wordpress-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-          text_to_find: "<title>"
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
 
 
 
@@ -661,6 +676,7 @@
       with_items:
       - url: "http://wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
         text_to_find: "<title>"
+      tags: test_urls
 
 
     # WordPress on MySQL with Network Policies Ansible - Part 1
@@ -805,6 +821,9 @@
             path: /wp-admin/install.php
             port: 80
             scheme: HTTP
+        app_url: "http://{{ app_route_hostname }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
+        app_text_to_find: "<title>"
+
 
       block:
 
@@ -848,77 +867,9 @@
       - name: Query WordPress on MySQL with Network Policies Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://wordpress-netpol-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-          text_to_find: "<title>"
-
-
-
-  - name: Test URLS
-    tags: deploy_example_all, test_urls
-    delegate_to: localhost
-    ignore_errors: true
-    block:
-
-    - name: Query Nginx HTTP CLI example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-        text_to_find: "Hello, world from nginx!"
-
-    - name: Query Nginx HTTP Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://hello-world-nginx-test-nginx-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-        text_to_find: "Hello, world from nginx!"
-
-    - name: Query Nginx HTTPS CLI example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "https://hello-world-nginx-test-nginx-https-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-        text_to_find: "Hello, world from nginx!"
-
-    - name: Query Nginx HTTPS Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "https://hello-world-nginx-test-nginx-https-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-        text_to_find: "Hello, world from nginx!"
-               
-    - name: Query ToDo CLI example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://todo-http-test-todo-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
-          
-    - name: Query ToDo Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://todo-http-test-todo-http-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-        text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
-      
-    - name: Query WordPress on MySQL CLI example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-        text_to_find: "<title>"
-
-    - name: Query WordPress on MySQL Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://wordpress-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-        text_to_find: "<title>"
-
-    - name: Query WordPress on MySQL with Network Policies CLI example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-        text_to_find: "<title>"
-
-    - name: Query WordPress on MySQL with Network Policies Ansible example
-      include_tasks: 'tasks/query_url.yml'
-      with_items:
-      - url: "http://wordpress-netpol-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-        text_to_find: "<title>"
-
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
 
 
 
