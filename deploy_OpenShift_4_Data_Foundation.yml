@@ -380,10 +380,10 @@
     #     text_to_find: "<title>"
 
 
-    - name: Nginx app through Ansible with ceph-rbd
+    - name: Nginx app through Ansible with ceph-rbd and block mode
       vars:
         app_name: nginx-rbd
-        app_namespace: test-nginx-ceph-rbd-ansible
+        app_namespace: test-nginx-ceph-rbd-block-ansible
         app_container_source: nginxinc/nginx-unprivileged:latest
         app_service_port: 80
         app_service_protocol: tcp
@@ -476,27 +476,30 @@
           pod: "{{ pod_names.resources[0].metadata.name }}"
           command: "dd if=/dev/urandom of=/dev/xvdb bs=64k count=10000"
         register: pod_exec
+        timeout: 10
+        retries: 3
 
       - name: Display exec results
         debug:
           msg: "{{ pod_exec.stdout }}\n{{ pod_exec.stderr }}"
 
 
-    - name: Nginx app through Ansible with cephfs 
+    - name: Nginx app through Ansible with ceph-rbd and Filesystem mode
       vars:
-        app_name: nginx-fs
-        app_namespace: test-nginx-cephfs-ansible
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-fs-ansible
         app_container_source: nginxinc/nginx-unprivileged:latest
         app_service_port: 80
         app_service_protocol: tcp
         app_container_port: 8080
-        app_replicas: 2
+        # app_url: "http://nginx-fs-test-nginx-ceph-rbd-fs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_replicas: 1
         app_pvc_name: "{{ app_name }}-pvc"
-        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_accessmode: ReadWriteOnce # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
         app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
         app_pvc_size: 1Gi
-        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-cephfs"
-        app_pvc_mount_path: 
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-ceph-rbd"
         app_volumeMounts:
         - name: "{{ app_name }}-pv"
           mountPath: /usr/share/nginx
@@ -579,6 +582,107 @@
       - name: Query ToDo Ansible example
         include_tasks: 'tasks/query_url.yml'
         with_items:
-        - url: "http://nginx-fs-test-nginx-cephfs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        - url: "{{ app_url }}"
+          text_to_find: 'Hello World'
+
+
+    - name: Nginx app through Ansible with cephfs and Filesystem mode
+      vars:
+        app_name: nginx-fs
+        app_namespace: test-nginx-cephfs-fs-ansible
+        app_container_source: nginxinc/nginx-unprivileged:latest
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_url: "http://nginx-fs-test-nginx-cephfs-fs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_replicas: 2
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 1Gi
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-cephfs"
+        app_volumeMounts:
+        - name: "{{ app_name }}-pv"
+          mountPath: /usr/share/nginx
+        - name: "{{ app_name }}-cm"
+          mountPath: /usr/share/nginx/html
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+        - name: "{{ app_name }}-cm"
+          configMap:
+            name: hello-world-html
+        app_configmaps:
+        - name: hello-world-html
+          data:
+          - key: index.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap!<h1>
+                </body>
+              </html>
+          - key: index2.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap with multiple values!<h1>
+                </body>
+              </html>
+
+      block:
+
+      - name: Add namespace for Nginx with FS app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+
+      - name: Add PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+
+      - name: Add ConfigMaps
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_configmap.yml'
+        with_items: "{{ app_configmaps }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Query ToDo Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "{{ app_url }}"
           text_to_find: 'Hello World'
 

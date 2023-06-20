@@ -445,7 +445,6 @@
         app_pvc_accessmode: ReadWriteOnce
         app_pvc_size: 2Gi
         app_pvc_storageClassName: thin
-        app_pvc_mount_path: 
         app_volumeMounts:
         - mountPath: /var/lib/mysql/data
           name: "{{ app_name }}-pv"
@@ -686,7 +685,6 @@
         app_pvc_accessmode: ReadWriteOnce
         app_pvc_size: 2Gi
         app_pvc_storageClassName: thin
-        app_pvc_mount_path: 
         app_volumeMounts:
         - mountPath: /var/lib/mysql/data
           name: "{{ app_name }}-pv"
