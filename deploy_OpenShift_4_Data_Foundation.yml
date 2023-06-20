@@ -492,7 +492,6 @@
         app_service_port: 80
         app_service_protocol: tcp
         app_container_port: 8080
-        # app_url: "http://nginx-fs-test-nginx-ceph-rbd-fs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         app_replicas: 1
         app_pvc_name: "{{ app_name }}-pvc"
@@ -594,7 +593,7 @@
         app_service_port: 80
         app_service_protocol: tcp
         app_container_port: 8080
-        app_url: "http://nginx-fs-test-nginx-cephfs-fs-ansible.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         app_replicas: 2
         app_pvc_name: "{{ app_name }}-pvc"
         app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
