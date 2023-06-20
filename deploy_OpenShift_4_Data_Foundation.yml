@@ -400,10 +400,11 @@
       #     api_version: apps/v1
       #     template: 'templates/openshift_4_resource_scc_to_user.yml'
 
-      - name: Add PVC
+      - name: Add PVC, ignore errors cause it was extended
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
 
       - name: Set Image reference, allowing variabel precedence
         set_fact:
@@ -418,9 +419,9 @@
         retries: 5
         delay: 5
 
-      - name: Waiting 10 seconds
+      - name: Waiting 5 seconds
         pause:
-          seconds: 10
+          seconds: 5
       
       - name: Get pod names
         kubernetes.core.k8s_info:
@@ -441,12 +442,60 @@
           pod: "{{ pod_names.resources[0].metadata.name }}"
           command: "dd if=/dev/urandom of=/dev/xvdb bs=64k count=10000"
         register: pod_exec
+        until: pod_exec.rc == 0
         timeout: 10
         retries: 3
 
       - name: Display exec results
         debug:
           msg: "{{ pod_exec.stdout }}\n{{ pod_exec.stderr }}"
+
+
+    - name: Extend Nginx app through Ansible with ceph-rbd and block mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-block-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Block # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-ceph-rbd"
+
+      block:
+
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        timeout: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        timeout: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
 
 
     - name: Nginx app through Ansible with ceph-rbd and Filesystem mode
@@ -505,10 +554,11 @@
           state: present
           template: 'templates/openshift_4_resource_namespace.yml'
 
-      - name: Add PVC
+      - name: Add PVC, ignore errors cause it was extended
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
 
       - name: Set Image reference, allowing variabel precedence
         set_fact:
@@ -548,6 +598,52 @@
         with_items:
         - url: "{{ app_url }}"
           text_to_find: 'Hello World'
+
+
+    - name: Extend Nginx app through Ansible with ceph-rbd and filesystem mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-fs-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteOnce # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-ceph-rbd"
+
+      block:
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        timeout: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        timeout: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
 
 
     - name: Nginx app through Ansible with cephfs and Filesystem mode
@@ -606,10 +702,11 @@
           state: present
           template: 'templates/openshift_4_resource_namespace.yml'
 
-      - name: Add PVC
+      - name: Add PVC, ignore errors cause it was extended
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
 
       - name: Set Image reference, allowing variabel precedence
         set_fact:
@@ -650,3 +747,48 @@
         - url: "{{ app_url }}"
           text_to_find: 'Hello World'
 
+
+    - name: Extend Nginx app through Ansible with cephfs and filesystem mode
+      vars:
+        app_name: nginx-fs
+        app_namespace: test-nginx-cephfs-fs-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ vars.openshift_data_foundation_config.storage_system_name }}-cephfs"
+
+      block:
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        timeout: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        timeout: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
