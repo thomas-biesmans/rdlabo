@@ -343,42 +343,7 @@
   - name: Deploy example projects
     tags: deploy_example_all, deploy_example_ceph_rbd
     delegate_to: localhost
-    # ignore_errors: true
     block:
-
-    # # WordPress on MySQL CLI
-    # - name: Add WordPress on MySQL app through CLI
-    #   shell: |
-    #     oc new-project test-wordpress-mysql-cli
-    #     oc project test-wordpress-mysql-cli
-
-    #     oc create secret generic mysql --from-literal password=r3dh4t123
-
-    #     oc new-app --name mysql registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7
-    #     oc set env deployment/mysql --from secret/mysql --prefix MYSQL_ROOT_
-    #     oc set volumes deployment/mysql --add --type pvc --claim-mode rwo --claim-size 2Gi --mount-path /var/lib/mysql/data
-    #     oc set probe deployment/mysql --liveness -- /bin/sh -i -c "mysqladmin -uroot -p\$MYSQL_ROOT_PASSWORD -h 127.0.0.1 ping"
-
-    #     sleep 90s
-
-    #     oc new-app --name wordpress --docker-image docker.io/library/wordpress:5.3.0 -e WORDPRESS_DB_HOST=mysql -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_DB_USER=root
-    #     oc set env deployment/wordpress --from secret/mysql --prefix WORDPRESS_DB_
-    #     oc create sa wordpress-sa
-    #     oc adm policy add-scc-to-user anyuid -z wordpress-sa
-    #     oc set serviceaccount deployment/wordpress wordpress-sa
-    #     oc set probe deployment/wordpress --liveness --get-url=http://:80
-        
-    #     oc expose svc wordpress --hostname wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}
-
-    #     sleep 10s
-    #   ignore_errors: yes
-
-    # - name: Query WordPress on MySQL CLI example
-    #   include_tasks: 'tasks/query_url.yml'
-    #   with_items:
-    #   - url: "http://wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
-    #     text_to_find: "<title>"
-
 
     - name: Nginx app through Ansible with ceph-rbd and block mode
       vars:
@@ -402,7 +367,7 @@
           persistentVolumeClaim:
             claimName: "{{ app_name }}-pvc"
         # app_initContainers:
-        # If an FS is needed, then the idea would be to format it in an initContainer, but mounting requires root, so we'll just go for a check with dd.
+        # If an FS is needed, then the idea would be to format it in an initContainer, but mounting requires root and a Service Account and something else, so we'll just go for a check with dd.
         # - name: format-volume
         #   image: registry.redhat.io/rhel7/rhel-tools
         #   command:
@@ -449,7 +414,7 @@
           api_version: apps/v1
           template: 'templates/openshift_4_resource_deployment.yml'
         register: app_deployment
-        # until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
         retries: 5
         delay: 5
 
@@ -493,7 +458,7 @@
         app_service_protocol: tcp
         app_container_port: 8080
         app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
-        app_replicas: 1
+        app_replicas: 1 # Only ReadWriteOnce is supported by ceph-rbd & Filesystem mode, so no multiattach
         app_pvc_name: "{{ app_name }}-pvc"
         app_pvc_accessmode: ReadWriteOnce # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
         app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
