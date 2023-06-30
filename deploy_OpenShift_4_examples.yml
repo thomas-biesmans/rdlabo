@@ -46,7 +46,10 @@
       ignore_errors: yes
 
     - name: Query Nginx HTTP CLI example
-      include_tasks: 'tasks/query_url.yml'
+      ansible.builtin.include_tasks:
+        file: 'tasks/query_url.yml'
+        apply:
+          tags: test_urls
       with_items:
       - url: "http://hello-world-nginx-test-nginx-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
@@ -139,7 +142,10 @@
           template: 'templates/openshift_4_resource_route.yml'
 
       - name: Query Nginx HTTP Ansible example
-        include_tasks: 'tasks/query_url.yml'
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
         with_items:
         - url: "{{ app_url }}"
           text_to_find: "{{ app_text_to_find }}"
@@ -165,7 +171,10 @@
       ignore_errors: yes
 
     - name: Query Nginx HTTPS CLI example
-      include_tasks: 'tasks/query_url.yml'
+      ansible.builtin.include_tasks:
+        file: 'tasks/query_url.yml'
+        apply:
+          tags: test_urls
       with_items:
       - url: "https://hello-world-nginx-test-nginx-https-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
         text_to_find: "Hello, world from nginx!"
@@ -266,7 +275,10 @@
           template: 'templates/openshift_4_resource_route_ssl.yml'
 
       - name: Query Nginx HTTPS Ansible example
-        include_tasks: 'tasks/query_url.yml'
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
         with_items:
         - url: "{{ app_url }}"
           text_to_find: "{{ app_text_to_find }}"
@@ -335,7 +347,10 @@
       ignore_errors: yes
 
     - name: Query ToDo CLI example
-      include_tasks: 'tasks/query_url.yml'
+      ansible.builtin.include_tasks:
+        file: 'tasks/query_url.yml'
+        apply:
+          tags: test_urls
       with_items:
       - url: "http://todo-http-test-todo-http-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
         text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
@@ -355,7 +370,7 @@
           limits:
             cpu: '0.5'
         app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }} | grep -B 2 -A 2 -i 'ToDo App'"
-        app_text_to_find: "<a class="navbar-brand" href="/">ToDo App</a>"
+        app_text_to_find: '<a class="navbar-brand" href="/">ToDo App</a>'
       block:
 
       - name: Add namespace for ToDo app through Ansible  
@@ -387,7 +402,10 @@
           template: 'templates/openshift_4_resource_route.yml'
 
       - name: Query ToDo Ansible example
-        include_tasks: 'tasks/query_url.yml'
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
         with_items:
         - url: "{{ app_url }}"
           text_to_find: "{{ app_text_to_find }}"
@@ -428,7 +446,10 @@
       ignore_errors: yes
 
     - name: Query WordPress on MySQL CLI example
-      include_tasks: 'tasks/query_url.yml'
+      ansible.builtin.include_tasks:
+        file: 'tasks/query_url.yml'
+        apply:
+          tags: test_urls
       with_items:
       - url: "http://wordpress-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
         text_to_find: "<title>"
@@ -584,7 +605,10 @@
           seconds: 10
 
       - name: Query WordPress on MySQL Ansible example
-        include_tasks: 'tasks/query_url.yml'
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
         with_items:
         - url: "{{ app_url }}"
           text_to_find: "{{ app_text_to_find }}"
@@ -672,7 +696,10 @@
       ignore_errors: yes
 
     - name: Query WordPress on MySQL with Network Policies CLI example
-      include_tasks: 'tasks/query_url.yml'
+      ansible.builtin.include_tasks:
+        file: 'tasks/query_url.yml'
+        apply:
+          tags: test_urls
       with_items:
       - url: "http://wordpress-netpol-cli.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/wp-admin/install.php | grep -B 2 -A 2 -i '<title>'"
         text_to_find: "<title>"
@@ -865,7 +892,10 @@
           seconds: 10
 
       - name: Query WordPress on MySQL with Network Policies Ansible example
-        include_tasks: 'tasks/query_url.yml'
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
         with_items:
         - url: "{{ app_url }}"
           text_to_find: "{{ app_text_to_find }}"
