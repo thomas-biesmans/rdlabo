@@ -36,7 +36,7 @@
         kind: Namespace
         name: openshift-kube-apiserver
       register: namespace_kube_apiserver
-      timeout: 10
+      delay: 10
       retries: 3
       ignore_errors: yes
 
@@ -428,7 +428,7 @@
           kind: Pod
           namespace: "{{ app_namespace }}"
         register: pod_names
-        timeout: 10
+        delay: 10
         retries: 3
 
       - name: Show pod name
@@ -441,7 +441,7 @@
           pod: "{{ pod_names.resources[0].metadata.name }}"
           command: "dd if=/dev/urandom of=/dev/xvdb bs=64k count=10000"
         register: pod_exec
-        timeout: 10
+        delay: 10
         retries: 3
 
       - name: Display exec results

@@ -30,7 +30,7 @@
         kind: Namespace
         name: openshift-kube-apiserver
       register: namespace_kube_apiserver
-      timeout: 10
+      delay: 10
       retries: 3
       ignore_errors: yes
 
