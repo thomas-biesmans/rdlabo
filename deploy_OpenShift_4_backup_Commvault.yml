@@ -1,0 +1,141 @@
+--- 
+- import_playbook: tasks/check_all.yml
+
+
+
+- name: Check OpenShift deployment status
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Combine customized VM config
+    set_fact:
+      community_vmware_vmware__guest: "{{ default_community_vmware_vmware__guest | combine(custom_community_vmware_vmware__guest | default({}), recursive=true) }}"
+      ansible_becomes_password: "{{ client_password }}"
+    tags: always
+
+  - name: Gather hostvars as dict
+    set_fact:
+      hostvars_dict: "{{ hostvars }}"
+    tags: always
+
+  - name: Check whether OpenShift cluster exists already
+    tags: always
+    delegate_to: localhost
+    block:
+
+    - name: Check whether OpenShift cluster exists already
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: openshift-kube-apiserver
+      register: namespace_kube_apiserver
+      delay: 10
+      retries: 3
+      ignore_errors: yes
+
+    - name: "Halt when namespace 'openshift-kube-apiserver' does not already exists"
+      fail:
+        msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
+      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
+
+  # - name: Deploy pre-reqs
+  #   delegate_to: localhost
+  #   block:
+
+
+- name: Deploy general backup requirements
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy general reqs
+    tags: deploy_general_reqs
+    delegate_to: localhost
+    block:
+      
+    - name: Label Data Foundation namespace if it exists
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: openshift-storage
+        definition:
+          metadata:
+            labels:
+              enable.backup: "false"
+      register: result
+      delay: 10
+      retries: 3
+
+    - debug:
+        msg: "{{ result }}"
+
+- name: Deploy Commvault backup requirements
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy Commvault reqs
+    tags: deploy_commvault_reqs
+    delegate_to: localhost
+    block:
+
+
+    - name: Add Service Account
+      vars:
+        app_sa_name: "{{ commvault_config.sa_name }}"
+        app_namespace: "{{ commvault_config.sa_namespace }}"
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        template: 'templates/openshift_4_resource_serviceaccount.yml'
+
+    - name: Add a cluster-admin Cluster Role Binding for our Service Account
+      vars:
+        crb_name: "{{ commvault_config.sa_clusterrolebinding_name }}"
+        role_apigroup: rbac.authorization.k8s.io
+        role_name: cluster-admin
+        role_kind: ClusterRole
+        subject_namespace: "{{ commvault_config.sa_namespace }}"
+        subject_name: "{{ commvault_config.sa_name }}"
+        subject_kind: ServiceAccount
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        template: 'templates/openshift_4_resource_clusterrolebinding.yml'
+
+    - name: Get the secrets
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ commvault_config.sa_namespace }}"
+      register: sa_secrets
+      delay: 10
+      retries: 3
+
+    - name: Show the Service Account's token
+      debug:
+        msg: "{{ sa_secrets | to_json | from_json | json_query( query ) | b64decode }}"
+      vars:
+        query: >
+          resources[?(
+            @.metadata.annotations."kubernetes.io/service-account.name"=='sa-commvault' && 
+            contains(@.metadata.name, 'token')
+          )].data.token
+

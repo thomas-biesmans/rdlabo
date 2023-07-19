@@ -1,0 +1,23 @@
+---
+# vars:
+# - crb_name: name of the application
+# - role_apigroup: api of the role
+# - role_name: name of the role
+# - role_kind: kind of the role
+# - subject_namespace: Namespace of the subject
+# - subject_name: Name of the subject
+# - subject_kind: Kind of the subject
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: "{{ crb_name }}"
+roleRef:
+  apiGroup: "{{ role_apigroup }}"
+  kind: "{{ role_kind }}"
+  name: "{{ role_name }}"
+subjects:
+- kind: "{{ subject_kind }}"
+  name: "{{ subject_name }}"
+  namespace: "{{ subject_namespace }}"

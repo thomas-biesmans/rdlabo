@@ -193,3 +193,8 @@ openshift_data_foundation_config:
   rgw_requests_memory: 4Gi # Default 4Gi
   rgw_limits_cpu: 2 # Default 2
   rgw_limits_memory: 4Gi # Default 4Gi
+
+commvault_config:
+  sa_name: sa-commvault
+  sa_namespace: default
+  sa_clusterrolebinding_name: default-backup-cluster-admin
