@@ -135,6 +135,7 @@ openshift_data_foundation_config:
   operator_channel: stable-4.11 # Found through oc get packagemanifests/odf-operator -n openshift-marketplace -o yaml | grep stable
   operator_automatic_install_plan_approval: true
   operator_manage_namespaces: openshift-storage
+  operator_subscription_source: redhat-operators
   operator_catalogsource_setup: false
   operator_catalogsource_name: redhat-operators-snapshot-odf
   operator_catalogsource_image: ""
@@ -158,4 +159,21 @@ openshift_data_foundation_config:
 commvault_config:
   sa_name: sa-commvault
   sa_namespace: default
+  sa_clusterrolebinding_name: default-backup-cluster-admin
+
+kasten_k10_config:
+  operator_name: k10-kasten-operator-rhmp # Found through oc get packagemanifests -n openshift-marketplace | grep kasten
+  # k10-kasten-operator-term-rhmp                      Red Hat Marketplace   67d
+  # k10-kasten-operator-paygo-rhmp                     Red Hat Marketplace   67d
+  # k10-kasten-operator-rhmp                           Red Hat Marketplace   67d
+  operator_channel: stable # Found through oc get packagemanifests/k10-kasten-operator-rhmp -n openshift-marketplace -o yaml | grep stable
+  operator_automatic_install_plan_approval: true
+  operator_manage_namespaces: kasten-io
+  operator_subscription_source: redhat-marketplace
+  operator_catalogsource_setup: false
+  operator_catalogsource_name: ""
+  operator_catalogsource_image: ""
+  operator_catalogsource_image_tag: ""
+  sa_name: sa-kasten
+  sa_namespace: kasten-io
   sa_clusterrolebinding_name: default-backup-cluster-admin

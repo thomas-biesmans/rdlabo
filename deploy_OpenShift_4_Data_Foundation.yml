@@ -227,8 +227,8 @@
       vars:
         install_operator_action: install
         install_operator_name: "{{ vars.openshift_data_foundation_config.operator_name }}"
-        install_operator_namespace: openshift-storage
-        install_operator_catalog: redhat-operators
+        install_operator_namespace: "{{ vars.openshift_data_foundation_config.operator_manage_namespaces }}"
+        install_operator_catalog: "{{ vars.kasten_k10_config.operator_subscription_source }}" #redhat-operators
         install_operator_packagemanifest_name: "{{ vars.openshift_data_foundation_config.operator_name }}" #ocs-operator
         install_operator_csv_nameprefix: "{{ vars.openshift_data_foundation_config.operator_name }}" #ocs-operator
         install_operator_install_csv_ignore_error: false
