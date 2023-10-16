@@ -8,104 +8,85 @@
 #  The first range failed with adding an additional network on NSX-T (regular port group was no problem),
 #   while the last range succeeded.
 
-# OKD 3.11 nodes
-rhel_vms_master_nodes:
-  hosts:
-    rdlokd3mstr01.rdlabo.local:
-      ip: 10.255.254.93
-    rdlokd3mstr02.rdlabo.local:
-      ip: 10.255.254.94
-    rdlokd3mstr03.rdlabo.local:
-      ip: 10.255.254.95
-rhel_vms_regular_nodes:
-  hosts:
-    rdlokd3infr01.rdlabo.local:
-      ip: 10.255.254.96
-    rdlokd3infr02.rdlabo.local: 
-      ip: 10.255.254.97
-    rdlokd3wrkr01.rdlabo.local:
-      ip: 10.255.254.98
-    rdlokd3wrkr02.rdlabo.local:
-      ip: 10.255.254.99
-
-rhel_vms:
-  children:
-    rhel_vms_master_nodes:
-    rhel_vms_regular_nodes:
-  vars:
-    vmware_networkportgroup: VLAN665-RD Labo
-
 # OpenShift 4 UPI nodes
 openshift_upi_vms_master_nodes:
   hosts:
-    upi-master-0.openshift-upi.rdlabo.local:
+    srdcopenshiftdevmaster0001.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.240
+      - ip: 10.202.2.10
         mac: 00:05:69:aa:aa:00
-    upi-master-1.openshift-upi.rdlabo.local:
+    srdcopenshiftdevmaster0002.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.241
+      - ip: 10.202.2.11
         mac: 00:05:69:aa:aa:01
-    upi-master-2.openshift-upi.rdlabo.local:
+    srdcopenshiftdevmaster0003.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.242
+      - ip: 10.202.2.12
         mac: 00:05:69:aa:aa:02
   vars:
     type: master
 
 openshift_upi_vms_infra_nodes:
   hosts:
-    upi-infra-0.openshift-upi.rdlabo.local:
+    srdcopenshiftdevinfra0001.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.243
+      - ip: 10.202.3.10
         mac: 00:05:69:aa:aa:03
-    upi-infra-1.openshift-upi.rdlabo.local:
+    srdcopenshiftdevinfra0002.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.244
+      - ip: 10.202.3.11
         mac: 00:05:69:aa:aa:04
   vars:
     type: infra
 
 openshift_upi_vms_worker_nodes:
   hosts:
-    upi-worker-0.openshift-upi.rdlabo.local:
+    srdcopenshiftdevworkermock0001.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.245
+      - ip: 10.202.6.10
         mac: 00:05:69:aa:aa:05
-      - ip: 10.254.127.245
+      - ip: 10.202.7.10
         mac: 00:05:69:aa:ab:05
-    upi-worker-1.openshift-upi.rdlabo.local:
+    srdcopenshiftdevworkermock0002.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.246
+      - ip: 10.202.6.11
         mac: 00:05:69:aa:aa:06
-      - ip: 10.254.127.246
+      - ip: 10.202.7.11
         mac: 00:05:69:aa:ab:06
+    srdcopenshiftdevworker0001.openshiftdev.realdolmencloud.com:
+      nics:
+      - ip: 10.202.5.10
+        mac: 00:05:69:aa:aa:07
+    srdcopenshiftdevworker0002.openshiftdev.realdolmencloud.com:
+      nics:
+      - ip: 10.202.5.11
+        mac: 00:05:69:aa:aa:08
   vars:
     type: worker
 
 openshift_upi_vms_bootstrap_node:
   hosts:
-    upi-bootstrap.openshift-upi.rdlabo.local:
+    srdcopenshiftdevbootstrap.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.247
-        mac: 00:05:69:aa:aa:07
+      - ip: 10.202.2.17
+        mac: 00:05:69:aa:aa:09
   vars:
     type: bootstrap
 
 openshift_upi_vms_storage_nodes:
   hosts:
-    upi-storage-0.openshift-upi.rdlabo.local:
+    srdcopenshiftdevstor0001.openshiftdev.realdolmencloud.com:
       nics:
-      - ip: 10.255.254.248
-        mac: 00:05:69:aa:aa:08
-    upi-storage-1.openshift-upi.rdlabo.local:
-      nics:
-      - ip: 10.255.254.249
-        mac: 00:05:69:aa:aa:09
-    upi-storage-2.openshift-upi.rdlabo.local:
-      nics:
-      - ip: 10.255.254.250
+      - ip: 10.202.4.10
         mac: 00:05:69:aa:aa:0a
+    srdcopenshiftdevstor0002.openshiftdev.realdolmencloud.com:
+      nics:
+      - ip: 10.202.4.11
+        mac: 00:05:69:aa:aa:0b
+    srdcopenshiftdevstor0003.openshiftdev.realdolmencloud.com:
+      nics:
+      - ip: 10.202.4.12
+        mac: 00:05:69:aa:aa:0c
   vars:
     type: storage
 
@@ -122,90 +103,90 @@ openshift_upi_vms:
     ansible_group_priority: 10
 
 
-# OpenShift 4 UPI NSX nodes
-openshift_upi_nsx_vms_master_nodes:
-  hosts:
-    upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.200.0.10
-        mac: 00:05:69:aa:aa:10
-    upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.200.0.11
-        mac: 00:05:69:aa:aa:11
-    upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.200.0.12
-        mac: 00:05:69:aa:aa:12
-  vars:
-    type: master
+# # OpenShift 4 UPI NSX nodes
+# openshift_upi_nsx_vms_master_nodes:
+#   hosts:
+#     upi-nsx-master-0.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.200.0.10
+#         mac: 00:05:69:aa:aa:10
+#     upi-nsx-master-1.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.200.0.11
+#         mac: 00:05:69:aa:aa:11
+#     upi-nsx-master-2.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.200.0.12
+#         mac: 00:05:69:aa:aa:12
+#   vars:
+#     type: master
 
-openshift_upi_nsx_vms_infra_nodes:
-  hosts:
-    upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.1.10
-        mac: 00:05:69:aa:aa:13
-    upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.1.11
-        mac: 00:05:69:aa:aa:14
-  vars:
-    type: infra
+# openshift_upi_nsx_vms_infra_nodes:
+#   hosts:
+#     upi-nsx-infra-0.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.1.10
+#         mac: 00:05:69:aa:aa:13
+#     upi-nsx-infra-1.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.1.11
+#         mac: 00:05:69:aa:aa:14
+#   vars:
+#     type: infra
 
-openshift_upi_nsx_vms_worker_nodes:
-  hosts:
-    upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.0.10
-        mac: 00:05:69:aa:aa:15
-      - ip: 10.10.0.10
-        mac: 00:05:56:aa:aa:15
-    upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.0.11
-        mac: 00:05:69:aa:aa:16
-      - ip: 10.10.0.11
-        mac: 00:05:56:aa:aa:16
-  vars:
-    type: worker
+# openshift_upi_nsx_vms_worker_nodes:
+#   hosts:
+#     upi-nsx-worker-0.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.0.10
+#         mac: 00:05:69:aa:aa:15
+#       - ip: 10.10.0.10
+#         mac: 00:05:56:aa:aa:15
+#     upi-nsx-worker-1.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.0.11
+#         mac: 00:05:69:aa:aa:16
+#       - ip: 10.10.0.11
+#         mac: 00:05:56:aa:aa:16
+#   vars:
+#     type: worker
 
-openshift_upi_nsx_vms_bootstrap_node:
-  hosts:
-    upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.200.0.17
-        mac: 00:05:69:aa:aa:17
-  vars:
-    type: bootstrap
+# openshift_upi_nsx_vms_bootstrap_node:
+#   hosts:
+#     upi-nsx-bootstrap.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.200.0.17
+#         mac: 00:05:69:aa:aa:17
+#   vars:
+#     type: bootstrap
     
-openshift_upi_nsx_vms_storage_nodes:
-  hosts:
-    upi-nsx-storage-0.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.2.10
-        mac: 00:05:69:aa:aa:18
-    upi-nsx-storage-1.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.2.11
-        mac: 00:05:69:aa:aa:19
-    upi-nsx-storage-2.openshift-upi-nsx.rdlabo.local:
-      nics:
-      - ip: 10.201.2.12
-        mac: 00:05:69:aa:aa:1a
-  vars:
-    type: storage
+# openshift_upi_nsx_vms_storage_nodes:
+#   hosts:
+#     upi-nsx-storage-0.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.2.10
+#         mac: 00:05:69:aa:aa:18
+#     upi-nsx-storage-1.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.2.11
+#         mac: 00:05:69:aa:aa:19
+#     upi-nsx-storage-2.openshift-upi-nsx.rdlabo.local:
+#       nics:
+#       - ip: 10.201.2.12
+#         mac: 00:05:69:aa:aa:1a
+#   vars:
+#     type: storage
 
-openshift_upi_nsx_vms:
-  children:
-    openshift_upi_nsx_vms_bootstrap_node:
-    openshift_upi_nsx_vms_master_nodes:
-    openshift_upi_nsx_vms_infra_nodes:
-    openshift_upi_nsx_vms_worker_nodes:
-    openshift_upi_nsx_vms_storage_nodes:
-  vars:
-    vmware_networkportgroup: NSX-OpenShift-UPI-NSX
-    ansible_group_priority: 10
+# openshift_upi_nsx_vms:
+#   children:
+#     openshift_upi_nsx_vms_bootstrap_node:
+#     openshift_upi_nsx_vms_master_nodes:
+#     openshift_upi_nsx_vms_infra_nodes:
+#     openshift_upi_nsx_vms_worker_nodes:
+#     openshift_upi_nsx_vms_storage_nodes:
+#   vars:
+#     vmware_networkportgroup: NSX-OpenShift-UPI-NSX
+#     ansible_group_priority: 10
 
 openshift_clusters:
   children:
@@ -263,3 +244,7 @@ windows_clients:
 citrix_load_balancer:
   hosts:
     rdlns02.rdlabo.local:
+
+aruba_switches:
+  hosts:
+    rdleth02.rdlabo.local:

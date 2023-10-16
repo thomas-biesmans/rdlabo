@@ -1,0 +1,17 @@
+---
+# AOS-Switch Ansible Collection - https://galaxy.ansible.com/ui/repo/published/arubanetworks/aos_switch/docs/?version=1.7.0
+# Cannot be used for the 5406zl due to running firmware 16.04 at the latest, where 16.08 is required
+
+# 
+
+tasks:
+- name: Run show version on remote devices
+  community.network.aruba_command:
+    commands: show version
+  delay: 10
+  retries: 3
+  register: results
+
+- name: "Test"
+  debug:
+    msg: "{{ results }}"

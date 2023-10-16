@@ -210,27 +210,33 @@ openshift_upi_nsx_vms:
 openshift_clusters:
   children:
     openshift_upi_vms:
+    openshift_upi_nsx_vms:
 
 # Using same-level groups & phigher precendence on clusters instead of nested groups to prevent parent variable merge
 openshift_bootstrap_nodes:
   children:
     openshift_upi_vms_bootstrap_node:
+    openshift_upi_nsx_vms_bootstrap_node:
 
 openshift_master_nodes:
   children:
     openshift_upi_vms_master_nodes:
+    openshift_upi_nsx_vms_master_nodes:
 
 openshift_worker_nodes:
   children:
     openshift_upi_vms_worker_nodes:
+    openshift_upi_nsx_vms_worker_nodes:
 
 openshift_infra_nodes:
   children:
     openshift_upi_vms_infra_nodes:
+    openshift_upi_nsx_vms_infra_nodes:
 
 openshift_storage_nodes:
   children:
     openshift_upi_vms_storage_nodes:
+    openshift_upi_nsx_vms_storage_nodes:
 
 
 all:
@@ -244,6 +250,7 @@ vcenter_vms:
   children:
     rhel_vms:
     openshift_upi_vms:
+    openshift_upi_nsx_vms:
 
 windows_dns:
   hosts:
