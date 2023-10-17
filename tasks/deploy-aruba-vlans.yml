@@ -1,0 +1,20 @@
+---
+# AOS-Switch Ansible Collection - https://galaxy.ansible.com/ui/repo/published/arubanetworks/aos_switch/docs/?version=1.7.0
+# Cannot be used for the 5406zl due to running firmware 16.04 at the latest, where 16.08 is required
+
+
+- name: Getting all VLANs and parsing through ttp
+  ansible.utils.cli_parse:
+    command: show vlans
+    parser:
+      name: ansible.utils.ttp
+  register: vlans_list_parsed
+
+- name: Looping managed VLANs with VLAN IDs
+  include_tasks: deploy-aruba-vlan.yml
+  loop: "{{ vars.vlans }}"
+  when: vlan.vlan_id is defined
+  loop_control:
+    label: "VLAN '{{ vlan.name}}'"
+    loop_var: vlan
+

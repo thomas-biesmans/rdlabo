@@ -1,28 +1,30 @@
 ---
 
-- name: Deploy VLANs on the infrastructure
-  hosts: aruba_switches
-  gather_facts: true
+- hosts: aruba_switches
+  collections:
+  - arubanetworks.aos_switch
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   - group_vars/vcenter_vms.yml
-  # environment:
-  #   KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  vars:
+    ansible_connection: network_cli
+    ansible_ssh_private_key_file: /home/user1/.ssh/id_rsa_ansibledeployment # Otherwise an error is thrown
   tasks:
 
   - name: Deploy VLANs on Aruba switches
-    tags: always, deploy_cluster
-    # delegate_to: localhost
+    tags: deploy_lan
     block:
 
     - name: Deploy VLANs
       ansible.builtin.include_tasks:
         file: tasks/deploy-aruba-vlans.yml
         apply:
-          tags: deploy_aruba
-      tags: deploy_aruba
-      
+          tags: deploy_lan
+      tags: deploy_lan
+        
+  - fail:
+
 
       
     # - name: Deploy NSX segments

@@ -18,6 +18,8 @@ Make sure the Ansible requirements are installed next with the following command
     python3.8 -m pip install pywinrm --user
     python3.8 -m pip install nsnitro --user
     python3.8 -m pip install jmespath --user
+    python3.8 -m pip install ansible-pylibssh --user
+    python3.8 -m pip install ttp --user
 
     # For Python 3.9
     python3.9 -m pip install packaging --user
@@ -30,6 +32,8 @@ Make sure the Ansible requirements are installed next with the following command
     python3.9 -m pip install pywinrm --user
     python3.9 -m pip install nsnitro --user
     python3.9 -m pip install jmespath --user
+    python3.9 -m pip install ansible-pylibssh --user
+    python3.9 -m pip install ttp --user
     
 
 Versions used in the OKD pass:
@@ -74,6 +78,7 @@ One way to create encrypted password files is using stdin, i.e. typing it in a p
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_nsx_username' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_nsx_password' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_nsx_client_certificate_password' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'aruba_admin_password' >> passwords/ansible_vault.yml
 
 Use the following Ansible snippet to load the password file:
 ```

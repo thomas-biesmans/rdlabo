@@ -17,6 +17,7 @@ collections:
 - citrix.adc
 - kubernetes.core # Used to be community.kubernetes
 - git+https://github.com/vmware/ansible-for-nsxt
+- arubanetworks.aos_switch
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml

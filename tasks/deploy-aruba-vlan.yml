@@ -1,17 +1,67 @@
 ---
-# AOS-Switch Ansible Collection - https://galaxy.ansible.com/ui/repo/published/arubanetworks/aos_switch/docs/?version=1.7.0
-# Cannot be used for the 5406zl due to running firmware 16.04 at the latest, where 16.08 is required
 
-# 
+- name: "Getting details for VLAN '{{ vlan.name }}' and parsing through ttp"
+  ansible.utils.cli_parse:
+    command: "show vlan {{ vlan.vlan_id }}"
+    parser:
+      command: show vlan
+      name: ansible.utils.ttp
+  register: vlans_list_parsed
+  ignore_errors: true
 
-tasks:
-- name: Run show version on remote devices
-  community.network.aruba_command:
-    commands: show version
-  delay: 10
-  retries: 3
-  register: results
+- name: Setting defaults if VLAN not found
+  set_fact:
+    vlans_list_parsed:
+      parsed:
+      - - vlan:
+            vlan_id: "{{ vlan.vlan_id }}"
+            vlan_name: NotFound
+            vlan_jumbo: No
+            vlan_status: NotFound
+            port_entries:
+              ports:
+              - port_name: NotFound
+                port_mode: Untagged
+  when: vlans_list_parsed.failed or vlans_list_parsed.parsed is undefined or vlans_list_parsed.parsed[0][0] | length == 0
 
-- name: "Test"
-  debug:
-    msg: "{{ results }}"
+- name: "Set VLAN name to '{{ vlan.name }}'"
+  arubaoss_command:
+    commands: |
+      conf t
+      vlan {{ vlan.vlan_id }}
+      name "{{ vlan.name }}"
+      write mem
+  when: vlans_list_parsed.parsed[0][0].vlan.vlan_name != vlan.name
+  changed_when: vlans_list_parsed.parsed[0][0].vlan.vlan_name != vlan.name
+
+- name: "Set jumbo frames for '{{ vlan.name }}'"
+  vars:
+    bool_value1: "{{ vlans_list_parsed.parsed[0][0].vlan.vlan_jumbo | lower | bool }}"
+    bool_value2: "{{ vlan.jumbo | lower | bool }}"
+  arubaoss_command:
+    commands: |
+      conf t
+      vlan {{ vlan.vlan_id }}
+      jumbo
+      write mem
+  when: bool_value1 != bool_value2 and bool_value2
+  changed_when: bool_value1 != bool_value2 and bool_value2
+
+- name: "Disabling jumbo frames for '{{ vlan.name }}'"
+  vars:
+    bool_value1: "{{ vlans_list_parsed.parsed[0][0].vlan.vlan_jumbo | lower | bool }}"
+    bool_value2: "{{ vlan.jumbo | lower | bool }}"
+  arubaoss_command:
+    commands: |
+      conf t
+      vlan {{ vlan.vlan_id }}
+      no jumbo
+      write mem
+  when: bool_value1 != bool_value2 and not bool_value2
+  changed_when: bool_value1 != bool_value2 and not bool_value2
+
+- name: "Tagging ports for '{{ vlan.name }}''"
+  include_tasks: deploy-aruba-vlan-tag.yml
+  loop: "{{ vlan.vlan_tag }}"
+  loop_control:
+    loop_var: vlan_tag

@@ -1,0 +1,17 @@
+<group name="vlan">
+  VLAN ID : {{ vlan_id | DIGIT }}
+  Name : {{ vlan_name | ORPHRASE }}
+  Status : {{ vlan_status | ORPHRASE }}
+  Voice : {{ vlan_voice | ORPHRASE }}
+  Jumbo : {{ vlan_jumbo | ORPHRASE }}
+  Private VLAN : {{ vlan_private_vlan | ORPHRASE }}
+  Associated Primary VID : {{ vlan_primary_vid | ORPHRASE }}
+  Associated Secondary VIDs : {{ vlan_secondary_vids | ORPHRASE }}
+  <group name="port_entries">
+  Port Information Mode     Unknown VLAN Status {{ ignore }}
+  ---------------- -------- ------------ ---------- {{ _start_ }}
+  <group name="ports">
+  {{ port_name | WORD }}  {{ port_mode | WORD }}  {{ port_unknown_vlan | WORD }}  {{ port_status | WORD }}
+  </group>
+  </group>
+</group>

@@ -1,0 +1,9 @@
+<group name="vlans">
+  Maximum VLANs to support : {{ max_vlans | DIGIT }}
+  Primary VLAN : {{ primary_vlan | ORPHRASE }}
+  Management VLAN : {{ management_vlan | ORPHRASE }}
+  <group name="vlan_list">
+  {{ vlan_id | DIGIT }} {{ vlan_name | ORPHRASE }} | {{ vlan_status }} {{ vlan_voice }} {{ vlan_jumbo }}
+  </group>
+</group>
+

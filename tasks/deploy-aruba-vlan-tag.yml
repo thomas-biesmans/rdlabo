@@ -1,0 +1,51 @@
+---
+  
+- name: "Adding tagged VLAN for uplink ports"
+  arubaoss_command:
+    commands: |
+      conf t
+      vlan {{ vlan.vlan_id }}
+      tag {{ port }}
+      write mem
+  loop: "{{ (vars.ports | selectattr ('type','eq', vlan_tag.uplink_type) | first ).uplinks | map(attribute='port') | list }}"
+  when: vlan_tag.tagged
+    and
+    (
+      vlans_list_parsed.parsed[0][0].vlan.port_entries.ports is undefined
+      or
+      vlans_list_parsed.parsed[0][0].vlan.port_entries.ports | selectattr ('port_name','eq', port) | map(attribute='port_mode') | default(['undefined'], true) | first != "Tagged"
+    )
+  changed_when: vlan_tag.tagged
+    and
+    (
+      vlans_list_parsed.parsed[0][0].vlan.port_entries.ports is undefined
+      or
+      vlans_list_parsed.parsed[0][0].vlan.port_entries.ports | selectattr ('port_name','eq', port) | map(attribute='port_mode') | default(['undefined'], true) | first != "Tagged"
+    )
+  loop_control:
+    loop_var: port
+    
+- name: "Adding untagged VLAN for uplink ports"
+  arubaoss_command:
+    commands: |
+      conf t
+      vlan {{ vlan.vlan_id }}
+      untag {{ port }}
+      write mem
+  loop: "{{ (vars.ports | selectattr ('type','eq', vlan_tag.uplink_type) | first ).uplinks | map(attribute='port') | list }}"
+  when: not vlan_tag.tagged
+    and
+    (
+        vlans_list_parsed.parsed[0][0].vlan.port_entries.ports is undefined
+        or
+        vlans_list_parsed.parsed[0][0].vlan.port_entries.ports | selectattr ('port_name','eq', port) | map(attribute='port_mode') | default(['undefined'], true) | first != "Untagged"
+    )
+  changed_when: not vlan_tag.tagged
+    and
+    (
+        vlans_list_parsed.parsed[0][0].vlan.port_entries.ports is undefined
+        or
+        vlans_list_parsed.parsed[0][0].vlan.port_entries.ports | selectattr ('port_name','eq', port) | map(attribute='port_mode') | default(['undefined'], true) | first != "Untagged"
+    )
+  loop_control:
+    loop_var: port
