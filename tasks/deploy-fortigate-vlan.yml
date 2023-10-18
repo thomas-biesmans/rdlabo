@@ -1,0 +1,35 @@
+---
+
+- name: "Getting details for VLAN '{{ vlan.name }}'"
+  fortinet.fortios.fortios_configuration_fact:
+    vdom: "{{ fortigate_vdom }}"
+    selector: system_interface
+    filters:
+    - vlanid==701
+  register: interface_list
+  retries: 5
+  delay: 10
+
+  # ignore_errors: true
+
+- name: "Creating system interface for VLAN '{{ vlan.name }}'"
+  fortinet.fortios.fortios_system_interface:
+    vdom: "{{ fortigate_vdom }}"
+    state: "present"
+    system_interface:
+      vdom: "{{ fortigate_vdom }}"
+      interface: "{{ fortigate_vlan_parent_interface }}"
+      name: "{{ vlan.name | truncate(15, True, '') }}"
+      vlanid: "{{ vlan.vlan_id }}"
+      ip: "{{ vlan.gateway }} {{ vlan.netmask }}"
+      allowaccess:
+      - ping
+      - snmp
+      device_identification: enable
+      role: lan
+      dhcp_relay_ip: '"{{ dhcp_server }}" '
+      dhcp_relay_service: enable
+  register: result
+  until: result.meta.status != 429
+  retries: 5
+  delay: 10

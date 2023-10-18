@@ -6,7 +6,6 @@
   vars_files:
   - passwords/ansible_vault.yml
   - vars/network-config.yml
-  - group_vars/vcenter_vms.yml
   vars:
     ansible_connection: network_cli
     ansible_ssh_private_key_file: /home/user1/.ssh/id_rsa_ansibledeployment # Otherwise an error is thrown
@@ -16,14 +15,30 @@
     tags: deploy_lan
     block:
 
-    - name: Deploy VLANs
+    - name: Deploy VLANs on Aruba switches
       ansible.builtin.include_tasks:
         file: tasks/deploy-aruba-vlans.yml
         apply:
           tags: deploy_lan
       tags: deploy_lan
+
+
+- hosts: fortigate_appliances
+  collections:
+  - fortinet.fortios
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  # connection: httpapi
+  tasks:      
+
+  - name: Deploy VLANs on FortiGate L3 appliances
+    ansible.builtin.include_tasks:
+      file: tasks/deploy-fortigate-vlans.yml
+      apply:
+        tags: deploy_fortigate
+    tags: deploy_fortigate
         
-  - fail:
 
 
       

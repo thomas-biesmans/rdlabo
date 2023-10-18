@@ -248,18 +248,9 @@ citrix_load_balancer:
 aruba_switches:
   hosts:
     rdleth02.rdlabo.local:
-      ports:
-      - type: core
-        uplinks:
-        - name: uplink_to_FortiGate
-          port: Trk30
-        - name: uplink_to_VirtualConnect_A
-          port: Trk10
-        - name: uplink_to_VirtualConnect_B
-          port: Trk11
-        - name: uplink_to_RDLETH01
-          port: Trk2
-        - name: uplink_to_POCETH01
-          port: Trk1
-        - name: uplink_to_FortiSwitch-224E-POE
-          port: C13
+
+
+fortigate_appliances:
+  hosts:
+    10.255.240.1:
+

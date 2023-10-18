@@ -1,0 +1,45 @@
+---
+
+# - name: Looping managed VLANs with VLAN IDs
+#   include_tasks: deploy-fortigate-vlan.yml
+#   loop: "{{ vars.vlans }}"
+#   when: vlan.vlan_id is defined and vlan.fortigate_managed
+#   loop_control:
+#     label: "VLAN '{{ vlan.name}}'"
+#     loop_var: vlan
+
+- name: "Getting details for zone '{{ fortigate_zone }}'"
+  fortinet.fortios.fortios_configuration_fact:
+    vdom: "{{ fortigate_vdom }}"
+    selector: system_zone
+    filters:
+    - "name=={{ fortigate_zone }}"
+  register: zone_list
+  retries: 5
+  delay: 10
+  until: zone_list.meta.status != 429
+  # ignore_errors: true
+
+- name: Creating list of all required interafces for zone '{{ fortigate_zone }}'
+  set_fact:
+    list_of_required_interfaces: "{{ list_of_existing_interfaces | union(list_of_managed_interfaces) }}"
+  vars:
+    list_of_existing_interfaces: "{{ zone_list.meta.results[0].interface | map(attribute='interface-name') | list }}"
+    list_of_managed_interfaces: "{{ vlans | selectattr('fortigate_managed', 'eq', true) | map(attribute='name') | map('regex_replace', '^(.{15}).*', '\\1') | list }}"
+
+- name: Creating list of interface_names for all required interafces for zone '{{ fortigate_zone }}'
+  set_fact:
+    key_value_pairs: "{{ key_value_pairs | default([]) + [{'interface_name': item}] }}"
+  loop: "{{ list_of_required_interfaces }}"
+  
+- name: "Add system interface to zone for VLAN '{{ vlan.name }}'"
+  fortinet.fortios.fortios_system_zone:
+    vdom: "{{ fortigate_vdom }}"
+    state: "present"
+    system_zone:
+      name: "{{ fortigate_zone }}"
+      interface: "{{ key_value_pairs }}"
+  register: results
+  retries: 5
+  delay: 10
+  until: results.meta.status != 429

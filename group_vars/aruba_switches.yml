@@ -1,3 +1,4 @@
+---
 ansible_user: Admin
 ansible_password: "{{ aruba_admin_password }}"
 ansible_connection: local

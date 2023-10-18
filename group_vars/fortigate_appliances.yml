@@ -1,0 +1,8 @@
+---
+ansible_user: admin
+ansible_password: "{{ fortigate_admin_password }}"
+ansible_network_os: fortinet.fortios.fortios
+ansible_httpapi_use_ssl: yes
+ansible_httpapi_validate_certs: no
+ansible_httpapi_port: 8443
+ansible_connection: httpapi

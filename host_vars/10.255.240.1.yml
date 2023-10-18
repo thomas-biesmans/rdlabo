@@ -1,0 +1,4 @@
+---
+fortigate_vdom: OLD_LABO
+fortigate_vlan_parent_interface: fortilink
+fortigate_zone: Z_LAN
