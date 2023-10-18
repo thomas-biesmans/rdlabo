@@ -1,0 +1,28 @@
+---
+
+- name: Accept VC's ssh-rsa key
+  command: "ssh-keyscan -H {{ inventory_hostname }}"
+  register: ssh_keyscan_output
+
+- name: Append the key to known_hosts
+  blockinfile:
+    path: "~/.ssh/known_hosts"
+    block: "{{ ssh_keyscan_output.stdout }}"
+    create: yes
+
+- name: Getting all networks and parsing through ttp
+  ansible.utils.cli_parse:
+    command: show network *
+    parser:
+      command: virtual connect show network all
+      name: ansible.utils.ttp
+  register: network_list_parsed
+
+- name: Looping managed VLANs with VLAN IDs
+  include_tasks: deploy-virtualconnect-vlan.yml
+  loop: "{{ vars.vlans }}"
+  when: vlan.vlan_id is defined
+  loop_control:
+    label: "VLAN '{{ vlan.name}}'"
+    loop_var: vlan
+

@@ -254,3 +254,6 @@ fortigate_appliances:
   hosts:
     10.255.240.1:
 
+virtual_connect:
+  hosts:
+    10.255.254.2:

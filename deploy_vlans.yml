@@ -40,6 +40,26 @@
     tags: deploy_fortigate
         
 
+- hosts: virtual_connect
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  vars:
+    ansible_connection: network_cli
+    ansible_ssh_private_key_file: /home/user1/.ssh/id_rsa_ansibledeployment # Otherwise an error is thrown
+  tasks:
+
+  - name: Deploy VLANs on Virtual Connect
+    tags: deploy_vc
+    block:
+
+    - name: Deploy VLANs on Virtual Connect
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-virtualconnect-vlans.yml
+        apply:
+          tags: deploy_vc
+      tags: deploy_vc
+
 
       
     # - name: Deploy NSX segments

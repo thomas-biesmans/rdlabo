@@ -80,6 +80,7 @@ One way to create encrypted password files is using stdin, i.e. typing it in a p
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'vmware_nsx_client_certificate_password' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'aruba_admin_password' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'fortigate_admin_password' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'virtualconnect_admin_password' >> passwords/ansible_vault.yml
 
 Use the following Ansible snippet to load the password file:
 ```

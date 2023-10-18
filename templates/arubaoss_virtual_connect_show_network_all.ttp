@@ -1,0 +1,19 @@
+## Used for Virtual Connect!
+Name            : {{ network_name }}
+Type            : {{ network_type }}
+Status          : {{ network_status }}
+Smart Link      : {{ network_smartlink }}
+State           : {{ network_state }}
+Internal ID     : {{ network_id }}
+Private         : {{ network_private }}
+Preferred Speed : {{ network_preferred_speed }}
+Max Speed       : {{ network_max_speed }}
+In-Use          : {{ network_in_use }}
+LACP Timer      : {{ network_lacp_timer }}
+## Non-SUS networks, e.g. internal
+Connection Mode : {{ network_connection_mode }}
+VLAN Tunnel     : {{ network_tunnel }}
+## SUS networks
+Shared Uplink Set : {{ network_sus }}
+VLAN ID           : {{ network_vlan_id }}
+Native VLAN       : {{ network_native_vlan }}

@@ -1,0 +1,13 @@
+---
+ansible_user: Admin
+ansible_password: "{{ virtualconnect_admin_password }}"
+ansible_connection: local
+ansible_network_os: arubanetworks.aos_switch.arubaoss
+virtual_connect_shared_uplinks_sets:
+- SUS_A
+- SUS_B
+virtual_connect_server_profiles:
+- server: RDLHOST01
+  connections:
+  - 1
+  - 2
