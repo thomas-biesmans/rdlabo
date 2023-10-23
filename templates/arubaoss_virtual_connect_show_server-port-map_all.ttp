@@ -1,0 +1,14 @@
+## Used for Virtual Connect!
+<group name="profile_list">
+Profile Name   : {{ profile_name }}
+<group name="port_list">
+Server Port ID : {{ port_id | DIGIT }}
+{{ ignore(".*===.*") }}
+{{ ignore(".*Network.*VLanID.*Uplink Set.*Untagged.*") }}
+<group name="network_list">
+{{ network_name }} {{ network_vlan_id }} -- -- {{ network_untagged}}
+{{ ignore(".*---.*") }}
+{{ network_name | joinmatches ('') }}
+</group>
+</group>
+</group>

@@ -1,0 +1,16 @@
+---
+
+- name: "Creating enet-connection '{{ vlan.name }}' if VLAN not found on port / SUS and parsing through ttp"
+  ansible.utils.cli_parse:
+    command: "add server-port-map {{ profile.server }}:{{ profile.connections[sus_index] }} {{ vlan.name | replace(' ','_') }}{{ (virtual_connect_shared_uplinks_sets | length == 2 ) | ternary(virtual_connect_shared_uplinks_set_network_suffix[sus_index], '') }} VLanID={{ vlan.vlan_id }}"
+    parser:
+      command: virtual connect add serverportmap
+      name: ansible.utils.ttp
+  register: profile_serverportmap_addition_parsed
+  when: profile_list_parsed_merged | selectattr('profile_name', 'eq', profile.server ) | map(attribute='port_list') | flatten | selectattr('port_id', 'eq', (profile.connections[sus_index] | string)) | map(attribute='network_list') | flatten | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | list | length == 0
+  failed_when: not 'SUCCESS' in profile_serverportmap_addition_parsed.stdout
+  loop: "{{ virtual_connect_server_profiles }}"
+  loop_control:
+    loop_var: profile
+    index_var: profile_index
+    label: "Server {{ profile.server }} - VLAN '{{ vlan.name}}' - SUS '{{ sus }}'"

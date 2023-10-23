@@ -1,7 +1,7 @@
 ---
 
 - name: Looping SUS'es per VLAN
-  include_tasks: deploy-virtualconnect-vlan-sus.yml
+  include_tasks: deploy-virtualconnect-serverportmap-sus.yml
   loop: "{{ virtual_connect_shared_uplinks_sets }}"
   loop_control:
     label: "VLAN '{{ vlan.name}}' - SUS '{{ sus }}'"

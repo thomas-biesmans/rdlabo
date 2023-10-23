@@ -1,28 +1,52 @@
 ---
 
-- name: Accept VC's ssh-rsa key
-  command: "ssh-keyscan -H {{ inventory_hostname }}"
-  register: ssh_keyscan_output
+# - name: Accept VC's ssh-rsa key
+#   command: "ssh-keyscan -H {{ inventory_hostname }}"
+#   register: ssh_keyscan_output
 
-- name: Append the key to known_hosts
-  blockinfile:
-    path: "~/.ssh/known_hosts"
-    block: "{{ ssh_keyscan_output.stdout }}"
-    create: yes
+# - name: Append the key to known_hosts
+#   blockinfile:
+#     path: "~/.ssh/known_hosts"
+#     block: "{{ ssh_keyscan_output.stdout }}"
+#     create: yes
 
-- name: Getting all networks and parsing through ttp
+# - name: Getting all networks and parsing through ttp
+#   ansible.utils.cli_parse:
+#     command: show network *
+#     parser:
+#       command: virtual connect show network all
+#       name: ansible.utils.ttp
+#   register: network_list_parsed
+
+# - name: Looping managed VLANs with VLAN IDs to create networks
+#   include_tasks: deploy-virtualconnect-vlan.yml
+#   loop: "{{ vars.vlans }}"
+#   when: vlan.vlan_id is defined
+#   loop_control:
+#     label: "VLAN '{{ vlan.name}}'"
+#     loop_var: vlan
+
+- name: Getting all server profiles and parsing through ttp
   ansible.utils.cli_parse:
-    command: show network *
+    command: show server-port-map *
     parser:
-      command: virtual connect show network all
+      command: virtual connect show server-port-map all
       name: ansible.utils.ttp
-  register: network_list_parsed
+  register: profile_list_parsed
 
-- name: Looping managed VLANs with VLAN IDs
-  include_tasks: deploy-virtualconnect-vlan.yml
+- name: Prep a list of all elements
+  set_fact:
+    profile_list_parsed_all: "{{ profile_list_parsed.parsed[0][0].profile_list | json_query('[].{profile_name: profile_name, port_list: [port_list]}') }}"
+
+- name: Create a list of merged elements
+  set_fact:
+    profile_list_parsed_merged: "{{ [profile_list_parsed_all, []]|
+                  community.general.lists_mergeby('profile_name', list_merge='append') }}"
+
+- name: Looping managed VLANs with VLAN IDs to create server-port-maps
+  include_tasks: deploy-virtualconnect-serverportmap.yml
   loop: "{{ vars.vlans }}"
   when: vlan.vlan_id is defined
   loop_control:
     label: "VLAN '{{ vlan.name}}'"
     loop_var: vlan
-
