@@ -1,0 +1,12 @@
+---
+
+- name: Deploy the VLAN-backed segments
+  vmware.ansible_for_nsxt.nsxt_policy_segment:
+    validate_certs: "{{ validate_certs | default(false) }}"
+    hostname: "{{ nsx_hostname }}"
+    username: "{{ nsx_username }}"
+    password: "{{ nsx_password }}"
+    display_name: "{{ vlan.name | replace(' ', '_') }}"
+    state: present
+    transport_zone_display_name: "{{ nsx_config.transport_zone_display_name }}"
+    vlan_ids: "{{ vlan.vlan_id }}"

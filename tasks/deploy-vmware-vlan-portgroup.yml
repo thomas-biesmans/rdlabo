@@ -1,0 +1,17 @@
+---
+
+- name: Deploy the Port Groups
+  community.vmware.vmware_portgroup:
+    validate_certs: "{{ validate_certs | default(false) }}"
+    hostname: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+    username: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+    password: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+    hosts: "{{ esx_host.server }}"
+    switch: "{{ esx_host.vswitch }}"
+    portgroup: "{{ vlan.name }}"
+    vlan_id: "{{ vlan.vlan_id }}"
+    state: present
+  loop: "{{ hosts_with_portgroups }}"
+  loop_control:
+    label: "VLAN '{{ vlan.name }}' - Host '{{ esx_host.server }} - vSwitch '{{ esx_host.vswitch }}'"
+    loop_var: esx_host

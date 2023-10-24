@@ -55,7 +55,7 @@
       
     - name: Deploy NSX segments
       ansible.builtin.include_tasks:
-        file: tasks/deploy-vmware-nsx-segments.yml
+        file: tasks/deploy-vmware-nsx-overlay-segments.yml
         apply:
           tags: vm
       tags: vm, deploy_nsx_segments

@@ -4,6 +4,6 @@
   include_tasks: deploy-virtualconnect-serverportmap-sus.yml
   loop: "{{ virtual_connect_shared_uplinks_sets }}"
   loop_control:
-    label: "VLAN '{{ vlan.name}}' - SUS '{{ sus }}'"
+    label: "VLAN '{{ vlan.name }}' - SUS '{{ sus }}'"
     loop_var: sus
     index_var: sus_index

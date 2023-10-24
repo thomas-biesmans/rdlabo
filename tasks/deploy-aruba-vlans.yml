@@ -15,6 +15,6 @@
   loop: "{{ vars.vlans }}"
   when: vlan.vlan_id is defined
   loop_control:
-    label: "VLAN '{{ vlan.name}}'"
+    label: "VLAN '{{ vlan.name }}'"
     loop_var: vlan
 

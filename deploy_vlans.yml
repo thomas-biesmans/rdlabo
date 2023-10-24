@@ -61,11 +61,25 @@
       tags: deploy_vc
 
 
-      
-    # - name: Deploy NSX segments
-    #   ansible.builtin.include_tasks:
-    #     file: tasks/deploy-vmware-nsx-segments.yml
-    #     apply:
-    #       tags: vm
-    #   tags: vm, deploy_nsx_segments
-    #   when: nsx_integration
+- hosts: vcenter
+  gather_facts: no
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml 
+  tasks:
+
+  - name: Deploy VLANs on VMware
+    tags: deploy_vmware
+    delegate_to: localhost
+    block:
+
+    - name: Deploy VLANs on VMware
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-vmware-vlans.yml
+        apply:
+          tags: vm
+      tags: deploy_vmware
+      vars:
+        ansible_python_interpreter: /usr/bin/python3.9
+
+

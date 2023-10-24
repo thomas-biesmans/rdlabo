@@ -4,6 +4,8 @@ ports:
   uplinks:
   - name: uplink_to_FortiGate
     port: Trk30
+  - name: backup_uplink_to_FortiGate
+    port: C8
   - name: uplink_to_VirtualConnect_A
     port: Trk10
   - name: uplink_to_VirtualConnect_B

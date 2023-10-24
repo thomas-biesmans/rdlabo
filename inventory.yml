@@ -226,6 +226,9 @@ all:
     - openshift_upi_vms
     - openshift_upi_nsx_vms
 
+vcenter:
+  hosts:
+    rdlvc11a.rdlabo.local:
 
 vcenter_vms:
   children:

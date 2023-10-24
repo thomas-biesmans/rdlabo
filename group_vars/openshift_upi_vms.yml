@@ -10,14 +10,14 @@ bastion_webroot: /home/user1/var-www-html-upi
 bastion_ip: 10.255.254.23
 bastion_port: 8080
 bastion_container_name: webserver-upi
-openshift_download_dir: /home/user1/openshift-install-4.11-upi-installer
-openshift_config_dir: /home/user1/openshift-install-4.11-upi-config
-openshift_example_dir: /home/user1/openshift-install-4.11-upi-examples
-openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.11.37/openshift-install-linux.tar.gz
+openshift_download_dir: /home/user1/openshift-install-4.12-upi-installer
+openshift_config_dir: /home/user1/openshift-install-4.12-upi-config
+openshift_example_dir: /home/user1/openshift-install-4.12-upi-examples
+openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.12.40/openshift-install-linux.tar.gz
 # https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.11/openshift-install-linux.tar.gz # Leave empty if you want to target the latest stable
 openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-install-linux.tar.gz
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
-openshift_custom_ova_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/latest/rhcos-vmware.x86_64.ova
+openshift_custom_ova_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/latest/rhcos-vmware.x86_64.ova
 openshift_cluster_name: openshift-upi
 openshift_cluster_domain: rdlabo.local
 openshift_networkType: OpenShiftSDN
@@ -55,7 +55,7 @@ default_community_vmware_vmware__guest:
   folder: /P250/vm/RD Labo/Various/OpenShift-4-UPI
   name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
   state: poweredoff
-  template: Template-RHCOS-UPI # Case sensitive
+  template: Template-RHCOS-4.12.30 # Case sensitive
   template_type: eagerZeroedThick # thin, thick, eagerZeroedThick
   disk:
   - size_gb: 120

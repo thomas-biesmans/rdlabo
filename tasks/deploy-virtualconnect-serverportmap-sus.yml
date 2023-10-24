@@ -14,4 +14,4 @@
   loop_control:
     loop_var: profile
     index_var: profile_index
-    label: "Server {{ profile.server }} - VLAN '{{ vlan.name}}' - SUS '{{ sus }}'"
+    label: "Server {{ profile.server }} - VLAN '{{ vlan.name }}' - SUS '{{ sus }}'"

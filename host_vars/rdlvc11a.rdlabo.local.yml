@@ -1,0 +1,20 @@
+---
+vcenter_hostname: "{{ inventory_hostname }}"
+vcenter_username: "{{ vmware_sa_username }}"
+vcenter_password: "{{ vmware_sa_password }}"
+nsx_hostname: 10.255.254.127
+nsx_username: "{{ vmware_nsx_username }}"
+nsx_password: "{{ vmware_nsx_password }}"
+hosts_with_portgroups:
+- server: rdlhost01.rdlabo.local
+  vswitch: vSwitch0
+- server: rdlhost02.rdlabo.local
+  vswitch: vSwitch0
+- server: rdlhost03.rdlabo.local
+  vswitch: vSwitch0
+hosts_with_NSX:
+- server: rdlhost04.rdlabo.local
+- server: rdlhost05.rdlabo.local
+nsx_config:
+  # transport_zone: a95c914d-748d-497c-94ab-10d4647daeba
+  transport_zone_display_name: nsx-vlan-transportzone

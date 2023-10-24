@@ -1,0 +1,17 @@
+---
+
+- name: Looping managed VLANs with VLAN IDs for port groups
+  include_tasks: deploy-vmware-vlan-portgroup.yml
+  loop: "{{ vars.vlans }}"
+  when: vlan.vlan_id is defined and vlan.vmware_managed and vlan.vmware_nsx_segment_type != 'overlay'
+  loop_control:
+    label: "VLAN '{{ vlan.name }}'"
+    loop_var: vlan
+
+- name: Looping managed VLANs with VLAN IDs for VLAN-backed segments
+  include_tasks: deploy-vmware-vlan-vlan-backed-segment.yml
+  loop: "{{ vars.vlans }}"
+  when: vlan.vlan_id is defined and vlan.vmware_managed and vlan.vmware_nsx_segment_type == 'vlan'
+  loop_control:
+    label: "VLAN '{{ vlan.name }}'"
+    loop_var: vlan

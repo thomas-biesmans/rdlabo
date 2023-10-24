@@ -23,7 +23,7 @@
   loop: "{{ vars.vlans }}"
   when: vlan.vlan_id is defined and vlan.virtualconnect_managed
   loop_control:
-    label: "VLAN '{{ vlan.name}}'"
+    label: "VLAN '{{ vlan.name }}'"
     loop_var: vlan
 
 - name: Getting all server profiles and parsing through ttp
@@ -48,5 +48,5 @@
   loop: "{{ vars.vlans }}"
   when: vlan.vlan_id is defined and vlan.virtualconnect_managed
   loop_control:
-    label: "VLAN '{{ vlan.name}}'"
+    label: "VLAN '{{ vlan.name }}'"
     loop_var: vlan
