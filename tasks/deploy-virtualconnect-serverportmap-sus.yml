@@ -8,6 +8,7 @@
       name: ansible.utils.ttp
   register: profile_serverportmap_addition_parsed
   when: profile_list_parsed_merged | selectattr('profile_name', 'eq', profile.server ) | map(attribute='port_list') | flatten | selectattr('port_id', 'eq', (profile.connections[sus_index] | string)) | map(attribute='network_list') | flatten | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | list | length == 0
+  changed_when: profile_list_parsed_merged | selectattr('profile_name', 'eq', profile.server ) | map(attribute='port_list') | flatten | selectattr('port_id', 'eq', (profile.connections[sus_index] | string)) | map(attribute='network_list') | flatten | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | list | length == 0
   failed_when: not 'SUCCESS' in profile_serverportmap_addition_parsed.stdout
   loop: "{{ virtual_connect_server_profiles }}"
   loop_control:

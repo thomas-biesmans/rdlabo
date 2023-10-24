@@ -8,17 +8,22 @@
       name: ansible.utils.ttp
   register: network_creation_parsed
   when: network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length == 0
+  changed_when: network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length == 0
   failed_when: not 'SUCCESS' in network_creation_parsed.stdout
 
-- name: "Renaming network '{{ vlan.name }}' if found and parsing through ttp"
-  vars:
+- name: Calculating names if needed to check for renames
+  set_fact:
     current_network_name: "{{ network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | map(attribute='network_name') | list | first }}"
     new_network_name: "{{ vlan.name | replace(' ','_') }}{{ (virtual_connect_shared_uplinks_sets | length == 2 ) | ternary(virtual_connect_shared_uplinks_set_network_suffix[sus_index], '') }}"
+  when: (network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length != 0)
+
+- name: "Renaming network '{{ vlan.name }}' if found and needed and parsing through ttp"
   ansible.utils.cli_parse:
     command: "set network {{ current_network_name }} name={{ new_network_name }}"
     parser:
       command: virtual connect add network
       name: ansible.utils.ttp
   register: network_creation_parsed
-  when: network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length != 0 and current_network_name != new_network_name
+  when: (network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length != 0) and current_network_name != new_network_name
+  changed_when: (network_list_parsed.parsed[0][0] | selectattr('network_vlan_id', 'defined') | selectattr('network_vlan_id', 'eq', vlan.vlan_id | string) | selectattr('network_sus', 'eq', sus) | list | length != 0) and current_network_name != new_network_name
   failed_when: not 'SUCCESS' in network_creation_parsed.stdout

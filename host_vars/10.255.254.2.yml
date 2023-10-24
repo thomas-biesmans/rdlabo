@@ -14,3 +14,19 @@ virtual_connect_server_profiles:
   connections:
   - 1
   - 2
+- server: RDLHOST02
+  connections:
+  - 1
+  - 2
+- server: RDLHOST03
+  connections:
+  - 1
+  - 2
+- server: RDLHOST04
+  connections:
+  - 3
+  - 4
+- server: RDLHOST05
+  connections:
+  - 3
+  - 4

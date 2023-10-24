@@ -16,110 +16,121 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: no
-# - name: 669-RD Labo Large
-#   vlan_id: 669
-#   network: 10.254.0.0
-#   netmask: 255.255.128.0
-#   gateway: 10.254.0.1
-#   revlookupzonename: 0.254.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: 666-BURA
-#   vlan_id: 666
-#   network: 10.255.255.0
-#   netmask: 255.255.255.0
-#   gateway: 10.255.255.254
-#   revlookupzonename: 255.255.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: 701-OpenShift1
-#   vlan_id: 701
-#   network: 10.255.242.0
-#   netmask: 255.255.255.0
-#   gateway: 10.255.242.254
-#   revlookupzonename: 242.255.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: 702-OpenShift2
-#   vlan_id: 702
-#   network: 10.255.244.0
-#   netmask: 255.255.255.0
-#   gateway: 10.255.244.254
-#   revlookupzonename: 244.255.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: 703-OpenShift3
-#   vlan_id: 703
-#   network: 10.255.245.0
-#   netmask: 255.255.255.0
-#   gateway: 10.255.245.254
-#   revlookupzonename: 245.255.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: 704-OpenShift4
-#   vlan_id: 704
-#   network: 10.255.246.0
-#   netmask: 255.255.255.0
-#   gateway: 10.255.246.254
-#   revlookupzonename: 246.255.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   vlan_tag:
-#   - uplink_type: core
-#     tagged: yes
-#   fortigate_managed: no
-# - name: NSX-OpenShift-UPI-NSX
-#   network: 10.200.0.0
-#   netmask: 255.255.255.0
-#   gateway: 10.200.0.254
-#   revlookupzonename: 0.200.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   fortigate_managed: no
-# - name: NSX-OpenShift-UPI-NSX-Workers
-#   network: 10.201.0.0
-#   netmask: 255.255.255.0
-#   gateway: 10.201.0.254
-#   revlookupzonename: 0.201.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   fortigate_managed: no
-# - name: NSX-OpenShift-UPI-NSX-Infra
-#   network: 10.201.1.0
-#   netmask: 255.255.255.0
-#   gateway: 10.201.1.254
-#   revlookupzonename: 1.201.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   fortigate_managed: no
-# - name: NSX-OpenShift-UPI-NSX-Storage
-#   network: 10.201.2.0
-#   netmask: 255.255.255.0
-#   gateway: 10.201.2.254
-#   revlookupzonename: 2.201.10.in-addr.arpa
-#   fwdlookupzonename: rdlabo.local
-#   jumbo: yes
-#   fortigate_managed: no
+  virtualconnect_managed: no
+- name: 669-RD Labo Large
+  vlan_id: 669
+  network: 10.254.0.0
+  netmask: 255.255.128.0
+  gateway: 10.254.0.1
+  revlookupzonename: 0.254.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: 666-BURA
+  vlan_id: 666
+  network: 10.255.255.0
+  netmask: 255.255.255.0
+  gateway: 10.255.255.254
+  revlookupzonename: 255.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: 701-OpenShift1
+  vlan_id: 701
+  network: 10.255.242.0
+  netmask: 255.255.255.0
+  gateway: 10.255.242.254
+  revlookupzonename: 242.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: 702-OpenShift2
+  vlan_id: 702
+  network: 10.255.244.0
+  netmask: 255.255.255.0
+  gateway: 10.255.244.254
+  revlookupzonename: 244.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: 703-OpenShift3
+  vlan_id: 703
+  network: 10.255.245.0
+  netmask: 255.255.255.0
+  gateway: 10.255.245.254
+  revlookupzonename: 245.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: 704-OpenShift4
+  vlan_id: 704
+  network: 10.255.246.0
+  netmask: 255.255.255.0
+  gateway: 10.255.246.254
+  revlookupzonename: 246.255.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: NSX-OpenShift-UPI-NSX
+  network: 10.200.0.0
+  netmask: 255.255.255.0
+  gateway: 10.200.0.254
+  revlookupzonename: 0.200.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: NSX-OpenShift-UPI-NSX-Workers
+  network: 10.201.0.0
+  netmask: 255.255.255.0
+  gateway: 10.201.0.254
+  revlookupzonename: 0.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: NSX-OpenShift-UPI-NSX-Infra
+  network: 10.201.1.0
+  netmask: 255.255.255.0
+  gateway: 10.201.1.254
+  revlookupzonename: 1.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
+- name: NSX-OpenShift-UPI-NSX-Storage
+  network: 10.201.2.0
+  netmask: 255.255.255.0
+  gateway: 10.201.2.254
+  revlookupzonename: 2.201.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  fortigate_managed: no
+  virtualconnect_managed: no
 - name: NSX-OpenShift-ClientSubnet
   network: 10.10.0.0
   netmask: 255.255.255.0
@@ -128,6 +139,7 @@ vlans:
   fwdlookupzonename: rdlabo.local
   jumbo: yes
   fortigate_managed: no
+  virtualconnect_managed: no
 - name: 710-NSX-OPENSHIFTDEV-ExtLB-Mgmt
   vlan_id: 710
   network: 10.202.0.0
@@ -140,6 +152,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 711-NSX-OPENSHIFTDEV-ExtLB-Apps
   vlan_id: 711
   network: 10.202.1.0
@@ -152,6 +165,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 712-NSX-OPENSHIFTDEV-Master
   vlan_id: 712
   network: 10.202.2.0
@@ -164,6 +178,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 713-NSX-OPENSHIFTDEV-Infra
   vlan_id: 713
   network: 10.202.3.0
@@ -176,6 +191,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 714-NSX-OPENSHIFTDEV-Storage
   vlan_id: 714
   network: 10.202.4.0
@@ -188,6 +204,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 715-NSX-OPENSHIFTDEV-Worker
   vlan_id: 715
   network: 10.202.5.0
@@ -200,6 +217,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 716-NSX-OPENSHIFTDEV-Worker-MOCK
   vlan_id: 716
   network: 10.202.6.0
@@ -212,6 +230,7 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
 - name: 717-NSX-OPENSHIFTDEV-MOCK-ClientSubnet
   vlan_id: 717
   network: 10.202.7.0
@@ -224,3 +243,17 @@ vlans:
   - uplink_type: core
     tagged: yes
   fortigate_managed: yes
+  virtualconnect_managed: yes
+- name: 777-NSX-BGP-Transit
+  vlan_id: 777
+  network: 10.202.77.0
+  netmask: 255.255.255.0
+  gateway: 10.202.77.254
+  revlookupzonename: 77.202.10.in-addr.arpa
+  fwdlookupzonename: rdlabo.local
+  jumbo: yes
+  vlan_tag:
+  - uplink_type: core
+    tagged: yes
+  fortigate_managed: yes
+  virtualconnect_managed: yes
