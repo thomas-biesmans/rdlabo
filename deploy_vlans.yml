@@ -83,3 +83,21 @@
         ansible_python_interpreter: /usr/bin/python3.9
 
 
+- hosts: windows_dns
+  # gather_facts: no
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml 
+  tasks:
+
+  - name: Deploy VLAN DHCP scopes on Windows DNS
+    tags: deploy_dhcp
+    block:
+
+    - name: Deploy VLAN DHCP scopes on Windows DNS
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-windows-dhcp-scopes.yml
+        apply:
+          tags: vm
+      tags: deploy_dhcp
+

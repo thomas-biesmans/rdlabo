@@ -14,6 +14,15 @@
       found_revlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='revlookupzonename') | list)[0] }}"
       found_fwdlookupzonename: "{{ (vars.vlans | selectattr('name','eq', vars.openshift_api_vlan) | map(attribute='fwdlookupzonename') | list)[0] }}"
 
+  - name: Ensure primary zone is present
+    community.windows.win_dns_zone:
+      name: "{{ found_fwdlookupzonename }}"
+      replication: domain
+      type: primary
+      state: present
+    delegate_to: "{{ item }}"
+    with_items: "{{ groups.windows_dns }}"
+    
   - name: Create Windows DNS A record for 'api'
     community.windows.win_dns_record:
       name: "{{ openshift_api_url | replace('.' + vars.found_fwdlookupzonename , '') }}"

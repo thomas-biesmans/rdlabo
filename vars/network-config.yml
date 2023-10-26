@@ -19,6 +19,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: no
   vmware_nsx_segment_type: vlan
+  dhcp_managed: no
 - name: 669-RD Labo Large
   vlan_id: 669
   network: 10.254.0.0
@@ -34,6 +35,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 666-BURA
   vlan_id: 666
   network: 10.255.255.0
@@ -49,6 +51,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: no
 - name: 701-OpenShift1
   vlan_id: 701
   network: 10.255.242.0
@@ -64,6 +67,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: 702-OpenShift2
   vlan_id: 702
   network: 10.255.244.0
@@ -79,6 +83,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: 703-OpenShift3
   vlan_id: 703
   network: 10.255.245.0
@@ -94,6 +99,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: 704-OpenShift4
   vlan_id: 704
   network: 10.255.246.0
@@ -109,6 +115,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: NSX-OpenShift-UPI-NSX
   network: 10.200.0.0
   netmask: 255.255.255.0
@@ -120,6 +127,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: NSX-OpenShift-UPI-NSX-Workers
   network: 10.201.0.0
   netmask: 255.255.255.0
@@ -131,6 +139,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: NSX-OpenShift-UPI-NSX-Infra
   network: 10.201.1.0
   netmask: 255.255.255.0
@@ -142,6 +151,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: NSX-OpenShift-UPI-NSX-Storage
   network: 10.201.2.0
   netmask: 255.255.255.0
@@ -153,6 +163,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: NSX-OpenShift-ClientSubnet
   network: 10.10.0.0
   netmask: 255.255.255.0
@@ -164,6 +175,7 @@ vlans:
   virtualconnect_managed: no
   vmware_managed: yes
   vmware_nsx_segment_type: overlay
+  dhcp_managed: yes
 - name: 710-NSX-OPENSHIFTDEV-ExtLB-Mgmt
   vlan_id: 710
   network: 10.202.0.0
@@ -179,6 +191,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 711-NSX-OPENSHIFTDEV-ExtLB-Apps
   vlan_id: 711
   network: 10.202.1.0
@@ -194,6 +207,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 712-NSX-OPENSHIFTDEV-Master
   vlan_id: 712
   network: 10.202.2.0
@@ -209,6 +223,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 713-NSX-OPENSHIFTDEV-Infra
   vlan_id: 713
   network: 10.202.3.0
@@ -224,6 +239,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 714-NSX-OPENSHIFTDEV-Storage
   vlan_id: 714
   network: 10.202.4.0
@@ -239,6 +255,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 715-NSX-OPENSHIFTDEV-Worker
   vlan_id: 715
   network: 10.202.5.0
@@ -254,6 +271,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 716-NSX-OPENSHIFTDEV-Worker-MOCK
   vlan_id: 716
   network: 10.202.6.0
@@ -269,6 +287,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 717-NSX-OPENSHIFTDEV-MOCK-ClientSubnet
   vlan_id: 717
   network: 10.202.7.0
@@ -284,6 +303,7 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: vlan
+  dhcp_managed: yes
 - name: 777-NSX-BGP-Transit
   vlan_id: 777
   network: 10.202.77.0
@@ -299,3 +319,4 @@ vlans:
   virtualconnect_managed: yes
   vmware_managed: yes
   vmware_nsx_segment_type: none
+  dhcp_managed: no

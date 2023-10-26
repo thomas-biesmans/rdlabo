@@ -1,10 +1,4 @@
 ---
-# - name: Ensure primary zone is present
-#   community.windows.win_dns_zone:
-#     name: 
-#     replication: domain
-#     type: primary
-#     state: present
 
 - name: Fail if no single forward lookup zone is found 
   fail:
@@ -20,6 +14,15 @@
 - name: "DNS Forward records: name - value - zone"
   debug:
     msg: "{{ inventory_hostname | replace('.' + vars.found_fwdlookupzonename , '') }}, {{ vars.nics[0].ip }}, {{ vars.found_fwdlookupzonename }}"
+
+- name: Ensure primary zone is present
+  community.windows.win_dns_zone:
+    name: "{{ found_fwdlookupzonename }}"
+    replication: domain
+    type: primary
+    state: present
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups.windows_dns }}"
 
 - name: Create Windows DNS A record
   community.windows.win_dns_record:

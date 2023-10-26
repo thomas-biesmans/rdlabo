@@ -1,0 +1,85 @@
+---
+
+- name: Getting all DHCP scopes
+  win_shell: |
+    Import-Module DHCPServer
+    Get-DhcpServerv4Scope | ConvertTo-Json
+  args:
+    executable: powershell
+  register: dhcp_list
+
+- name: Convert output from Json
+  set_fact:
+    dhcp_list_parsed: "{{ dhcp_list.stdout | from_json }}"
+  
+- name: Looping through VLANs and creating DHCP scopes
+  win_shell: |
+    Import-Module DHCPServer
+    Add-DhcpServerv4Scope -Name '{{ vlan.name }}' -StartRange {{ ipaddr_net_first_usable_if_not_gateway }} -EndRange {{ ipaddr_net_last_usable_if_not_gateway }} -SubnetMask {{ vlan.netmask }}
+  args:
+    executable: powershell
+  vars:
+    ipaddr_network_and_netmask: "{{ vlan.network }}/{{ vlan.netmask }}"
+    ipaddr_net: "{{ ipaddr_network_and_netmask | ansible.utils.ipaddr('net') }}"
+    ip_first: "{{ ipaddr_net | ansible.utils.ipaddr(1) }}"
+    ip_last: "{{ ipaddr_net | ansible.utils.ipaddr(-2) }}"
+    ipaddr_net_first_usable_if_not_gateway: "{{ (ipaddr_net | ansible.utils.ipaddr(1) | ansible.utils.ipaddr('address') ==  vlan.gateway) | ternary((ipaddr_net | ansible.utils.ipaddr(2) | ansible.utils.ipaddr('address')), (ipaddr_net | ansible.utils.ipaddr(1) | ansible.utils.ipaddr('address'))) }}"
+    ipaddr_net_last_usable_if_not_gateway: "{{ (ipaddr_net | ansible.utils.ipaddr(-2) | ansible.utils.ipaddr('address') ==  vlan.gateway) | ternary((ipaddr_net | ansible.utils.ipaddr(-3) | ansible.utils.ipaddr('address')), (ipaddr_net | ansible.utils.ipaddr(-2) | ansible.utils.ipaddr('address'))) }}"
+  loop: "{{ vlans }}"
+  when: vlan.dhcp_managed and not (vlan.name in (dhcp_list_parsed | map(attribute='Name') | list))
+  loop_control:
+    loop_var: vlan
+    index_var: vlan_index
+    label: "{{ vlan.name }}"
+
+
+- name: Getting all DHCP options
+  win_shell: |
+    Import-Module DHCPServer
+    Get-DhcpServerv4Scope | foreach{ $Scope = $_ ; $options = Get-DhcpServerv4OptionValue -ScopeID $Scope.ScopeID ; $options | Add-Member -type NoteProperty -name ScopeName -value $Scope.Name ; $options} | ConvertTo-Json
+  args:
+    executable: powershell
+  register: dhcp_options_list
+
+- name: Convert output from Json
+  set_fact:
+    dhcp_options_list_parsed: "{{ dhcp_options_list.stdout | from_json }}"
+
+- name: Looping through VLANs and setting DHCP scope option 'Router' if needed
+  win_shell: |
+    Import-Module DHCPServer
+    Set-DhcpServerv4OptionValue -ScopeID '{{ vlan.network }}' -OptionID 3 -Value {{ vlan.gateway }}
+  args:
+    executable: powershell
+  loop: "{{ vlans }}"
+  when: vlan.dhcp_managed and (dhcp_options_list_parsed | selectattr('ScopeName', 'eq', vlan.name) | selectattr('Name', 'eq', 'Router') | selectattr('Value', 'issuperset', [vlan.gateway]) | list | length == 0)
+  loop_control:
+    loop_var: vlan
+    index_var: vlan_index
+    label: "{{ vlan.name }}"
+
+- name: Looping through VLANs and setting DHCP scope option 'DNS Servers' if needed
+  win_shell: |
+    Import-Module DHCPServer
+    Set-DhcpServerv4OptionValue -ScopeID '{{ vlan.network }}' -OptionID 6 -Value {{ dns_servers | join(',') }}
+  args:
+    executable: powershell
+  loop: "{{ vlans }}"
+  when: vlan.dhcp_managed and (dhcp_options_list_parsed | selectattr('ScopeName', 'eq', vlan.name) | selectattr('Name', 'eq', 'DNS Servers') | selectattr('Value', 'issuperset', dns_servers) | list | length == 0)
+  loop_control:
+    loop_var: vlan
+    index_var: vlan_index
+    label: "{{ vlan.name }}"
+    
+- name: Looping through VLANs and setting DHCP scope option 'DNS Domain Name' if needed
+  win_shell: |
+    Import-Module DHCPServer
+    Set-DhcpServerv4OptionValue -ScopeID '{{ vlan.network }}' -OptionID 15 -Value {{ vlan.fwdlookupzonename }}
+  args:
+    executable: powershell
+  loop: "{{ vlans }}"
+  when: vlan.dhcp_managed and (dhcp_options_list_parsed | selectattr('ScopeName', 'eq', vlan.name) | selectattr('Name', 'eq', 'DNS Domain Name') | selectattr('Value', 'issuperset', [vlan.fwdlookupzonename]) | list | length == 0)
+  loop_control:
+    loop_var: vlan
+    index_var: vlan_index
+    label: "{{ vlan.name }}"
