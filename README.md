@@ -34,6 +34,7 @@ Make sure the Ansible requirements are installed next with the following command
     python3.9 -m pip install jmespath --user
     python3.9 -m pip install ansible-pylibssh --user
     python3.9 -m pip install ttp --user
+    python3.9 -m pip install netaddr --user
     
 
 Versions used in the OKD pass:
@@ -81,6 +82,8 @@ One way to create encrypted password files is using stdin, i.e. typing it in a p
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'aruba_admin_password' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'fortigate_admin_password' >> passwords/ansible_vault.yml
     ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'virtualconnect_admin_password' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'sa_ansible_username' >> passwords/ansible_vault.yml
+    ansible-vault encrypt_string --vault-id donisaurs@passwords/ansible_vaultpasswd.user --stdin-name 'sa_ansible_password' >> passwords/ansible_vault.yml
 
 Use the following Ansible snippet to load the password file:
 ```
@@ -186,19 +189,24 @@ api.okd3.rdlabo.local:8443
 
 ## Execution
 
-To execute a playbook and capture the output (--ask-become-pass not needed):
+To deploy the network infrastructure:
+  
+  ansible-playbook deploy_vlans.yml -i inventory.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user
+
+or for only a specific tag:
+
+  ansible-playbook deploy_vlans.yml -i inventory.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user --tags deploy_vmware
+
+
+To execute a playbook to deploy OpenShift 4 and capture the output (and losing the color coding):
+
+  ansible-playbook deploy_OpenShift_4_nodes.yml -i inventory.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user --ask-become-pass 2>&1 | tee -a output_run_20231024_1345.log
+
+
+
+Old 3.11 version:
 
   ansible-playbook -i inventory.yml deploy_OKD_3.11_nodes.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user 2>&1 | tee -a output_run_20210507_1345.log
-
-If you want to execute a specific tag, then you can do so as well:
-
-  ansible-playbook -i inventory.yml deploy_OKD_3.11_nodes.yml --vault-id donisaurs@passwords/ansible_vaultpasswd.user --tags=storage_extend 2>&1 | tee -a output_run_20210507_1345.log
-
-
-
-
-
-
 
 
 ## Crap moved forward

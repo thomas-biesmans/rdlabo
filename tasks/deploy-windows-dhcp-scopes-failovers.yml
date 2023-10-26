@@ -1,0 +1,28 @@
+---
+
+- name: Getting all DHCP failovers
+  win_shell: |
+    Import-Module DHCPServer
+    Get-DhcpServerv4Failover | ConvertTo-Json
+  args:
+    executable: powershell
+  register: dhcp_failover_list
+
+- name: Convert output from Json
+  set_fact:
+    dhcp_failover_list_parsed: "{{ dhcp_failover_list.stdout | from_json }}"
+
+- name: Looping through VLANs and setting DHCP scope failover' if needed
+  # debug:
+  #   msg: "Set-DhcpServerv4Failover -Name {{ dhcp_failover_list_parsed.Name }} -ScopeID '{{ vlan.network }}' - {{vlan.network | ansible.utils.ipaddr('int')}}"
+  win_shell: |
+    Import-Module DHCPServer
+    Add-DhcpServerv4FailoverScope -Name {{ dhcp_failover_list_parsed.Name }} -ScopeID '{{ vlan.network }}'
+  args:
+    executable: powershell
+  loop: "{{ vlans }}"
+  when: vlan.dhcp_managed and not (vlan.network in (dhcp_failover_list_parsed.CimInstanceProperties | selectattr('Name', 'eq', 'ScopeId') | map(attribute='Value') | list | first))
+  loop_control:
+    loop_var: vlan
+    index_var: vlan_index
+    label: "{{ vlan.name }}"

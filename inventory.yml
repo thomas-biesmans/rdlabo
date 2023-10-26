@@ -9,81 +9,86 @@
 #   while the last range succeeded.
 
 # OpenShift 4 UPI nodes
-openshift_upi_vms_master_nodes:
+openshift_upi_srdcopenshiftdev_vms_master_nodes:
   hosts:
-    srdcopenshiftdevmaster0001.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevmaster0001.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.2.10
         mac: 00:05:69:aa:aa:00
-    srdcopenshiftdevmaster0002.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevmaster0002.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.2.11
         mac: 00:05:69:aa:aa:01
-    srdcopenshiftdevmaster0003.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevmaster0003.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.2.12
         mac: 00:05:69:aa:aa:02
   vars:
     type: master
 
-openshift_upi_vms_infra_nodes:
+openshift_upi_srdcopenshiftdev_vms_infra_nodes:
   hosts:
-    srdcopenshiftdevinfra0001.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevinfra0001.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.3.10
         mac: 00:05:69:aa:aa:03
-    srdcopenshiftdevinfra0002.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevinfra0002.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.3.11
         mac: 00:05:69:aa:aa:04
   vars:
     type: infra
 
-openshift_upi_vms_worker_nodes:
+openshift_upi_srdcopenshiftdev_vms_worker_nodes:
   hosts:
-    srdcopenshiftdevworkermock0001.openshiftdev.realdolmencloud.com:
-      nics:
-      - ip: 10.202.6.10
-        mac: 00:05:69:aa:aa:05
-      - ip: 10.202.7.10
-        mac: 00:05:69:aa:ab:05
-    srdcopenshiftdevworkermock0002.openshiftdev.realdolmencloud.com:
-      nics:
-      - ip: 10.202.6.11
-        mac: 00:05:69:aa:aa:06
-      - ip: 10.202.7.11
-        mac: 00:05:69:aa:ab:06
-    srdcopenshiftdevworker0001.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevworker0001.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.5.10
         mac: 00:05:69:aa:aa:07
-    srdcopenshiftdevworker0002.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevworker0002.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.5.11
         mac: 00:05:69:aa:aa:08
   vars:
     type: worker
 
-openshift_upi_vms_bootstrap_node:
+openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
   hosts:
-    srdcopenshiftdevbootstrap.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevworkermock0001.openshiftdev.rdlabo.local:
+      nics:
+      - ip: 10.202.6.10
+        mac: 00:05:69:aa:aa:05
+      - ip: 10.202.7.10
+        mac: 00:05:69:aa:ab:05
+    srdcopenshiftdevworkermock0002.openshiftdev.rdlabo.local:
+      nics:
+      - ip: 10.202.6.11
+        mac: 00:05:69:aa:aa:06
+      - ip: 10.202.7.11
+        mac: 00:05:69:aa:ab:06
+  vars:
+    type: worker
+
+openshift_upi_srdcopenshiftdev_vms_bootstrap_node:
+  hosts:
+    srdcopenshiftdevbootstrap.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.2.17
         mac: 00:05:69:aa:aa:09
   vars:
     type: bootstrap
 
-openshift_upi_vms_storage_nodes:
+openshift_upi_srdcopenshiftdev_vms_storage_nodes:
   hosts:
-    srdcopenshiftdevstor0001.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevstor0001.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.4.10
         mac: 00:05:69:aa:aa:0a
-    srdcopenshiftdevstor0002.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevstor0002.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.4.11
         mac: 00:05:69:aa:aa:0b
-    srdcopenshiftdevstor0003.openshiftdev.realdolmencloud.com:
+    srdcopenshiftdevstor0003.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.4.12
         mac: 00:05:69:aa:aa:0c
@@ -91,13 +96,14 @@ openshift_upi_vms_storage_nodes:
     type: storage
 
 
-openshift_upi_vms:
+openshift_upi_srdcopenshiftdev_vms:
   children:
-    openshift_upi_vms_bootstrap_node:
-    openshift_upi_vms_master_nodes:
-    openshift_upi_vms_infra_nodes:
-    openshift_upi_vms_worker_nodes:
-    openshift_upi_vms_storage_nodes:
+    openshift_upi_srdcopenshiftdev_vms_bootstrap_node:
+    openshift_upi_srdcopenshiftdev_vms_master_nodes:
+    openshift_upi_srdcopenshiftdev_vms_infra_nodes:
+    openshift_upi_srdcopenshiftdev_vms_worker_nodes:
+    openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
+    openshift_upi_srdcopenshiftdev_vms_storage_nodes:
   vars:
     vmware_networkportgroup: VLAN665-RD Labo
     ansible_group_priority: 10
@@ -190,41 +196,42 @@ openshift_upi_vms:
 
 openshift_clusters:
   children:
-    openshift_upi_vms:
-    openshift_upi_nsx_vms:
+    openshift_upi_srdcopenshiftdev_vms:
+    # openshift_upi_nsx_vms:
 
 # Using same-level groups & phigher precendence on clusters instead of nested groups to prevent parent variable merge
 openshift_bootstrap_nodes:
   children:
-    openshift_upi_vms_bootstrap_node:
-    openshift_upi_nsx_vms_bootstrap_node:
+    openshift_upi_srdcopenshiftdev_vms_bootstrap_node:
+    # openshift_upi_nsx_vms_bootstrap_node:
 
 openshift_master_nodes:
   children:
-    openshift_upi_vms_master_nodes:
-    openshift_upi_nsx_vms_master_nodes:
+    openshift_upi_srdcopenshiftdev_vms_master_nodes:
+    # openshift_upi_nsx_vms_master_nodes:
 
 openshift_worker_nodes:
   children:
-    openshift_upi_vms_worker_nodes:
-    openshift_upi_nsx_vms_worker_nodes:
+    openshift_upi_srdcopenshiftdev_vms_worker_nodes:
+    openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
+    # openshift_upi_nsx_vms_worker_nodes:
 
 openshift_infra_nodes:
   children:
-    openshift_upi_vms_infra_nodes:
-    openshift_upi_nsx_vms_infra_nodes:
+    openshift_upi_srdcopenshiftdev_vms_infra_nodes:
+    # openshift_upi_nsx_vms_infra_nodes:
 
 openshift_storage_nodes:
   children:
-    openshift_upi_vms_storage_nodes:
-    openshift_upi_nsx_vms_storage_nodes:
+    openshift_upi_srdcopenshiftdev_vms_storage_nodes:
+    # openshift_upi_nsx_vms_storage_nodes:
 
 
 all:
   vars:
     list_of_openshift_clusters:
-    - openshift_upi_vms
-    - openshift_upi_nsx_vms
+    - openshift_upi_srdcopenshiftdev_vms
+    # - openshift_upi_nsx_vms
 
 vcenter:
   hosts:
@@ -233,8 +240,8 @@ vcenter:
 vcenter_vms:
   children:
     rhel_vms:
-    openshift_upi_vms:
-    openshift_upi_nsx_vms:
+    openshift_upi_srdcopenshiftdev_vms:
+    # openshift_upi_nsx_vms:
 
 windows_dns:
   hosts:

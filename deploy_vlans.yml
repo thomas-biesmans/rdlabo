@@ -101,3 +101,16 @@
           tags: vm
       tags: deploy_dhcp
 
+
+  - name: Deploy VLAN DHCP scope failovers on Windows DNS
+    tags: deploy_dhcp
+    become: yes
+    become_method: runas
+    block:
+
+    - name: Deploy VLAN DHCP scope failovers on Windows DNS
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-windows-dhcp-scopes-failovers.yml
+        apply:
+          tags: vm
+      tags: deploy_dhcp

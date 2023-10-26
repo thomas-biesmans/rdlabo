@@ -83,3 +83,4 @@
     loop_var: vlan
     index_var: vlan_index
     label: "{{ vlan.name }}"
+

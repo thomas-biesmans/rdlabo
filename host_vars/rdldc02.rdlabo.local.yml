@@ -5,3 +5,5 @@ ansible_connection: winrm
 ansible_port: 5985
 ansible_winrm_transport: ntlm
 ansible_winrm_server_cert_validation: ignore
+ansible_become_user: "{{ sa_ansible_username }}"
+ansible_become_password: "{{ sa_ansible_password }}"
