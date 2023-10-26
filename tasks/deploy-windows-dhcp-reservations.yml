@@ -34,7 +34,41 @@
     index_var: index_current
     label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
 
-- name: Create DHCP Reservations
+- name: Flush old DHCP Reservations based on MAC due to bad idempotency
+  community.windows.win_dhcp_lease:
+    mac: "{{ vars.nics[index_current].mac | replace(':','-') }}"
+    state: absent
+  vars:
+    found_networks: "{{ (vars.vlans
+      | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
+      | map(attribute='network')
+      | list) }}"
+  loop: "{{ vars.community_vmware_vmware__guest.networks | product(groups.windows_dns) | list }}"
+  loop_control:
+    extended: true
+    index_var: index_current
+    label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
+  delegate_to: "{{ item[1] }}"
+  ignore_errors: yes
+
+- name: Flush old DHCP Reservations based on IP due to bad idempotency
+  community.windows.win_dhcp_lease:
+    ip: "{{ vars.nics[index_current].ip }}"
+    state: absent
+  vars:
+    found_networks: "{{ (vars.vlans
+      | selectattr('name', 'eq', vars.custom_community_vmware_vmware__guest.networks[index_current].name)
+      | map(attribute='network')
+      | list) }}"
+  loop: "{{ vars.community_vmware_vmware__guest.networks | product(groups.windows_dns) | list }}"
+  loop_control:
+    extended: true
+    index_var: index_current
+    label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
+  delegate_to: "{{ item[1] }}"
+  ignore_errors: yes
+
+- name: Create new DHCP Reservations
   community.windows.win_dhcp_lease:
     type: reservation
     reservation_name: "{{ inventory_hostname_short }}"
@@ -56,3 +90,4 @@
     label: "{{ inventory_hostname_short }} - NIC {{ index_current }}"
   delegate_to: "{{ item[1] }}"
   ignore_errors: yes
+

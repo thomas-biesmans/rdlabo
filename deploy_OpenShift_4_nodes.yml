@@ -79,15 +79,7 @@
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
       tags: deploy_infrastructure_dhcp
-      
-    - name: Deploy NSX segments
-      ansible.builtin.include_tasks:
-        file: tasks/deploy-vmware-nsx-overlay-segments.yml
-        apply:
-          tags: vm
-      tags: vm, deploy_nsx_segments
-      when: nsx_integration
-
+    - pause:
 
 - name: Prepare the web server
   hosts: openshift_bootstrap_nodes
@@ -399,17 +391,6 @@
           - "merge-bootstrap"
 
 
-# - name: Prepare OpenShift deployment
-#   hosts: openshift_bootstrap_nodes
-#   gather_facts: false
-#   vars_files:
-#   - passwords/ansible_vault.yml
-#   - vars/network-config.yml
-#   - group_vars/vcenter_vms.yml
-#   tasks:
-
-
-
 - name: Deploy VMs's OVA
   hosts: openshift_bootstrap_nodes
   gather_facts: false
@@ -449,7 +430,6 @@
   - passwords/ansible_vault.yml
   - vars/network-config.yml
   tasks:
-
 
   - name: Prepare nodes
     # when: vars.namespace_kube_apiserver.failed or (vars.namespace_kube_apiserver.resources is defined and vars.namespace_kube_apiserver.resources | length != 0 and vars.namespace_kube_apiserver.resources[0].status.phase != "Active")
@@ -512,7 +492,6 @@
       with_items:
       - "worker"
 
-
 - name: Deploy ignition configs on bootstrap node
   hosts: openshift_bootstrap_nodes
   gather_facts: false
@@ -545,7 +524,6 @@
       tags: ignition_vm_deploy
       with_items:
       - "merge-bootstrap"
-
 
 - name: Deploy the Citrix load balancers
   hosts: openshift_bootstrap_nodes
