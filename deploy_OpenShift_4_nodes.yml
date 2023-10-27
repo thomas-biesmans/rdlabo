@@ -23,6 +23,8 @@
         api_version: v1
         kind: Namespace
         name: openshift-kube-apiserver
+        wait: yes
+        wait_timeout: 10
       register: namespace_kube_apiserver
       delay: 10
       retries: 3
