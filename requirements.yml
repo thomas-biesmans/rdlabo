@@ -14,7 +14,8 @@ collections:
 - community.okd
 - community.windows
 - community.general
-- citrix.adc
+# - citrix.adc
+- netscaler.adc
 - kubernetes.core # Used to be community.kubernetes
 - git+https://github.com/vmware/ansible-for-nsxt
 - arubanetworks.aos_switch

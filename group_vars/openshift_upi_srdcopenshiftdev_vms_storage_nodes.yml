@@ -1,7 +1,7 @@
 ---
 custom_community_vmware_vmware__guest:
   networks:
-  - name: "VLAN665-RD Labo" #"VLAN703-OpenShift3"
+  - name: "714-NSX-OPENSHIFTDEV-Storage"
     device_type: vmxnet3
     connected: true
     start_connected: true

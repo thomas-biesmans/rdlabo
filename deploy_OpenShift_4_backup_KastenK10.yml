@@ -80,7 +80,7 @@
       retries: 3
 
 - name: Deploy Kasten K10 backup
-  hosts: openshift_upi_vms_bootstrap_node # openshift_bootstrap_nodes
+  hosts: openshift_upi_srdcopenshiftdev_vms_bootstrap_node # openshift_bootstrap_nodes
   gather_facts: false
   vars_files:
   - passwords/ansible_vault.yml

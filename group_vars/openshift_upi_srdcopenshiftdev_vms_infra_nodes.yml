@@ -1,7 +1,7 @@
 ---
 custom_community_vmware_vmware__guest:
   networks:
-  - name: "VLAN665-RD Labo" #"VLAN702-OpenShift2"
+  - name: "713-NSX-OPENSHIFTDEV-Infra"
     device_type: vmxnet3
     connected: true
     start_connected: true

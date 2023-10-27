@@ -24,11 +24,11 @@ networking:
 platform:
   vsphere:
     apiVIP: {{ vars.openshift_api_ip }}
-    cluster: {{ vars.default_community_vmware_vmware__guest.cluster }}
-    datacenter: {{ vars.default_community_vmware_vmware__guest.datacenter }}
-    defaultDatastore: {{ vars.default_community_vmware_vmware__guest.disk[0].datastore }}
+    cluster: {{ vars.community_vmware_vmware__guest.cluster }}
+    datacenter: {{ vars.community_vmware_vmware__guest.datacenter }}
+    defaultDatastore: {{ vars.community_vmware_vmware__guest.disk[0].datastore }}
     ingressVIP: {{ vars.openshift_ingress_ip }}
-    network: {{ vars.default_community_vmware_vmware__guest.networks[0].name }}
+    network: {{ vars.community_vmware_vmware__guest.networks[0].name }}
     password: {{ vmware_sa_password }}
     username: {{ vmware_sa_username }}
     vCenter: {{ vars.vcenter_hostname }}

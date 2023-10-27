@@ -18,31 +18,32 @@ openshift_custom_version_source: https://mirror.openshift.com/pub/openshift-v4/x
 openshift_default_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-install-linux.tar.gz
 openshift_default_client_source: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 openshift_custom_ova_source: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/latest/rhcos-vmware.x86_64.ova
-openshift_cluster_name: openshift-upi
-openshift_cluster_domain: rdlabo.local
+openshift_cluster_name: openshiftdev
+openshift_cluster_domain: realdolmencloud.com
 openshift_networkType: OpenShiftSDN
 openshift_clusterNetworks:
 - cidr: 10.128.0.0/14 # Default: 10.128.0.0/14
   hostPrefix: 23 # Default: 23
 # openshift_clusterNetwork_cidr: 10.128.0.0/14 # Default: 10.128.0.0/14
 # openshift_clusterNetwork_hostPrefix: 23 # Default: 23
-openshift_machineNetwork_cidr:
-- cidr: 10.255.254.0/24 # Default: 10.0.0.0/16
-- cidr: 10.255.242.0/24 # Default: 10.0.0.0/16
-- cidr: 10.255.244.0/24 # Default: 10.0.0.0/16
-- cidr: 10.255.245.0/24 # Default: 10.0.0.0/16
+openshift_machineNetwork_cidr: # Default: 10.0.0.0/16
+- cidr: 10.202.2.0/24 
+- cidr: 10.202.3.0/24 
+- cidr: 10.202.4.0/24 
+- cidr: 10.202.5.0/24 
+- cidr: 10.202.6.0/24 
 # openshift_machineNetwork_cidr: 172.16.0.0/16 # Default: 10.0.0.0/16
 openshift_serviceNetwork:
 - 172.30.0.0/16  # Default: 172.30.0.0/16
-openshift_api_url: "api.openshift-upi.rdlabo.local"
-openshift_api_int_url: "api-int.openshift-upi.rdlabo.local"
-openshift_api_ip: 10.255.254.84
+openshift_api_url: "api.openshiftdev.realdolmencloud.com"
+openshift_api_int_url: "api-int.openshiftdev.realdolmencloud.com"
+openshift_api_ip: 10.202.0.1
 openshift_api_port: 6443
 openshift_api_ignition_port: 22623
-openshift_api_vlan: VLAN665-RD Labo
-openshift_ingress_url: "*.apps.openshift-upi.rdlabo.local"
-openshift_ingress_ip: 10.255.254.85
-openshift_ingress_vlan: VLAN665-RD Labo
+openshift_api_vlan: 710-NSX-OPENSHIFTDEV-ExtLB-Mgmt
+openshift_ingress_url: "*.apps.openshiftdev.realdolmencloud.com"
+openshift_ingress_ip: 10.202.1.1
+openshift_ingress_vlan: 711-NSX-OPENSHIFTDEV-ExtLB-Apps
 # You can find your own auth code on https://console.redhat.com/openshift/install/vsphere, the pull secret
 openshift_auth_code: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfNTZmZjFkYTg2ZWMyNDlkOGExNWY0NDQ0YmZlNmYyZjA6UUVOMk9DWlBVUEdRMEwzVU5VNEtTVlRCMTYwV1pKWDBCOTdFT1RRWUJUMkVEWVA2OFoyUU1MMVJYQjQ3UUE2Vw==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"quay.io\":{\"auth\":\"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfNTZmZjFkYTg2ZWMyNDlkOGExNWY0NDQ0YmZlNmYyZjA6UUVOMk9DWlBVUEdRMEwzVU5VNEtTVlRCMTYwV1pKWDBCOTdFT1RRWUJUMkVEWVA2OFoyUU1MMVJYQjQ3UUE2Vw==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"registry.connect.redhat.com\":{\"auth\":\"fHVoYy1wb29sLWU3YjIxY2E2LWMzNGEtNDAxNS05NzQ2LWE1MjgzMGU1MDVhYTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTBZVEF5WldJMU4yVXdOemswTURCalltVmtPREF6TTJWaVlUaG1NVEUxTlNKOS5OOGxBMVQzSGNXWERfS3lXNzljeUZJZV9Fc3NJSzh5cTRxUE9MMjMycVIwSmlycXVFd1ZLRm10N2NhdnQ4N3padVA3V2taTXdHeUE0T2FfV1pwQkdtOXk5Zm9pMWo2UmlvV0JhNC03MkdHY0FtSmpKeVM3bjNMRWxxR1U1ZmFIVDZrc05lQTkxQXMtSE5UZmpzaktycUd6NUthV2J0QlZPR1VROW1pOFFJWkEtQ2c4MWo3Q2ttOF9kTXJkR2N3NnlpOXJ2YkxCR3hxbENIa19pN3h4aWRMQ1hzbjdSWVdWUjZrTmEtR21haGpBMzdJTU52RFJZcW0yYWpUYXhwakpUWlhCM21jeWNpMnRBQVhOV05tampQaVJYRmVzY1l2dFZkbVZtWlF1cjFXajNfcHVLU3JBeS1OUjVfZlcxVm9EVHkyYTRFQUlwQmxMU1JpbFlLZ2ktTUR4czlfMl9lZGE5ak9pUkJzVTF1Snd5RUU0bm9mT3NBZUlyNnBCeWdhaDNkZjhrTC15cGVGeE4xOE5oVFI0YmFjLTJnbVVGS3NYdVBjUGRmR0hxNFQyYUM5SFQxYlg0TDJaOTNpcFRXUmVqZ2MwOWVKM3NORGdXZDJvZ3NCb2o5b0dYemlSR3hxZjQ1dUNONmNQNXJkMFR1V0ltdVJzNUlLTmxJak5NbDd4QUhpUVRtMXllbjEyZkx1N1BJYTc2Ul9mQ1dyMkw5S0xBbmFGR21LbldyR3Q2a3dSQ1hROEVEWHNfME9oT3lyMDJlUXY5VHVLb3BxRXBOa3lLcm1VWFprSjFMQnI1N1dmZmlhVDY5aWZibzNJS3NvcTZOMFU2Y0E2LUF3THpBQTN4aDU2UGlrWF9mb1laRExlUDJNeUtfYjduNzNJZW1Zd19tTDhCSWRHUmFwNA==\",\"email\":\"thomas.biesmans@realdolmen.com\"},\"registry.redhat.io\":{\"auth\":\"fHVoYy1wb29sLWU3YjIxY2E2LWMzNGEtNDAxNS05NzQ2LWE1MjgzMGU1MDVhYTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTBZVEF5WldJMU4yVXdOemswTURCalltVmtPREF6TTJWaVlUaG1NVEUxTlNKOS5OOGxBMVQzSGNXWERfS3lXNzljeUZJZV9Fc3NJSzh5cTRxUE9MMjMycVIwSmlycXVFd1ZLRm10N2NhdnQ4N3padVA3V2taTXdHeUE0T2FfV1pwQkdtOXk5Zm9pMWo2UmlvV0JhNC03MkdHY0FtSmpKeVM3bjNMRWxxR1U1ZmFIVDZrc05lQTkxQXMtSE5UZmpzaktycUd6NUthV2J0QlZPR1VROW1pOFFJWkEtQ2c4MWo3Q2ttOF9kTXJkR2N3NnlpOXJ2YkxCR3hxbENIa19pN3h4aWRMQ1hzbjdSWVdWUjZrTmEtR21haGpBMzdJTU52RFJZcW0yYWpUYXhwakpUWlhCM21jeWNpMnRBQVhOV05tampQaVJYRmVzY1l2dFZkbVZtWlF1cjFXajNfcHVLU3JBeS1OUjVfZlcxVm9EVHkyYTRFQUlwQmxMU1JpbFlLZ2ktTUR4czlfMl9lZGE5ak9pUkJzVTF1Snd5RUU0bm9mT3NBZUlyNnBCeWdhaDNkZjhrTC15cGVGeE4xOE5oVFI0YmFjLTJnbVVGS3NYdVBjUGRmR0hxNFQyYUM5SFQxYlg0TDJaOTNpcFRXUmVqZ2MwOWVKM3NORGdXZDJvZ3NCb2o5b0dYemlSR3hxZjQ1dUNONmNQNXJkMFR1V0ltdVJzNUlLTmxJak5NbDd4QUhpUVRtMXllbjEyZkx1N1BJYTc2Ul9mQ1dyMkw5S0xBbmFGR21LbldyR3Q2a3dSQ1hROEVEWHNfME9oT3lyMDJlUXY5VHVLb3BxRXBOa3lLcm1VWFprSjFMQnI1N1dmZmlhVDY5aWZibzNJS3NvcTZOMFU2Y0E2LUF3THpBQTN4aDU2UGlrWF9mb1laRExlUDJNeUtfYjduNzNJZW1Zd19tTDhCSWRHUmFwNA==\",\"email\":\"thomas.biesmans@realdolmen.com\"}}}"
 deployment_ssh_filename: id_rsa_openshift4
@@ -52,7 +53,7 @@ nsx_integration: false
 default_community_vmware_vmware__guest:
   datacenter: P250
   cluster: RDLabo
-  folder: /P250/vm/RD Labo/Various/OpenShift-4-UPI
+  folder: /P250/vm/RD Labo/Various/OpenShift-4-srdcopenshiftdev
   name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
   state: poweredoff
   template: Template-RHCOS-4.12.30 # Case sensitive
@@ -85,17 +86,17 @@ default_community_vmware_vmware__guest:
   #       state: present
   #       type: iso
   #       iso_path: "[datastore1] livecd.iso"
-  networks:
+  networks: # Must contain a single item for the merge 
   - name: "VLAN665-RD Labo"
     device_type: vmxnet3
     connected: true
     start_connected: true
     label: "Network adapter 1"
-  - name: "VLAN669-RD Labo Large"
-    device_type: vmxnet3
-    connected: true
-    start_connected: true
-    label: "Network adapter 2"
+  # - name: "VLAN669-RD Labo Large"
+  #   device_type: vmxnet3
+  #   connected: true
+  #   start_connected: true
+  #   label: "Network adapter 2"
     # type: static # Used for the IP and for O/S customization
     # ip: {} # Set through inventory, used for O/S customization
     # gateway: 10.255.254.254 # Used for O/S customization
@@ -126,13 +127,15 @@ ipam_config:
     network_nic: ens224
     network_ipam:
       type: whereabouts
-      range: 10.254.126.0-10.254.126.255/17
+      range: 10.202.7.0/24
       exclude:
-      - 10.254.0.0/18
+      - 10.202.7.10/32
+      - 10.202.7.11/32
+      - 10.202.7.254/32
 
 openshift_data_foundation_config:
   operator_name: odf-operator # Found through oc get packagemanifests -n openshift-marketplace | grep odf
-  operator_channel: stable-4.11 # Found through oc get packagemanifests/odf-operator -n openshift-marketplace -o yaml | grep stable
+  operator_channel: stable-4.12 # Found through oc get packagemanifests/odf-operator -n openshift-marketplace -o yaml | grep stable
   operator_automatic_install_plan_approval: true
   operator_manage_namespaces: openshift-storage
   operator_subscription_source: redhat-operators

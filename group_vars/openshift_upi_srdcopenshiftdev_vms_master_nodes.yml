@@ -1,0 +1,8 @@
+---
+custom_community_vmware_vmware__guest:
+  networks:
+  - name: "712-NSX-OPENSHIFTDEV-Master"
+    device_type: vmxnet3
+    connected: true
+    start_connected: true
+    label: "Network adapter 1"

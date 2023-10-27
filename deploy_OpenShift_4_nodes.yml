@@ -79,7 +79,6 @@
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
       tags: deploy_infrastructure_dhcp
-    - pause:
 
 - name: Prepare the web server
   hosts: openshift_bootstrap_nodes
@@ -102,6 +101,7 @@
       ansible.builtin.yum:
         name: podman
         state: latest
+        use_backend: dnf
       tags: web
       run_once: true
 
@@ -638,7 +638,7 @@
     - name: Build load balancer topology - API service group
       set_fact:
         temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": openshift_api_port,
           "weight": 1
         }] }}'
@@ -654,7 +654,7 @@
     - name: Build load balancer topology - API ignition service group
       set_fact:
         temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
@@ -671,7 +671,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'
@@ -722,10 +722,7 @@
       debug:
         msg: "{{ citrix_vservers }}"
 
-    - name: Deploy Service Groups
-      ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
-
-    - name: Deploy Load Balancers
+    - name: Deploy Services, Service Groups & Load Balancers
       ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
 
 
@@ -953,7 +950,7 @@
     - name: Build load balancer topology - API service group
       set_fact:
         temp_servicegroup_members_api: '{{ temp_servicegroup_members_api + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": openshift_api_port,
           "weight": 1
         }] }}'
@@ -968,7 +965,7 @@
     - name: Build load balancer topology - API ignition service group
       set_fact:
         temp_servicegroup_members_api_ignition: '{{ temp_servicegroup_members_api_ignition + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": openshift_api_ignition_port,
           "weight": 1
         }] }}'
@@ -1004,8 +1001,8 @@
       set_fact:
         citrix_vservers: "{{ citrix_vservers_api + citrix_vservers_api_ignition }}"
 
-    - name: Deploy Service Groups
-      ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
+    - name: Deploy Services, Service Groups & Load Balancers
+      ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
 
 
 - name: Finalize OpenShift deployment
@@ -1323,7 +1320,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'
@@ -1349,8 +1346,8 @@
       set_fact:
         citrix_vservers: "{{ citrix_vservers_apps }}"
 
-    - name: Deploy Service Groups
-      ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
+    - name: Deploy Services, Service Groups & Load Balancers
+      ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
 
 
 - name: Deploy dedicated OpenShift infra nodes
@@ -1495,7 +1492,7 @@
     - name: Build load balancer topology - Apps service group
       set_fact:
         temp_servicegroup_members_apps: '{{ temp_servicegroup_members_apps + [{
-          "ip": hostvars[item].nics[0].ip,
+          "ipaddress": hostvars[item].nics[0].ip,
           "port": 65535,
           "weight": 1
         }] }}'
@@ -1524,8 +1521,8 @@
       set_fact:
         citrix_vservers: "{{ citrix_vservers_apps }}"
 
-    - name: Deploy Service Groups
-      ansible.builtin.import_tasks: tasks/deploy-citrix-servicegroups.yml
+    - name: Deploy Services, Service Groups & Load Balancers
+      ansible.builtin.import_tasks: tasks/deploy-citrix-vservers.yml
 
 
   # ToDo: Creating a separate /var partition

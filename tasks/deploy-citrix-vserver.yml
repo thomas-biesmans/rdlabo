@@ -1,0 +1,68 @@
+---
+
+- name: "Create Load-Balanced Virtual Server Services (members) for '{{ citrix_vserver.name }}'"
+  netscaler.adc.service:
+    nsip: "{{ citrix_ip }}"
+    nitro_user: "{{ citrix_username_unecnrypted }}"
+    nitro_pass: "{{ citrix_password_unecnrypted }}"
+    validate_certs: false
+    save_config: true
+    state: present
+    name: "{{ citrix_vserver.name }}-{{ service.ipaddress }}"
+    ipaddress: "{{ service.ipaddress }}"
+    servicetype: "{{ citrix_vserver.servicetype }}"
+    port: "{{ service.port }}"
+  loop: "{{ citrix_vserver.servicegroup.members }}"
+  loop_control:
+    loop_var: service
+  ignore_errors: True
+  register: config
+
+- name: Prep list of Load-Balanced Virtual Server Services (members) for '{{ citrix_vserver.name }}'"
+  set_fact:
+    list_of_services: []
+
+- name: "Create list of Load-Balanced Virtual Server Services (members) for '{{ citrix_vserver.name }}'"
+  set_fact:
+    list_of_services: '{{ list_of_services + [{
+      "name" : citrix_vserver.name,
+      "servicename" : citrix_vserver.name+"-"+service.ipaddress,
+      "weight" : service.weight
+    }] }}'
+  loop: "{{ citrix_vserver.servicegroup.members }}"
+  loop_control:
+    loop_var: service
+
+- name: "Create Load-Balanced Virtual Server Service Groups for '{{ citrix_vserver.name }}'"
+  netscaler.adc.servicegroup:
+    nsip: "{{ citrix_ip }}"
+    nitro_user: "{{ citrix_username_unecnrypted }}"
+    nitro_pass: "{{ citrix_password_unecnrypted }}"
+    validate_certs: false
+    save_config: true
+    state: present
+    servicegroupname: "{{ citrix_vserver.servicegroup.name }}"
+    servicetype: "{{ citrix_vserver.servicetype }}"
+  ignore_errors: True
+  register: config
+  
+- name: "Create Load-Balanced Virtual Servers for '{{ citrix_vserver.name }}'"
+  netscaler.adc.lbvserver:
+    nsip: "{{ citrix_ip }}"
+    nitro_user: "{{ citrix_username_unecnrypted }}"
+    nitro_pass: "{{ citrix_password_unecnrypted }}"
+    validate_certs: false
+    save_config: true
+    state: enabled
+    name: "{{ citrix_vserver.name }}"
+    servicetype: "{{ citrix_vserver.servicetype }}"
+    ipv46: "{{ citrix_vserver.ipaddress }}"
+    port: "{{ citrix_vserver.port }}"
+    lbvserver_servicegroup_binding:
+      binding_members:
+      - name: "{{ citrix_vserver.name }}"
+        servicename: "{{ citrix_vserver.servicegroup.name  }}"
+    lbvserver_service_binding:
+      binding_members: "{{ list_of_services }}"
+  ignore_errors: True
+  register: config

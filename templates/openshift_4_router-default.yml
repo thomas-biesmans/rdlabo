@@ -22,7 +22,7 @@
             }
           ]
         },
-        "replicas": {{ groups.openshift_upi_vms_infra_nodes | length | int }}
+        "replicas": {{ groups.openshift_upi_srdcopenshiftdev_vms_infra_nodes | length | int }}
       },
       "status": {}
     }
