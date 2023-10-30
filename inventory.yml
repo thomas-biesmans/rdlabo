@@ -51,6 +51,7 @@ openshift_upi_srdcopenshiftdev_vms_worker_nodes:
         mac: 00:05:69:aa:aa:08
   vars:
     type: worker
+    dedicated_node_label: shared
 
 openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
   hosts:
@@ -68,6 +69,7 @@ openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
         mac: 00:05:69:aa:ab:06
   vars:
     type: worker
+    dedicated_node_label: MOCK
 
 openshift_upi_srdcopenshiftdev_vms_bootstrap_node:
   hosts:

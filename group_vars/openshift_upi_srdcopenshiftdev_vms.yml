@@ -52,7 +52,7 @@ nsx_integration: false
 
 default_community_vmware_vmware__guest:
   datacenter: P250
-  cluster: RDLabo
+  cluster: RDLabo-NSX
   folder: /P250/vm/RD Labo/Various/OpenShift-4-srdcopenshiftdev
   name: {} # set later"{{ hostvars[item]['inventory_hostname'] }}"
   state: poweredoff

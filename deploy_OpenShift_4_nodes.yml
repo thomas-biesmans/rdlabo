@@ -677,7 +677,7 @@
           "port": 65535,
           "weight": 1
         }] }}'
-      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name and hostvars[item].dedicated_node_label == 'shared'
       with_items:
       - "{{ groups.openshift_worker_nodes }}"
 
@@ -1019,7 +1019,7 @@
   tasks:
 
   - name: Deploy cluster if the namespace 'openshift-kube-apiserver' doesn't exist
-    when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
+    # test_only when: vars.deploy_bootstrap_results.stderr_lines is defined and '"level=info msg=It is now safe to remove the bootstrap resources" in vars.deploy_bootstrap_results.stderr_lines'
     tags: deploy_cluster
     delegate_to: localhost
     block:
@@ -1158,6 +1158,44 @@
     - name: Accept worker node bootstrap & node serving CSRs
       ansible.builtin.include_tasks: tasks/deploy_openshift_accept_csr_till_all_nodes_ready.yml
 
+    - name: Mark worker nodes as dedicated nodes or not
+      kubernetes.core.k8s:
+        api_version: v1
+        definition:
+          api_version: v1
+          kind: Node
+          metadata:
+            name: "{{ hostvars[item].inventory_hostname_short }}"
+            labels:
+              dedicated-node: "{{ hostvars[item].dedicated_node_label }}"
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name and hostvars[item].dedicated_node_label is defined
+      with_items: "{{ groups.openshift_worker_nodes }}"
+
+
+    - name: Patch the default router definition allowing scheduling on shared worker nodes only
+      vars:
+        node_placement: 
+          matchLabels:
+            dedicated-node: ''
+        number_of_replicas: "{{ groups.openshift_worker_nodes | map('extract', hostvars) | selectattr('dedicated_node_label', 'defined') | selectattr('dedicated_node_label', 'eq', 'shared') | length | int }}"
+      kubernetes.core.k8s_json_patch:
+        api_version: operator.openshift.io/v1
+        kind: IngressController
+        name: default
+        namespace: openshift-ingress-operator
+        patch: |
+          [
+            {
+              "op": "replace",
+              "path": "/spec/nodePlacement/nodeSelector",
+              "value": {{ node_placement }}
+            },
+            {
+              "op": "replace",
+              "path": "/spec/replicas",
+              "value": {{ number_of_replicas | int }}
+            }
+          ]
 
     - name: Get 'cloud-provider-config' ConfigMap to specify a custom VM Folder
       kubernetes.core.k8s_info:
@@ -1364,7 +1402,7 @@
   tasks:
 
   - name: Deploy infra nodes
-    tags: deploy_cluster_infra
+    tags: deploy_cluster_infra, test_only
     delegate_to: localhost
     block:
 
@@ -1410,12 +1448,39 @@
       when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name
       with_items: "{{ groups.openshift_infra_nodes }}"
 
-
-    - name: Deploy a new default router definition allowing scheduling on infra nodes only, as json to prevent issues on number of replicas not being an int
-      kubernetes.core.k8s:
-        state: present
-        template: 'templates/openshift_4_router-default.yml'
-
+    - name: The the default router definition allowing scheduling on infra nodes only
+      vars:
+        node_placement: 
+          matchLabels:
+            node-role.kubernetes.io/infra: ''
+            dedicated-node:
+        tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        number_of_replicas: "{{ groups.openshift_infra_nodes | length | int }}"
+      kubernetes.core.k8s_json_patch:
+        api_version: operator.openshift.io/v1
+        kind: IngressController
+        name: default
+        namespace: openshift-ingress-operator
+        patch: |
+          [
+            {
+              "op": "replace",
+              "path": "/spec/nodePlacement/nodeSelector",
+              "value": {{ node_placement }}
+            },
+            {
+              "op": "replace",
+              "path": "/spec/nodePlacement/tolerations",
+              "value": {{ tolerations }}
+            },
+            {
+              "op": "replace",
+              "path": "/spec/replicas",
+              "value": {{ number_of_replicas | int }}
+            }
+          ]
 
     - name: Allow taint for 'image-registry' ClusterOperator to run on infra nodes
       kubernetes.core.k8s:

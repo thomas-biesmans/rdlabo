@@ -1,0 +1,18 @@
+apiVersion: v1
+items:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: default
+    namespace: openshift-ingress-operator
+  spec:
+    nodePlacement:
+      nodeSelector: {{ node_placement | default(omit) }}
+      tolerations:  {{ tolerations | default(omit) }}
+    replicas: {{ number_of_replicas | default(2) }}
+  status: {}
+  merge_type: merge
+kind: List
+metadata:
+  resourceVersion: ''
+  selfLink: ''
