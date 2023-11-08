@@ -1,0 +1,29 @@
+---
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+  - name: "{{ openid_identityprovider_name }}"
+    mappingMethod: claim
+    type: OpenID
+    openID:
+      clientID: "{{ openid_client_id }}"
+      clientSecret:
+        name: "{{ openid_client_secret }}"
+      extraScopes:
+      - email
+      - profile
+      extraAuthorizeParameters:
+        include_granted_scopes: "true"
+      claims:
+        preferredUsername:
+        - preferred_username
+        name:
+        - name
+        email:
+        - email
+        groups:
+        - groups
+      issuer: "https://{{ openid_issuer_no_https_prefix }}"

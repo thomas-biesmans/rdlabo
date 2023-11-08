@@ -1,0 +1,40 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: oauths.config.openshift.io
+spec:
+  group: config.openshift.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              identityProviders:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    type:
+                      type: string
+                    mappingMethod:
+                      type: string
+                    rules:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          claim:
+                            type: string
+                          value:
+                            type: string
+                          type:
+                            type: string

@@ -20,6 +20,7 @@ collections:
 - git+https://github.com/vmware/ansible-for-nsxt
 - arubanetworks.aos_switch
 - fortinet.fortios
+- community.crypto
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml
