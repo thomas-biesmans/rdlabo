@@ -1175,7 +1175,7 @@
       vars:
         node_placement: 
           matchLabels:
-            dedicated-node: ''
+            dedicated-node: 'shared'
         number_of_replicas: "{{ groups.openshift_worker_nodes | map('extract', hostvars) | selectattr('dedicated_node_label', 'defined') | selectattr('dedicated_node_label', 'eq', 'shared') | length | int }}"
       kubernetes.core.k8s:
         state: present
@@ -1348,9 +1348,9 @@
           "port": 65535,
           "weight": 1
         }] }}'
-      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name and
-        ( hostvars[item].type = 'infra' or
-          hostvars[item].type = 'worker' and hostvars[item].dedicated_node_label == 'shared'))
+      when: hostvars[item].openshift_cluster_name == vars.openshift_cluster_name and (
+        hostvars[item].type == 'infra' or
+        hostvars[item].type == 'worker' and hostvars[item].dedicated_node_label == 'shared')
       with_items:
       - "{{ groups.openshift_worker_nodes }}"
       - "{{ groups.openshift_infra_nodes }}"
@@ -1439,7 +1439,7 @@
         node_placement: 
           matchLabels:
             node-role.kubernetes.io/infra: ''
-            dedicated-node:
+            dedicated-node: 
         tolerations:
         - effect: NoSchedule
           operator: Exists
