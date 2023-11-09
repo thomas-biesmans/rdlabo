@@ -20,4 +20,4 @@ roleRef:
 subjects:
 - kind: "{{ subject_kind }}"
   name: "{{ subject_name }}"
-  namespace: "{{ subject_namespace }}"
+  namespace: "{{ subject_namespace | default(omit) }}"
