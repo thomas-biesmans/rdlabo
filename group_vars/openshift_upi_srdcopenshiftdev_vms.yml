@@ -180,3 +180,14 @@ kasten_k10_config:
   sa_name: sa-kasten
   sa_namespace: kasten-io
   sa_clusterrolebinding_name: default-backup-cluster-admin
+
+authentication_authorization_config:
+  identity_providers:
+  - openid_identityprovider_name: Azure Entra ID - Inetum Test # Provider name as shown in OpenShift logon page and configured in callback URI
+    openid_tenantid: ae960c04-db99-424a-abb8-21833dbc0c0c # Tenant ID
+    openid_client_id: 75807ff4-dcac-4c56-b75c-f2ff913b84bc # App Registration ID
+    openid_issuer_no_https_prefix: "login.microsoftonline.com/ae960c04-db99-424a-abb8-21833dbc0c0c/v2.0" # Default issuer URI containing tenant ID
+    app_namespace: openshift-config
+    app_secret_name: openid-azure-entra-id-inetum-test-secret
+    app_secret_literals:
+      clientSecret: "{{ aad_openid_client_secret_testthbie | b64encode }}" # App Registration secret, age max 24 months

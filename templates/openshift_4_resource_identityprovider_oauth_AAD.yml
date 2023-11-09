@@ -5,13 +5,14 @@ metadata:
   name: cluster
 spec:
   identityProviders:
-  - name: "{{ openid_identityprovider_name }}"
+{% for identity_provider in authentication_authorization_config.identity_providers %}
+  - name: "{{ identity_provider.openid_identityprovider_name }}"
     mappingMethod: claim
     type: OpenID
     openID:
-      clientID: "{{ openid_client_id }}"
+      clientID: "{{ identity_provider.openid_client_id }}"
       clientSecret:
-        name: "{{ openid_client_secret }}"
+        name: "{{ identity_provider.app_secret_name }}"
       extraScopes:
       - email
       - profile
@@ -26,4 +27,5 @@ spec:
         - email
         groups:
         - groups
-      issuer: "https://{{ openid_issuer_no_https_prefix }}"
+      issuer: "https://{{ identity_provider.openid_issuer_no_https_prefix }}"
+{% endfor %}

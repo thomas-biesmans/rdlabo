@@ -15,64 +15,22 @@
     delegate_to: localhost
     block:
 
-    - name: Deploy OAuth IdentityProvider for Azure AD 
-      vars:
-        openid_identityprovider_name: Azure Entra ID - Inetum Test
-        openid_tenantid: ae960c04-db99-424a-abb8-21833dbc0c0c # Tenant ID
-        openid_client_id: 75807ff4-dcac-4c56-b75c-f2ff913b84bc # App Registration ID
-        openid_client_secret: "openid-azure-entra-id-inetum-test-secret" # App Registration secret, age max 24 months
-        openid_issuer_no_https_prefix: "login.microsoftonline.com/{{ openid_tenantid }}/v2.0"
-        app_namespace: openshift-config
-        app_secret_name: "{{ openid_client_secret }}"
-        app_secret_literals:
-          clientSecret: "{{ aad_openid_client_secret_testthbie | b64encode }}"
-        # openid_ca_configmap: "{{ openid_identityprovider_name }}-ca"
-
+    - name: Deploy OAuth IdentityProvider for Azure AD
       block:
 
       - name: Add OpenID secret as literal
+        vars:
+          app_namespace: "{{ item.app_namespace }}"
+          app_secret_name: "{{ item.app_secret_name }}"
+          app_secret_literals: "{{ item.app_secret_literals }}"
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_secret_literal.yml'
+        with_items: "{{ authentication_authorization_config.identity_providers }}"
+        loop_control:
+          label: "{{ item.app_secret_name }}"
           
-      # - name: Get CA certificate
-      #   community.crypto.get_certificate:
-      #     host: "{{ openid_issuer_no_https_prefix }}"
-      #     port: 443
-      #     asn1_base64: true
-      #   delegate_to: localhost
-      #   run_once: true
-      #   register: openid_issuer_no_https_prefix_cert
-
-      # - name: Set configmap facts based on cert
-      #   set_fact:
-      #     app_configmaps:
-      #     - name: "{{ openid_ca_configmap }}"
-      #       data:
-      #       - key: ca.crt
-      #         value: "{{ openid_issuer_no_https_prefix_cert.cert }}"
-
-      # - name: Add the CA as trustedBundle through proxy/cluster, not performed automatically as proxy is not set in install-config
-      #   kubernetes.core.k8s_json_patch:
-      #     api_version: config.openshift.io/v1
-      #     namespace: openshift-config
-      #     kind: Proxy
-      #     name: cluster
-      #     patch:
-      #     - op: add
-      #       path: "/spec/trustedCA"
-      #       value:
-      #         name: user-ca-bundle
-
-      # - name: Add ConfigMaps
-      #   kubernetes.core.k8s:
-      #     state: present
-      #     template: 'templates/openshift_4_resource_configmap.yml'
-      #   with_items: "{{ app_configmaps }}"
-      #   loop_control:
-      #     label: "{{ item.name }}"
-
-      - name: Add Identity Provider 
+      - name: Add Identity Provider(s)
         kubernetes.core.k8s:
           state: present
           template: 'templates/openshift_4_resource_identityprovider_oauth_AAD.yml'
