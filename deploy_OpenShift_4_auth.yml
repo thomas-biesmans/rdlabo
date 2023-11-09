@@ -47,3 +47,30 @@
           api_version: apps/v1
           template: 'templates/openshift_4_resource_clusterrolebinding.yml'
         with_items: "{{ authentication_authorization_config.cluster_admins }}"
+
+      - name: Disable self-provisioning for any authenticated user
+        vars:
+          crb_name: self-provisioners
+          role_apigroup: rbac.authorization.k8s.io
+          role_name: self-provisioner
+          role_kind: ClusterRole
+          subject_name: system:authenticated:oauth
+          subject_kind: Group
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          state: absent
+          template: 'templates/openshift_4_resource_clusterrolebinding.yml'
+        when: not authentication_authorization_config.self_provisioning_for_any_authenticated_user
+
+      - name: Add self-provisioner Cluster Role Binding for our OpenID groups
+        vars:
+          crb_name: "{{ item.crb_name }}"
+          role_apigroup: rbac.authorization.k8s.io
+          role_name: self-provisioner
+          role_kind: ClusterRole
+          subject_name: "{{ item.group_name }}"
+          subject_kind: Group
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_clusterrolebinding.yml'
+        with_items: "{{ authentication_authorization_config.self_provisioners }}"

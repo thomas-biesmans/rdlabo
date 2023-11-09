@@ -195,4 +195,9 @@ authentication_authorization_config:
   - crb_name: cluster-admins-oidc-inetum-test
     group_name: 7d723e12-d5c2-4ba8-b0a4-c09b109e21cc
     group_name_description_only: SG_L3_OpenShift_Admins
+  self_provisioning_for_any_authenticated_user: no
+  self_provisioners:
+  - crb_name: self-provisioners-oidc-inetum-test
+    group_name: 98946da8-a729-465a-a4d6-3420a884404d
+    group_name_description_only: SG_L2_OpenShift_Enduser
     
