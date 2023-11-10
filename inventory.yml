@@ -60,13 +60,13 @@ openshift_upi_srdcopenshiftdev_vms_worker_nodes_mock:
       - ip: 10.202.6.10
         mac: 00:05:69:aa:aa:05
       - ip: 10.202.7.10
-        mac: 00:05:69:aa:ab:05
+        mac: 00:05:56:aa:ab:05 # Additional networks do not work in the 00:05:69 range
     srdcopenshiftdevworkermock0002.openshiftdev.rdlabo.local:
       nics:
       - ip: 10.202.6.11
         mac: 00:05:69:aa:aa:06
       - ip: 10.202.7.11
-        mac: 00:05:69:aa:ab:06
+        mac: 00:05:56:aa:ab:06 # Additional networks do not work in the 00:05:69 range
   vars:
     type: worker
     dedicated_node_label: MOCK

@@ -41,6 +41,7 @@
 
   - name: Deploy pre-reqs
     delegate_to: localhost
+    tags: pre_reqs_network
     block:
 
     - name: Deploy DHCP reservations
@@ -118,12 +119,15 @@
           cpu: '0.5'
       app_annotations:
         k8s.v1.cni.cncf.io/networks: network-second-nic
+      app_nodeSelector:
+        dedicated-node: MOCK
       network_name: network-second-nic # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
       network_nic: "{{ vars.ipam_config.nic2_dhcp.network_nic }}"
       network_ipam: "{{ vars.ipam_config.nic2_dhcp.network_ipam }}"
+      
 
     block:
 
@@ -200,6 +204,8 @@
           cpu: '0.5'
       app_annotations:
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
+      app_nodeSelector:
+        dedicated-node: MOCK
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
@@ -297,6 +303,8 @@
           cpu: '0.5'
       app_annotations:
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
+      app_nodeSelector:
+        dedicated-node: MOCK
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
@@ -358,7 +366,7 @@
 
     - name: Debug manually
       debug:
-        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
+        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}},\"spec\": {\"nodeSelector\": {\"dedicated-node\": \"MOCK\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
 
     - name: Get pod IPs
       kubernetes.core.k8s_info:
@@ -396,6 +404,8 @@
           cpu: '0.5'
       app_annotations:
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
+      app_nodeSelector:
+        dedicated-node: MOCK
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
@@ -459,7 +469,7 @@
 
     - name: Debug manually
       debug:
-        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
+        msg: "Debug manually with 'oc run testcurl --image=redhat/ubi8 --overrides=\'{\"metadata\": {\"annotations\": {\"k8s.v1.cni.cncf.io/networks\": \"network-second-nic-whereabouts\"}},\"spec\": {\"nodeSelector\": {\"dedicated-node\": \"MOCK\"}}}\' -it -- sh' and 'curl http://<ip>:8080', IP found through 'oc describe pods'"
 
     - name: Get pod IPs
       kubernetes.core.k8s_info:
