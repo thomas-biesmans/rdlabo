@@ -423,7 +423,7 @@
         - from:
           - podSelector: {}
           - ipBlock:
-              cidr: "10.254.0.0/17"
+              cidr: "10.202.7.0/24"
         networkname: network-second-nic-whereabouts
 
     block:
