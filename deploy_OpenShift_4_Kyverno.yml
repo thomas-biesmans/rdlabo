@@ -1,0 +1,90 @@
+---
+- name: Deploy the 'Kyverno' policy engine on OpenShift
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ vars.openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy Kyverno
+    tags: deploy_kyverno
+    delegate_to: localhost
+    block:
+
+    - name: Install helm if not exists
+      unarchive:
+        src: "{{ kyverno_config.helm_version_url }}"
+        dest: ~/bin
+        extra_opts: "--strip-components=1"
+        # owner: root
+        # group: root
+        # mode: 0755
+        remote_src: true
+      args:
+        creates: /usr/local/bin/helm
+      run_once: yes
+
+    - name: Add Kyverno Helm repository
+      kubernetes.core.helm_repository:
+        name: kyverno
+        repo_url: https://kyverno.github.io/kyverno/
+        force_update: no
+
+    - name: Install the Kyverno Helm chart
+      kubernetes.core.helm:
+        name: kyverno
+        chart_ref: kyverno/kyverno
+        chart_version: "{{ kyverno_config.kyverno_version }}"
+        release_namespace: "{{ kyverno_config.kyverno_namespace }}"
+        create_namespace: yes
+        values:
+          admissionController:
+            replicas: 3
+          backgroundController:
+            replicas: 2
+          cleanupController:
+            replicas: 2
+          reportsController:
+            replicas: 2
+
+  - name: Deploy Kyverno policies
+    tags: deploy_kyverno_policies
+    delegate_to: localhost
+    block:
+
+    - name: Enforce labels in customer deployments
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: kyverno.io/v1
+          kind: ClusterPolicy
+          metadata:
+            name: enforce-deployments-label-for-idp-users
+          spec:
+            validationFailureAction: Enforce
+            background: false
+            rules:
+            - name: check-labels-for-idp-users
+              match:
+                any:
+                - resources:
+                    kinds:
+                    - "*"
+                    operations:
+                    - CREATE
+                    - UPDATE
+                  subjects:
+                  - kind: User
+                    identities:
+                    - ""
+              validate:
+                message: "The label 'customer' is required for deployments."
+                pattern:
+                  metadata:
+                    labels:
+                      customer: "?*"
+

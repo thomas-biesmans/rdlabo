@@ -204,3 +204,7 @@ authentication_authorization_config:
     group_name: 98946da8-a729-465a-a4d6-3420a884404d
     group_name_description_only: SG_L2_OpenShift_Enduser
     
+kyverno_config:
+  helm_version_url: https://get.helm.sh/helm-v3.13.2-linux-amd64.tar.gz # 08/11/2023
+  kyverno_version: 3.0.7 # equals v1.10.5, as found per: helm search repo kyverno -l
+  kyverno_namespace: openshift-kyverno
