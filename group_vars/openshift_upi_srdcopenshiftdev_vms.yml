@@ -140,7 +140,7 @@ openshift_data_foundation_config:
   operator_manage_namespaces: openshift-storage
   operator_subscription_source: redhat-operators
   operator_catalogsource_setup: false
-  operator_catalogsource_name: redhat-operators-snapshot-odf
+  operator_catalogsource_name: redhat-operators-snapshot-odf # redhat-operator-index #
   operator_catalogsource_image: ""
   operator_catalogsource_image_tag: ""
   storage_system_name: ocs-deviceset-thin-1
