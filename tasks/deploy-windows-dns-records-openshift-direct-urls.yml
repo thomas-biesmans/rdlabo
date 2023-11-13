@@ -1,0 +1,9 @@
+---
+
+- name: Looping managed direct OpenShift ingress records
+  include_tasks: deploy-windows-dns-records-openshift-direct-url.yml
+  loop: "{{ openshift_ingress_direct_urls }}"
+  when: openshift_ingress_direct_urls is defined and openshift_ingress_direct_urls_managed
+  loop_control:
+    label: "URL '{{ url }}'"
+    loop_var: url

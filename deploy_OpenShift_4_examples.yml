@@ -901,7 +901,108 @@
           text_to_find: "{{ app_text_to_find }}"
         tags: test_urls
 
+    # Quick Nginx Hello World HTTPS Ansible using direct URL
+    - name: Nginx Hello World HTTPS app using direct URL hrough Ansible  
+      vars:
+        app_name: hello-secure-direct
+        app_namespace: test-nginx-https-direct-ansible
+        app_git_source: quay.io/redhattraining/hello-world-secure:v1.0
+        app_git_contextdir:
+        app_tag_name: hello-secure:v1.0
+        app_service_port: 8443
+        app_service_protocol: tcp
+        app_container_port: 8443
+        app_secret_name: "{{ app_name }}-secret"
+        app_secret_tls_crt: "hello-secure-combined.pem"
+        app_secret_tls_key: "hello-secure-key.pem"
+        app_volumeMounts:
+        - mountPath: /run/secrets/nginx
+          name: volume-tls
+        app_volumes:
+        - name: volume-tls
+          secret:
+            defaultMode: 420
+            secretName: "{{ app_name }}"
+        app_route_ssl_termination: passthrough
+        app_route_hostname: "{{ openshift_ingress_direct_urls[0] }}"
+        app_url: "https://{{ app_route_hostname }}"
+        app_text_to_find: "Hello, world from nginx!"
 
+      block:
+
+      - name: Add namespace for Nginx Hello World HTTPS app using direct URL through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+  
+      - name: "Import tags of required image '{{ app_tag_name }}' into image stream"
+        community.okd.openshift_import_image:
+          namespace: "{{ app_namespace }}"
+          name: "{{ app_tag_name}}"
+          source: "{{ app_git_source }}"
+
+      - name: Check certificate key
+        stat:
+          path: "{{ openshift_example_dir }}/{{ app_secret_tls_key }}"
+        register: local_cert_key
+
+      - name: Check certificate 
+        stat:
+          path: "{{ openshift_example_dir }}/{{ app_secret_tls_crt }}"
+        register: local_cert
+
+      - name: Create a new certificate if it does not exist
+        shell: "openssl req -nodes -x509 -newkey rsa:4096 -keyout {{ openshift_example_dir }}/{{ app_secret_tls_key }} -out {{ openshift_example_dir }}/{{ app_secret_tls_crt }} -days 365 -subj '/CN={{ app_name }}'"
+        when: not local_cert_key.stat.exists or not local_cert.stat.exists
+
+      - name: Add TLS secret
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_secret_tls.yml'
+
+      - name: Wait until the ImageStreamTag is available
+        kubernetes.core.k8s_info:
+          api_version: image.openshift.io/v1
+          kind: ImageStreamTag
+          name: "{{ app_tag_name }}"
+          namespace: "{{ app_namespace }}"
+        register: app_imagestream
+        until: app_imagestream.resources[0].image.dockerImageReference is defined
+        retries: 20
+        delay: 30
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_imagestream.resources[0].image.dockerImageReference }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == vars.app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route_ssl.yml'
+
+      - name: Query Nginx HTTPS Ansible using direct URL example
+        ansible.builtin.include_tasks:
+          file: 'tasks/query_url.yml'
+          apply:
+            tags: test_urls
+        with_items:
+        - url: "{{ app_url }}"
+          text_to_find: "{{ app_text_to_find }}"
+        tags: test_urls
 
 # ToDo:
 # - app_git_contextdir: omit to be added

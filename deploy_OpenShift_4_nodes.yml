@@ -77,6 +77,10 @@
     - name: Deploy DNS records for OpenShift cluster
       ansible.builtin.import_tasks: tasks/deploy-windows-dns-records-openshift-cluster.yml
       tags: deploy_infrastructure_dns
+
+    - name: Deploy DNS records for OpenShift cluster's direct URLs
+      ansible.builtin.import_tasks: tasks/deploy-windows-dns-records-openshift-direct-urls.yml
+      tags: deploy_infrastructure_dns, deploy_infrastructure_dns_direct_urls
       
     - name: Deploy DHCP reservations
       ansible.builtin.import_tasks: tasks/deploy-windows-dhcp-reservations.yml
