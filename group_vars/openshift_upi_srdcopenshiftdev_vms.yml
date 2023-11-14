@@ -194,6 +194,14 @@ authentication_authorization_config:
     app_secret_name: openid-azure-entra-id-inetum-test-secret
     app_secret_literals:
       clientSecret: "{{ aad_openid_client_secret_testthbie | b64encode }}" # App Registration secret, age max 24 months
+  - openid_identityprovider_name: Azure_Entra_ID-Inetum_Test_MOCK # Provider name as shown in OpenShift logon page and configured in callback URI, must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character 
+    openid_tenantid: ae960c04-db99-424a-abb8-21833dbc0c0c # Tenant ID
+    openid_client_id: 75807ff4-dcac-4c56-b75c-f2ff913b84bc # App Registration ID
+    openid_issuer_no_https_prefix: "login.microsoftonline.com/ae960c04-db99-424a-abb8-21833dbc0c0c/v2.0" # Default issuer URI containing tenant ID
+    app_namespace: openshift-config
+    app_secret_name: openid-azure-entra-id-inetum-test-secret
+    app_secret_literals:
+      clientSecret: "{{ aad_openid_client_secret_testthbie | b64encode }}" # App Registration secret, age max 24 months
   cluster_admins:
   - crb_name: cluster-admins-oidc-inetum-test
     group_name: 7d723e12-d5c2-4ba8-b0a4-c09b109e21cc
@@ -203,6 +211,12 @@ authentication_authorization_config:
   - crb_name: self-provisioners-oidc-inetum-test
     group_name: 98946da8-a729-465a-a4d6-3420a884404d
     group_name_description_only: SG_L2_OpenShift_Enduser
+    group_customer_label: Test
+  - crb_name: self-provisioners-oidc-inetum-test-mock-dev
+    group_name: 52861de9-4b4a-42c9-9216-12df7c2ffa08
+    group_name_description_only: SG_MOCK_Dev
+    group_customer_label: MOCK
+    group_dedicated_node_label: MOCK
     
 kyverno_config:
   helm_version_url: https://get.helm.sh/helm-v3.13.2-linux-amd64.tar.gz # 08/11/2023
