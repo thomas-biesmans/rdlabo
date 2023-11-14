@@ -11,3 +11,4 @@ custom_community_vmware_vmware__guest:
     connected: true
     start_connected: true
     label: "Network adapter 2"
+dedicated_node_label: MOCK

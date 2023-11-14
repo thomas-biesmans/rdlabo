@@ -9,3 +9,4 @@ custom_community_vmware_vmware__guest:
   hardware:
     memory_mb: 24576
     num_cpus: 8
+dedicated_node_label: Storage

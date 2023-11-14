@@ -199,6 +199,7 @@
               node-role.kubernetes.io/worker: ""
               node-role.kubernetes.io/infra: ""
               cluster.ocs.openshift.io/openshift-storage: ""
+              dedicated-node: "{{ dedicated_node_label }}"
           spec:
             taints:
             - effect: NoSchedule

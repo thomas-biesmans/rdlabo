@@ -6,3 +6,4 @@ custom_community_vmware_vmware__guest:
     connected: true
     start_connected: true
     label: "Network adapter 1"
+dedicated_node_label: Shared

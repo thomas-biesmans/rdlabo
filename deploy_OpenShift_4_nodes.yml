@@ -1179,7 +1179,7 @@
       vars:
         node_placement: 
           matchLabels:
-            dedicated-node: 'shared'
+            dedicated-node: 'Shared'
         number_of_replicas: "{{ groups.openshift_worker_nodes | map('extract', hostvars) | selectattr('dedicated_node_label', 'defined') | selectattr('dedicated_node_label', 'eq', 'shared') | length | int }}"
       kubernetes.core.k8s:
         state: present
@@ -1431,6 +1431,7 @@
             name: "{{ hostvars[item].inventory_hostname_short }}"
             labels:
               node-role.kubernetes.io/infra: ""
+              dedicated-node: "{{ hostvars[item].dedicated_node_label }}"
           spec:
             taints:
             - effect: NoSchedule
@@ -1443,7 +1444,7 @@
         node_placement: 
           matchLabels:
             node-role.kubernetes.io/infra: ''
-            dedicated-node: 
+            dedicated-node: 'Router'
         tolerations:
         - effect: NoSchedule
           operator: Exists
