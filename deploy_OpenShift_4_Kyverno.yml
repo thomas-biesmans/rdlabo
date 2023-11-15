@@ -56,126 +56,14 @@
     delegate_to: localhost
     block:
 
-    - name: Enforce labels in customer deployments
-      vars:
-        new_rule_all_resources:
-          name: "check-labels-for-idp-users-{{ group.group_customer_label }}"
-          match:
-            any:
-            - resources:
-                kinds:
-                - Deployment
-                - DeploymentConfig
-                - StatefulSet
-                - Service
-                - Route
-                - Namespace
-                - Secret
-                - ConfigMap
-                - PersistentVolume
-                - PersistentVolumeClaim
-                - BuildConfig
-                - ImageStream
-                operations:
-                - CREATE
-                - UPDATE
-              subjects:
-              - kind: Group
-                name: "{{ group.group_name }}"
-          mutate:
-            patchStrategicMerge:
-                  metadata:
-                    labels:
-                      customer: "{{ group.group_customer_label }}"
-        new_rule_deployment_resources:
-          name: "check-deployment-labels-and-nodeSelector-for-idp-users-{{ group.group_customer_label }}"
-          match:
-            any:
-            - resources:
-                kinds:
-                - Deployment
-                - DeploymentConfig
-                operations:
-                - CREATE
-                - UPDATE
-              subjects:
-              - kind: Group
-                name: "{{ group.group_name }}"
-          mutate:
-            patchStrategicMerge:
-              spec:
-                template:
-                  metadata:
-                    labels:
-                      customer: "{{ group.group_customer_label }}"
-                  spec:
-                    nodeSelector:
-                      dedicated-node: "{{ group.group_dedicated_node_label | default('Shared') }}"
-      set_fact:
-        rules: "{{ rules | default([]) + [new_rule_all_resources] + [new_rule_deployment_resources] }}"
-      with_items: "{{ authentication_authorization_config.self_provisioners }}"
+    - name: Get all policies present for the cluster
+      ansible.builtin.find:
+        paths: "config-management/{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}/kyverno"
+        pattern: "*.yml"
+      register: tasks_to_be_included
+
+    - name: Execute all policies present for the cluster
+      ansible.builtin.include_tasks: "{{ item.path }}"
+      with_items: "{{ tasks_to_be_included.files }}"
       loop_control:
-        loop_var: group
-        label: "{{ group.group_name_description_only }}"
-
-    - name: Enforce labels in customer deployments
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: kyverno.io/v1
-          kind: ClusterPolicy
-          metadata:
-            name: add-customer-labels-for-idp-users
-          spec:
-            validationFailureAction: Enforce
-            background: false
-            rules: "{{ rules }}"
-
-    - name: Warn for ImagePullPolicy for 'latest' image tags to prevent unintended changes
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: kyverno.io/v1
-          kind: ClusterPolicy
-          metadata:
-            name: audit-image-pull-policy
-          spec:
-            validationFailureAction: Audit
-            background: false
-            rules:
-            - name: check-image-pull-policy-pods
-              match:
-                any:
-                - resources:
-                    kinds:
-                    - Pod
-                    operations:
-                    - CREATE
-                    - UPDATE
-              validate:
-                message: "The ImagePullPolicy 'IfNotPresent' is highly recommended for deployments, to prevent unwanted behaviour when an image disappears and to prevent malicious supply-side attacks."
-                pattern:
-                  spec:
-                    containers:
-                      - (image): "*:latest"
-                        imagePullPolicy: "IfNotPresent"
-            - name: check-image-pull-policy-other
-              match:
-                any:
-                - resources:
-                    kinds:
-                    - Deployment
-                    - DeploymentConfig
-                    - StatefulSet
-                    operations:
-                    - CREATE
-                    - UPDATE
-              validate:
-                message: "The ImagePullPolicy 'IfNotPresent' is highly recommended for deployments, to prevent unwanted behaviour when an image disappears and to prevent malicious supply-side attacks."
-                pattern:
-                  spec:
-                    template:
-                      spec:
-                        containers:
-                        - (image): "*:latest"
-                          imagePullPolicy: "IfNotPresent"
+        label: "{{ item.path }}"

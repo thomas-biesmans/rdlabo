@@ -1,0 +1,49 @@
+---
+- name: Warn for ImagePullPolicy for 'latest' image tags to prevent unintended changes
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: kyverno.io/v1
+      kind: ClusterPolicy
+      metadata:
+        name: audit-image-pull-policy
+      spec:
+        validationFailureAction: Audit
+        background: false
+        rules:
+        - name: check-image-pull-policy-pods
+          match:
+            any:
+            - resources:
+                kinds:
+                - Pod
+                operations:
+                - CREATE
+                - UPDATE
+          validate:
+            message: "The ImagePullPolicy 'IfNotPresent' is highly recommended for deployments, to prevent unwanted behaviour when an image disappears and to prevent malicious supply-side attacks."
+            pattern:
+              spec:
+                containers:
+                  - (image): "*:latest"
+                    imagePullPolicy: "IfNotPresent"
+        - name: check-image-pull-policy-other
+          match:
+            any:
+            - resources:
+                kinds:
+                - Deployment
+                - DeploymentConfig
+                - StatefulSet
+                operations:
+                - CREATE
+                - UPDATE
+          validate:
+            message: "The ImagePullPolicy 'IfNotPresent' is highly recommended for deployments, to prevent unwanted behaviour when an image disappears and to prevent malicious supply-side attacks."
+            pattern:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - (image): "*:latest"
+                      imagePullPolicy: "IfNotPresent"

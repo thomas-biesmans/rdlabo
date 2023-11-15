@@ -1,0 +1,75 @@
+---
+- name: Prep label rules for all customer deployments
+  vars:
+    new_rule_all_resources:
+      name: "check-labels-for-idp-users-{{ group.group_customer_label }}"
+      match:
+        any:
+        - resources:
+            kinds:
+            - Deployment
+            - DeploymentConfig
+            - StatefulSet
+            - Service
+            - Route
+            - Namespace
+            - Secret
+            - ConfigMap
+            - PersistentVolume
+            - PersistentVolumeClaim
+            - BuildConfig
+            - ImageStream
+            operations:
+            - CREATE
+            - UPDATE
+          subjects:
+          - kind: Group
+            name: "{{ group.group_name }}"
+      mutate:
+        patchStrategicMerge:
+              metadata:
+                labels:
+                  customer: "{{ group.group_customer_label }}"
+    new_rule_deployment_resources:
+      name: "check-deployment-labels-and-nodeSelector-for-idp-users-{{ group.group_customer_label }}"
+      match:
+        any:
+        - resources:
+            kinds:
+            - Deployment
+            - DeploymentConfig
+            operations:
+            - CREATE
+            - UPDATE
+          subjects:
+          - kind: Group
+            name: "{{ group.group_name }}"
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              metadata:
+                labels:
+                  customer: "{{ group.group_customer_label }}"
+              spec:
+                nodeSelector:
+                  dedicated-node: "{{ group.group_dedicated_node_label | default('Shared') }}"
+  set_fact:
+    rules: "{{ rules | default([]) + [new_rule_all_resources] + [new_rule_deployment_resources] }}"
+  with_items: "{{ authentication_authorization_config.self_provisioners }}"
+  loop_control:
+    loop_var: group
+    label: "{{ group.group_name_description_only }}"
+
+- name: Enforce labels for all customer deployments
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: kyverno.io/v1
+      kind: ClusterPolicy
+      metadata:
+        name: add-customer-labels-for-idp-users
+      spec:
+        validationFailureAction: Enforce
+        background: false
+        rules: "{{ rules }}"
