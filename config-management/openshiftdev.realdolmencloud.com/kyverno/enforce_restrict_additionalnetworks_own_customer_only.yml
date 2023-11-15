@@ -1,0 +1,43 @@
+---
+- name: Reset rules before prep
+  set_fact:
+    rules: []
+    
+- name: Prep networkattachmentdefinition rules for all customer deployments
+  vars:
+    new_rule_ipam:
+      name: "check-nic-{{ ipam.network_nic }}-ipam-{{ ipam.name }}-to-customer-{{ ipam.group_customer_label }}"
+      match:
+        any:
+        - resources:
+            kinds:
+            - NetworkAttachmentDefinition
+            operations:
+            - CREATE
+            - UPDATE
+            master: "{{ ipam.network_nic }}"
+      validate:
+        message: "nic '{{ ipam.network_nic }}' can only be used for namespaces with 'customer' label '{{ ipam.group_customer_label }}'"
+        pattern:
+          metadata:
+            labels:
+              customer: "{{ ipam.group_customer_label }}"
+  set_fact:
+    rules: "{{ rules | default([]) + [new_rule_ipam] }}"
+  with_items: "{{ ipam_config }}"
+  loop_control:
+    loop_var: ipam
+    label: "{{ ipam.name }}"
+
+- name: Enforce NetworkAttachmentDefinitions to proper customers only
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: kyverno.io/v1
+      kind: ClusterPolicy
+      metadata:
+        name: restrict-networkattachmentdefinition-to-proper-customer-only
+      spec:
+        validationFailureAction: Enforce
+        background: false
+        rules: "{{ rules }}"

@@ -121,14 +121,15 @@
         k8s.v1.cni.cncf.io/networks: network-second-nic
       app_nodeSelector:
         dedicated-node: MOCK
+      app_labels:
+        customer: MOCK
       network_name: network-second-nic # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
-      network_nic: "{{ vars.ipam_config.nic2_dhcp.network_nic }}"
-      network_ipam: "{{ vars.ipam_config.nic2_dhcp.network_ipam }}"
+      network_nic: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_dhcp') | map(attribute='network_nic') | first }}"
+      network_ipam: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_dhcp') | map(attribute='network_ipam') | first }}"
       
-
     block:
 
     - name: Add namespace for ToDo app through Ansible using 'dhcp' IPAM
@@ -206,12 +207,14 @@
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
       app_nodeSelector:
         dedicated-node: MOCK
+      app_labels:
+        customer: MOCK
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
-      network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
-      network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
+      network_nic: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_nic') | first }}"
+      network_ipam: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_ipam') | first }}"
 
     block:
 
@@ -305,12 +308,14 @@
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
       app_nodeSelector:
         dedicated-node: MOCK
+      app_labels:
+        customer: "MOCK"
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
-      network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
-      network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
+      network_nic: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_nic') | first }}"
+      network_ipam: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_ipam') | first }}"
       app_multinetworkpolicies:
       # - name: deny-by-default
       #   destination: ""
@@ -406,12 +411,14 @@
         k8s.v1.cni.cncf.io/networks: network-second-nic-whereabouts
       app_nodeSelector:
         dedicated-node: MOCK
+      app_labels:
+        customer: MOCK
       network_name: network-second-nic-whereabouts # lower case alphanumeric, '-', or '.'
       # app_annotations:
       #   k8s.v1.cni.cncf.io/networks: VLAN669-RD Labo Large
       # network_name: VLAN669-RD Labo Large
-      network_nic: "{{ vars.ipam_config.nic2_whereabouts.network_nic }}"
-      network_ipam: "{{ vars.ipam_config.nic2_whereabouts.network_ipam }}"
+      network_nic: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_nic') | first }}"
+      network_ipam: "{{ vars.ipam_config | selectattr('name', 'eq', 'MOCK_nic2_whereabouts') | map(attribute='network_ipam') | first }}"
       app_multinetworkpolicies:
       # - name: deny-by-default
       #   destination: ""

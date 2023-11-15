@@ -24,6 +24,7 @@ kind: NetworkAttachmentDefinition
 metadata:
   name: "{{ network_name }}"
   namespace: "{{ app_namespace | default (omit) }}"
+  labels: {{ app_labels | default (omit) }}
 spec:
   config: |- 
     {

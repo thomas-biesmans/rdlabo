@@ -122,19 +122,21 @@ default_community_vmware_vmware__guest:
       value: 'TBD'
 
 ipam_config:
-  nic2_dhcp:
-    network_nic: ens224
-    network_ipam:
-      type: dhcp
-  nic2_whereabouts:
-    network_nic: ens224
-    network_ipam:
-      type: whereabouts
-      range: 10.202.7.0/24
-      exclude:
-      - 10.202.7.10/32
-      - 10.202.7.11/32
-      - 10.202.7.254/32
+- name: MOCK_nic2_dhcp
+  network_nic: ens224
+  network_ipam:
+    type: dhcp
+  group_customer_label: MOCK
+- name: MOCK_nic2_whereabouts
+  network_nic: ens224
+  network_ipam:
+    type: whereabouts
+    range: 10.202.7.0/24
+    exclude:
+    - 10.202.7.10/32
+    - 10.202.7.11/32
+    - 10.202.7.254/32
+  group_customer_label: MOCK
 
 openshift_data_foundation_config:
   operator_name: odf-operator # Found through oc get packagemanifests -n openshift-marketplace | grep odf

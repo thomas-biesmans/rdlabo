@@ -1,4 +1,8 @@
 ---
+- name: Reset rules before prep
+  set_fact:
+    rules: []
+    
 - name: Prep label rules for all customer deployments
   vars:
     new_rule_all_resources:
