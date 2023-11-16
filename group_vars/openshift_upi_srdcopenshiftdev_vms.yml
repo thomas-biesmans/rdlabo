@@ -224,3 +224,27 @@ kyverno_config:
   helm_version_url: https://get.helm.sh/helm-v3.13.2-linux-amd64.tar.gz # 08/11/2023
   kyverno_version: 3.0.7 # equals v1.10.5, as found per: helm search repo kyverno -l
   kyverno_namespace: openshift-kyverno
+
+ansible_automation_platform_config:
+  operator_name: ansible-automation-platform-operator # Found through: oc get packagemanifests -n openshift-marketplace | grep ansible
+  operator_channel: stable-2.4-cluster-scoped # Found through: oc get packagemanifests/ansible-automation-platform-operator -n openshift-marketplace -o yaml | grep stable
+  operator_csv_nameprefix: aap-operator.v2.4.0  # Found through, but does not need to include build number: oc get packagemanifests/ansible-automation-platform-operator -n openshift-marketplace -o yaml | grep currentCSV
+  operator_automatic_install_plan_approval: true
+  operator_manage_namespaces: ansible-automation-platform
+  operator_subscription_source: redhat-operators
+  operator_catalogsource_setup: false
+  operator_catalogsource_name: redhat-operator-index
+  operator_catalogsource_image: ""
+  operator_catalogsource_image_tag: ""
+  # storage_system_name: ocs-deviceset-thin-1
+  aap_hostname: ansible-automation-platform
+  aap_admin_username: admin
+  aap_admin_email: admin@example.com
+  aap_admin_secret: "{{ aap_admin_password }}"
+  aap_encryption_secret: "{{ aap_secret_encryptionkey }}"
+  aap_broadcast_websocket_secret: "{{ aap_broadcast_websocket_key }}"
+  aap_replicas: 3
+  aap_replicas_web: 2
+  aap_replicas_task: 2
+  aap_postgres_storageclass: ocs-deviceset-thin-1-cephfs
+  aap_auto_update_with_operator: false

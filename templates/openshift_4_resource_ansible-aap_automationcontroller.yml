@@ -1,0 +1,43 @@
+---
+apiVersion: automationcontroller.ansible.com/v1beta1
+kind: AutomationController
+metadata:
+  labels:
+    app: "{{ app_name }}"
+    app.kubernetes.io/component: automationcontroller
+    app.kubernetes.io/managed-by: automationcontroller-operator
+    app.kubernetes.io/operator-version: ''
+    app.kubernetes.io/part-of: "{{ app_name }}"
+  name: "{{ app_name }}"
+  namespace: "{{ app_namespace }}"
+spec:
+  hostname: "{{ app_name }}"
+  admin_user: admin
+  admin_email: admin@example.com
+  admin_password_secret: "{{ aap_admin_password_secret }}"
+  secret_key_secret: "{{ aap_secret_key_secret }}"
+  broadcast_websocket_secret: "{{ aap_broadcast_websocket_secret }}"
+  postgres_storage_class: "{{ aap_postgres_storageclass }}"
+  projects_storage_access_mode: ReadWriteMany
+  projects_storage_size: 8Gi
+  replicas: {{ aap_replicas }}
+  web_replicas: {{ aap_replicas_web }}
+  task_replicas: {{ aap_replicas_task }}
+  no_log: true
+  image_pull_policy: IfNotPresent
+  loadbalancer_ip: ''
+  auto_upgrade: {{ aap_auto_update_with_operator}}
+  task_privileged: false
+  create_preload_data: true
+  garbage_collect_secrets: false
+  loadbalancer_protocol: http
+  ingress_type: Route
+  loadbalancer_port: 80
+  route_tls_termination_mechanism: Edge
+  postgres_keepalives_count: 5
+  postgres_keepalives_idle: 5
+  postgres_keepalives: true
+  postgres_keepalives_interval: 5
+  ipv6_disabled: false
+  set_self_labels: true
+  projects_persistence: false

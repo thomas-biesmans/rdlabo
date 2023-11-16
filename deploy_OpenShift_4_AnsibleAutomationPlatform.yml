@@ -1,0 +1,581 @@
+--- 
+- import_playbook: tasks/check_all.yml
+
+
+- name: Check OpenShift deployment status
+  hosts: openshift_clusters
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Check whether OpenShift cluster exists already
+    tags: always
+    delegate_to: localhost
+    block:
+
+    - name: Check whether OpenShift cluster exists already
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: openshift-kube-apiserver
+      register: namespace_kube_apiserver
+      delay: 10
+      retries: 3
+      ignore_errors: yes
+
+    - name: "Halt when namespace 'openshift-kube-apiserver' does not already exists"
+      fail:
+        msg: "Namespace 'openshift-kube-apiserver' does not already exists, deploy it first!"
+      when:  namespace_kube_apiserver.failed or namespace_kube_apiserver.resources[0].status.phase | default('') != "Active"
+
+
+- name: Deploy Ansible Automation Platform
+  hosts: openshift_bootstrap_nodes
+  gather_facts: false
+  vars_files:
+  - passwords/ansible_vault.yml
+  - vars/network-config.yml
+  - group_vars/vcenter_vms.yml
+  environment:
+    KUBECONFIG: "{{ openshift_config_dir }}/auth/kubeconfig"
+  tasks:
+
+  - name: Deploy Operator
+    tags: deploy_operator
+    delegate_to: localhost
+    block:
+
+    - name: Install Ansible Automation Platform Operator
+      include: tasks/deploy_openshift_operator_install.yml
+      tags: onlyme
+      vars:
+        install_operator_action: install
+        install_operator_name: "{{ ansible_automation_platform_config.operator_name }}"
+        install_operator_namespace: "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        install_operator_catalog: "{{ ansible_automation_platform_config.operator_subscription_source }}"
+        install_operator_packagemanifest_name: "{{ ansible_automation_platform_config.operator_name }}"
+        install_operator_csv_nameprefix: "{{ ansible_automation_platform_config.operator_csv_nameprefix }}"
+        install_operator_install_csv_ignore_error: false
+        install_operator_channel: "{{ ansible_automation_platform_config.operator_channel }}"
+        install_operator_automatic_install_plan_approval: "{{ ansible_automation_platform_config.operator_automatic_install_plan_approval | default(true) }}"
+        install_operator_manage_namespaces:
+        - "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        install_operator_catalogsource_setup: "{{ operator_catalogsource_setup | default(false) }}"
+        install_operator_catalogsource_name: "{{ operator_catalogsource_name | default('') }}"
+        install_operator_catalogsource_image: "{{ operator_catalogsource_image | default('') }}"
+        install_operator_catalogsource_image_tag: "{{ operator_catalogsource_image_tag | default('') }}"
+
+    - name: Add literal secret for AAP admin password
+      vars:
+        app_namespace: "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        app_secret_name: aap-admin-password
+        app_secret_literals:
+          password: "{{ ansible_automation_platform_config.aap_admin_secret | b64encode }}"
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_secret_literal.yml'
+
+    - name: Add literal secret for AAP secret key / encryption key
+      vars:
+        app_namespace: "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        app_secret_name: aap-secret-key
+        app_secret_literals:
+          secret_key: "{{ ansible_automation_platform_config.aap_encryption_secret | b64encode }}"
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_secret_literal.yml'
+
+    - name: Add literal secret for AAP broadcast websocket communication with clients
+      vars:
+        app_namespace: "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        app_secret_name: aap-broadcast-websocket-key
+        app_secret_literals:
+          secret: "{{ ansible_automation_platform_config.aap_broadcast_websocket_secret | b64encode }}"
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_secret_literal.yml'
+
+
+    - name: Add an AAP Automation Controller
+      vars:
+        app_name: "{{ ansible_automation_platform_config.aap_hostname }}"
+        app_namespace: "{{ ansible_automation_platform_config.operator_manage_namespaces }}"
+        aap_admin_password_secret: aap-admin-password
+        aap_secret_key_secret: aap-secret-key
+        aap_broadcast_websocket_secret: aap-broadcast-websocket-key
+        aap_replicas: "{{ ansible_automation_platform_config.aap_replicas }}"
+        aap_replicas_web: "{{ ansible_automation_platform_config.aap_replicas_web }}"
+        aap_replicas_task: "{{ ansible_automation_platform_config.aap_replicas_task }}"
+        aap_postgres_storageclass: "{{ ansible_automation_platform_config.aap_postgres_storageclass }}"
+        aap_auto_update_with_operator: "{{ ansible_automation_platform_config.aap_auto_update_with_operator }}"
+      kubernetes.core.k8s:
+        state: present
+        template: 'templates/openshift_4_resource_ansible-aap_automationcontroller.yml'
+      register: deploy_aap_automationcontroller
+      retries: 72
+      delay: 10
+      until:
+        - deploy_aap_automationcontroller.result.status.phase is defined
+        - deploy_aap_automationcontroller.result.status.phase | length > 0
+        - deploy_aap_automationcontroller.result.status.phase == 'Ready'
+
+  - fail:
+
+  - name: Deploy example projects
+    tags: deploy_example_all, deploy_example_ceph_rbd
+    delegate_to: localhost
+    block:
+
+    - name: Nginx app through Ansible with ceph-rbd and block mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-block-ansible
+        app_container_source: nginxinc/nginx-unprivileged:latest
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_replicas: 1 # More than 1 would require clustered FileSystem. RHEL supports GFS1&2, but as an add-on.
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Block # Generally Block or Filesystem
+        app_pvc_size: 1Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-ceph-rbd"
+        app_volumeDevices:
+        - name: "{{ app_name }}-pv"
+          devicePath: /dev/xvdb
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+        # app_initContainers:
+        # If an FS is needed, then the idea would be to format it in an initContainer, but mounting requires root and a Service Account and something else, so we'll just go for a check with dd.
+        # - name: format-volume
+        #   image: registry.redhat.io/rhel7/rhel-tools
+        #   command:
+        #   - 'sh'
+        #   - '-c'
+        #   - 'mkfs.ext4 /dev/xvdb && mount /dev/xvdb /usr/share/nginx'
+        #   deviceMounts:
+        #   - name: "{{ app_name }}-pv"
+        #     devicePath: /dev/xvdb
+        #   securityContext:
+        #     # privileged: True
+        #     runAsUser: 0
+        # app_sa_name: "{{ app_name }}-sa"
+        # app_sa_scc: rook-ceph
+
+      block:
+
+      - name: Add namespace for Nginx with RBD app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+
+      # - name: Add Service Account
+      #   kubernetes.core.k8s:
+      #     api_version: apps/v1
+      #     template: 'templates/openshift_4_resource_serviceaccount.yml'
+
+      # - name: Add SCC to  Service Account
+      #   kubernetes.core.k8s:
+      #     api_version: apps/v1
+      #     template: 'templates/openshift_4_resource_scc_to_user.yml'
+
+      - name: Add PVC, ignore errors cause it was extended
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+      
+      - name: Get pod names
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: Pod
+          namespace: "{{ app_namespace }}"
+        register: pod_names
+        delay: 10
+        retries: 3
+
+      - name: Show pod name
+        debug:
+          msg: "Pod: {{ pod_names.resources[0].metadata.name }}"
+
+      - name: Query disk Ansible example
+        kubernetes.core.k8s_exec:
+          namespace: "{{ app_namespace }}"
+          pod: "{{ pod_names.resources[0].metadata.name }}"
+          command: "dd if=/dev/urandom of=/dev/xvdb bs=64k count=10000"
+        register: pod_exec
+        until: 'pod_exec.rc is defined and pod_exec.rc == 0 and
+          not ("Reason: Handshake status 500 Internal Server Error" in pod_exec.stderr_lines)'
+        delay: 10
+        retries: 3
+
+      - name: Display exec results
+        debug:
+          msg: "{{ pod_exec.stdout }}\n{{ pod_exec.stderr }}"
+
+
+    - name: Extend Nginx app through Ansible with ceph-rbd and block mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-block-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Block # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-ceph-rbd"
+
+      block:
+
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        delay: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        delay: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
+
+
+    - name: Nginx app through Ansible with ceph-rbd and Filesystem mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-fs-ansible
+        app_container_source: nginxinc/nginx-unprivileged:latest
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_replicas: 1 # Only ReadWriteOnce is supported by ceph-rbd & Filesystem mode, so no multiattach
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteOnce # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 1Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-ceph-rbd"
+        app_volumeMounts:
+        - name: "{{ app_name }}-pv"
+          mountPath: /usr/share/nginx
+        - name: "{{ app_name }}-cm"
+          mountPath: /usr/share/nginx/html
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+        - name: "{{ app_name }}-cm"
+          configMap:
+            name: hello-world-html
+        app_configmaps:
+        - name: hello-world-html
+          data:
+          - key: index.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap!<h1>
+                </body>
+              </html>
+          - key: index2.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap with multiple values!<h1>
+                </body>
+              </html>
+
+      block:
+
+      - name: Add namespace for Nginx with FS app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+
+      - name: Add PVC, ignore errors cause it was extended
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+
+      - name: Add ConfigMaps
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_configmap.yml'
+        with_items: "{{ app_configmaps }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Query ToDo Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "{{ app_url }}"
+          text_to_find: 'Hello World'
+
+
+    - name: Extend Nginx app through Ansible with ceph-rbd and filesystem mode
+      vars:
+        app_name: nginx-rbd
+        app_namespace: test-nginx-ceph-rbd-fs-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteOnce # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-ceph-rbd"
+
+      block:
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        delay: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        delay: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
+
+
+    - name: Nginx app through Ansible with cephfs and Filesystem mode
+      vars:
+        app_name: nginx-fs
+        app_namespace: test-nginx-cephfs-fs-ansible
+        app_container_source: nginxinc/nginx-unprivileged:latest
+        app_service_port: 80
+        app_service_protocol: tcp
+        app_container_port: 8080
+        app_url: "http://{{ app_name }}-{{ app_namespace }}.apps.{{ openshift_cluster_name }}.{{ openshift_cluster_domain }}"
+        app_replicas: 2
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 1Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-cephfs"
+        app_volumeMounts:
+        - name: "{{ app_name }}-pv"
+          mountPath: /usr/share/nginx
+        - name: "{{ app_name }}-cm"
+          mountPath: /usr/share/nginx/html
+        app_volumes:
+        - name: "{{ app_name }}-pv"
+          persistentVolumeClaim:
+            claimName: "{{ app_name }}-pvc"
+        - name: "{{ app_name }}-cm"
+          configMap:
+            name: hello-world-html
+        app_configmaps:
+        - name: hello-world-html
+          data:
+          - key: index.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap!<h1>
+                </body>
+              </html>
+          - key: index2.html
+            value: |
+              <html>
+                <head>
+                </head>
+                <body>
+                  <h1>Hello World, through a ConfigMap with multiple values!<h1>
+                </body>
+              </html>
+
+      block:
+
+      - name: Add namespace for Nginx with FS app through Ansible  
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_namespace.yml'
+
+      - name: Add PVC, ignore errors cause it was extended
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+        ignore_errors: yes
+
+      - name: Set Image reference, allowing variabel precedence
+        set_fact:
+          app_container_source_set_fact: "{{ app_container_source }}"
+
+      - name: Add ConfigMaps
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_configmap.yml'
+        with_items: "{{ app_configmaps }}"
+          
+      - name: Add Deployment
+        kubernetes.core.k8s:
+          api_version: apps/v1
+          template: 'templates/openshift_4_resource_deployment.yml'
+        register: app_deployment
+        until: app_deployment.result.spec.template.spec.containers[0].image == app_container_source_set_fact
+        retries: 5
+        delay: 5
+
+      - name: Add Service
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_service.yml'
+
+      - name: Add Route
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_route.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Query ToDo Ansible example
+        include_tasks: 'tasks/query_url.yml'
+        with_items:
+        - url: "{{ app_url }}"
+          text_to_find: 'Hello World'
+
+
+    - name: Extend Nginx app through Ansible with cephfs and filesystem mode
+      vars:
+        app_name: nginx-fs
+        app_namespace: test-nginx-cephfs-fs-ansible
+        app_pvc_name: "{{ app_name }}-pvc"
+        app_pvc_accessmode: ReadWriteMany # ReadWriteOnce, ReadWriteMany, ReadOnlyMany, based on storageClass & volumeMode
+        app_pvc_volumeMode: Filesystem # Generally Block or Filesystem
+        app_pvc_size: 2Gi
+        app_pvc_storageClassName: "{{ ansible_automation_platform_config.storage_system_name }}-cephfs"
+
+      block:
+
+      - name: Get PVC sizes pre change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_pre
+        delay: 10
+        retries: 3
+
+      - name: Extend PVC
+        kubernetes.core.k8s:
+          state: present
+          template: 'templates/openshift_4_resource_persistentvolumeclaim.yml'
+
+      - name: Waiting 5 seconds
+        pause:
+          seconds: 5
+
+      - name: Get PVC sizes post change
+        kubernetes.core.k8s_info:
+          api_version: v1
+          kind: PersistentVolumeClaim
+          namespace: "{{ app_namespace }}"
+        register: pvc_sizes_post
+        delay: 10
+        retries: 3
+        
+      - name: Show PVC sizes
+        debug:
+          msg: "PVC: {{ pvc_sizes_pre.resources[0].metadata.name }} - 
+            Pre {{ pvc_sizes_pre.resources[0].status.capacity.storage }} - 
+            Post {{ pvc_sizes_post.resources[0].status.capacity.storage }}"
