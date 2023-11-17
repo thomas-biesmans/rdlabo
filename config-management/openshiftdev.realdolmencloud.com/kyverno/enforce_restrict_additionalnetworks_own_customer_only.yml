@@ -16,6 +16,12 @@
             - CREATE
             - UPDATE
             master: "{{ ipam.network_nic }}"
+      exclude:
+        any:
+        - resources:
+            namespaces:
+            - openshift*
+            - default
       validate:
         message: "nic '{{ ipam.network_nic }}' can only be used for namespaces with 'customer' label '{{ ipam.group_customer_label }}'"
         pattern:
