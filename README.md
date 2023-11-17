@@ -36,6 +36,22 @@ Make sure the Ansible requirements are installed next with the following command
     python3.9 -m pip install ttp --user
     python3.9 -m pip install netaddr --user
     
+    # For Python 3.11
+    python3.11 -m ensurepip --default-pip
+    python3.11 -m pip install --upgrade pip
+    python3.11 -m pip install packaging --user
+    python3.11 -m pip install jinja2 --user
+    python3.11 -m pip install resolvelib==0.8.1 --user
+    python3.11 -m pip install -r ~/.ansible/collections/ansible_collections/community/vmware/requirements.txt --user
+    python3.11 -m pip uninstall pyVmomi
+    python3.11 -m pip install pyVmomi==7.0.3 --user
+    python3.11 -m pip install -r ~/.ansible/collections/ansible_collections/kubernetes/core/requirements.txt --user
+    python3.11 -m pip install pywinrm --user
+    python3.11 -m pip install nsnitro --user
+    python3.11 -m pip install jmespath --user
+    python3.11 -m pip install ansible-pylibssh --user
+    python3.11 -m pip install ttp --user
+    python3.11 -m pip install netaddr --user
 
 Versions used in the OKD pass:
  - ovirt.ovirt:1.6.6

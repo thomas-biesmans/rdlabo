@@ -10,6 +10,7 @@
       spec:
         validationFailureAction: Audit
         background: false
+        schemaValidation: false
         rules:
         - name: check-image-pull-policy-pods
           match:

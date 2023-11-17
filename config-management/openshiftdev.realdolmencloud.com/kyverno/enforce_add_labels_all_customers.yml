@@ -76,4 +76,5 @@
       spec:
         validationFailureAction: Enforce
         background: false
+        schemaValidation: false
         rules: "{{ rules }}"
