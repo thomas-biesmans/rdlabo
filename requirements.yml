@@ -21,6 +21,7 @@ collections:
 - arubanetworks.aos_switch
 - fortinet.fortios
 - community.crypto
+- awx.awx
 
 # Install with:
 # - ansible-galaxy collection install -r requirements.yml
